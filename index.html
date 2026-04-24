@@ -1,4 +1,4 @@
-<!-- FILE: index.html -->
+/* FILE: index.html */
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -20,69 +20,105 @@
 
 <div id="app">
 
+<!-- HEADER -->
 <header class="app-header">
-<div class="brand-wrap">
-<div class="brand-logo">M</div>
-<div>
-<h1 class="brand-title">Myntra Ads Analytics</h1>
-<p class="brand-subtitle">Performance Control Center</p>
-</div>
-</div>
 
-<div class="header-actions">
-<button class="ghost-btn" id="refreshBtn">Refresh</button>
-<button class="primary-btn" id="consoleToggleBtn">Console</button>
-</div>
+  <div class="brand-wrap">
+    <div class="brand-logo">M</div>
+
+    <div>
+      <h1 class="brand-title">Myntra Ads Analytics</h1>
+      <p class="brand-subtitle">Performance Control Center</p>
+    </div>
+  </div>
+
+  <div class="header-actions">
+    <button class="ghost-btn" id="refreshBtn">Refresh</button>
+  </div>
+
 </header>
 
+<!-- FILTER BAR -->
 <section class="filter-bar">
-<div class="filter-item">
-<label>Year</label>
-<select id="yearFilter"></select>
-</div>
 
-<div class="filter-item">
-<label>Month</label>
-<select id="monthFilter"></select>
-</div>
+  <div class="filter-item">
+    <label>Year</label>
+    <select id="yearFilter"></select>
+  </div>
 
-<div class="filter-item">
-<label>Start Date</label>
-<input type="date" id="startDate">
-</div>
+  <div class="filter-item">
+    <label>Month</label>
+    <select id="monthFilter"></select>
+  </div>
 
-<div class="filter-item">
-<label>End Date</label>
-<input type="date" id="endDate">
-</div>
+  <div class="filter-item">
+    <label>Start Date</label>
+    <input type="date" id="startDate" />
+  </div>
 
-<div class="filter-actions">
-<button class="primary-btn" id="applyBtn">Apply</button>
-</div>
+  <div class="filter-item">
+    <label>End Date</label>
+    <input type="date" id="endDate" />
+  </div>
+
+  <div class="filter-actions">
+    <button class="primary-btn" id="applyBtn">Apply</button>
+  </div>
+
 </section>
 
+<!-- TABS -->
 <nav class="tabs-wrap">
-<button class="tab active">Dashboard</button>
-<button class="tab">Campaign</button>
-<button class="tab">Adgroup</button>
-<button class="tab">Style</button>
-<button class="tab">Analysis</button>
-<button class="tab">Export Center</button>
+  <button class="tab active">Dashboard</button>
+  <button class="tab">Campaign</button>
+  <button class="tab">Adgroup</button>
+  <button class="tab">Style</button>
+  <button class="tab">Analysis</button>
+  <button class="tab">Export Center</button>
 </nav>
 
+<!-- PAGE -->
 <main class="page-wrap"></main>
 
+<!-- Existing console kept hidden for compatibility -->
 <aside class="dev-console hidden" id="devConsole">
-<div class="console-head">
-<span>Developer Console</span>
-<button id="closeConsole">✕</button>
-</div>
-<div class="console-body"></div>
+  <div class="console-head">
+    <span>Developer Console</span>
+    <button id="closeConsole">✕</button>
+  </div>
+  <div class="console-body"></div>
 </aside>
 
 </div>
 
-<script type="module" src="./js/core/app.js?v=2"></script>
+<!-- APP -->
+<script type="module" src="./js/core/app.js?v=3"></script>
+
+<!-- ERUDA DEVTOOLS -->
+<script>
+(function(){
+
+  const isGithub =
+    location.hostname.includes("github.io") ||
+    location.hostname.includes("localhost") ||
+    location.hostname.includes("127.0.0.1");
+
+  if(!isGithub) return;
+
+  const script = document.createElement("script");
+
+  script.src = "https://cdn.jsdelivr.net/npm/eruda";
+
+  script.onload = function(){
+    eruda.init({
+      theme: "Dark"
+    });
+  };
+
+  document.body.appendChild(script);
+
+})();
+</script>
 
 </body>
 </html>
