@@ -1,137 +1,108 @@
 // FILE: js/core/app.js
 
 import { CONFIG } from "./config.js";
-import {
-  state,
-  setReportData,
-  setMeta,
-  setLoading
-} from "./state.js";
-
+import { setReportData } from "./state.js";
 import { fetchCSV } from "../data/fetcher.js";
 import { initConsole, log } from "../ui/console.js";
-import { initTabs, activateTab } from "../ui/tabs.js";
+import { initTabs } from "../ui/tabs.js";
 import { renderDashboard } from "../dashboard/dashboardPage.js";
 
-/* ---------------------------------- */
-/* Boot App */
-/* ---------------------------------- */
+/* -------------------------- */
+/* BOOT */
+/* -------------------------- */
 
-document.addEventListener("DOMContentLoaded", initApp);
+document.addEventListener("DOMContentLoaded", bootApp);
 
-/* ---------------------------------- */
-/* Init */
-/* ---------------------------------- */
-
-async function initApp() {
+async function bootApp() {
 
   try {
 
     initConsole();
+    log("INFO", "App boot started");
 
-    log("INFO", `${CONFIG.APP_NAME} v${CONFIG.VERSION}`);
+    fillFilters();
 
-    bindHeaderActions();
+    bindActions();
 
     initTabs();
 
-    await loadInitialData();
+    await loadCDR();
 
-    activateTab("dashboard");
+    renderDashboard();
 
-    state.appReady = true;
+    log("SUCCESS", "App ready");
 
-    log("SUCCESS", "Application ready");
+  } catch (err) {
 
-  } catch (error) {
-
-    console.error(error);
-
-    log("ERROR", error.message);
+    console.error(err);
+    log("ERROR", err.message);
   }
 }
 
-/* ---------------------------------- */
-/* Header Buttons */
-/* ---------------------------------- */
+/* -------------------------- */
+/* FILTERS */
+/* -------------------------- */
 
-function bindHeaderActions() {
+function fillFilters() {
+
+  const yearEl = document.getElementById("yearFilter");
+  const monthEl = document.getElementById("monthFilter");
+
+  if (yearEl) {
+    yearEl.innerHTML = `
+      <option>2026</option>
+      <option>2025</option>
+    `;
+  }
+
+  if (monthEl) {
+
+    const months = [
+      "January","February","March","April",
+      "May","June","July","August",
+      "September","October","November","December"
+    ];
+
+    monthEl.innerHTML = months.map(m =>
+      `<option>${m}</option>`
+    ).join("");
+
+    monthEl.value = months[new Date().getMonth()];
+  }
+}
+
+/* -------------------------- */
+/* ACTIONS */
+/* -------------------------- */
+
+function bindActions() {
 
   const refreshBtn = document.getElementById("refreshBtn");
+  const applyBtn = document.getElementById("applyBtn");
 
   if (refreshBtn) {
-    refreshBtn.addEventListener("click", refreshApp);
+    refreshBtn.addEventListener("click", loadCDR);
+  }
+
+  if (applyBtn) {
+    applyBtn.addEventListener("click", async () => {
+      await loadCDR();
+      renderDashboard();
+    });
   }
 }
 
-/* ---------------------------------- */
-/* Initial Data Load */
-/* Dashboard first priority
-/* ---------------------------------- */
+/* -------------------------- */
+/* DATA */
+/* -------------------------- */
 
-async function loadInitialData() {
+async function loadCDR() {
 
-  setLoading(true);
+  log("INFO", "Loading CDR...");
 
-  log("INFO", "Loading CDR report...");
+  const rows = await fetchCSV(CONFIG.REPORT_URLS.CDR);
 
-  const cdrRows = await fetchCSV(CONFIG.REPORT_URLS.CDR);
+  setReportData("cdr", rows);
 
-  setReportData("cdr", cdrRows);
-
-  setMeta({
-    cdrLoaded: true,
-    lastRefreshAt: new Date().toISOString()
-  });
-
-  log("SUCCESS", `CDR Loaded (${cdrRows.length} rows)`);
-
-  renderDashboard();
-
-  /* Background load */
-  loadSecondaryReports();
-
-  setLoading(false);
-}
-
-/* ---------------------------------- */
-/* Lazy Load Other Reports */
-/* ---------------------------------- */
-
-async function loadSecondaryReports() {
-
-  log("INFO", "Loading CPR report...");
-
-  const cprRows = await fetchCSV(CONFIG.REPORT_URLS.CPR);
-
-  setReportData("cpr", cprRows);
-
-  setMeta({ cprLoaded: true });
-
-  log("SUCCESS", `CPR Loaded (${cprRows.length} rows)`);
-
-  log("INFO", "Loading PPR report...");
-
-  const pprRows = await fetchCSV(CONFIG.REPORT_URLS.PPR);
-
-  setReportData("ppr", pprRows);
-
-  setMeta({ pprLoaded: true });
-
-  log("SUCCESS", `PPR Loaded (${pprRows.length} rows)`);
-}
-
-/* ---------------------------------- */
-/* Refresh */
-/* ---------------------------------- */
-
-async function refreshApp() {
-
-  log("INFO", "Manual refresh started");
-
-  await loadInitialData();
-
-  activateTab(state.activeTab);
-
-  log("SUCCESS", "Refresh complete");
+  log("SUCCESS", `CDR rows: ${rows.length}`);
 }
