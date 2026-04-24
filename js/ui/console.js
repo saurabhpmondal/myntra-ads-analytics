@@ -1,145 +1,69 @@
 // FILE: js/ui/console.js
 
-import { state, pushLog, clearLogs } from "../core/state.js";
+let panel;
+let body;
+let toggleBtn;
+let closeBtn;
 
-/* ---------------------------------- */
-/* Elements */
-/* ---------------------------------- */
-
-let consoleWrap = null;
-let consoleBody = null;
-let toggleBtn = null;
-let closeBtn = null;
-
-/* ---------------------------------- */
-/* Init Console */
-/* ---------------------------------- */
+/* -------------------------- */
+/* INIT */
+/* -------------------------- */
 
 export function initConsole() {
 
-  consoleWrap = document.getElementById("devConsole");
-  consoleBody = document.querySelector(".console-body");
+  panel = document.getElementById("devConsole");
+  body = document.querySelector(".console-body");
   toggleBtn = document.getElementById("consoleToggleBtn");
   closeBtn = document.getElementById("closeConsole");
 
-  if (!consoleWrap || !consoleBody) return;
-
-  bindEvents();
-
-  captureWindowErrors();
-
-  renderConsole();
-
-  pushLog("INFO", "Developer console ready");
-  renderConsole();
-}
-
-/* ---------------------------------- */
-/* Events */
-/* ---------------------------------- */
-
-function bindEvents() {
+  if (!panel || !body) return;
 
   if (toggleBtn) {
-    toggleBtn.addEventListener("click", toggleConsole);
+    toggleBtn.onclick = toggleConsole;
   }
 
   if (closeBtn) {
-    closeBtn.addEventListener("click", closeConsole);
+    closeBtn.onclick = closeConsole;
   }
+
+  window.onerror = function(msg, file, line) {
+    log("ERROR", `${msg} @ line ${line}`);
+  };
+
+  window.onunhandledrejection = function(e) {
+    log("ERROR", `Promise: ${e.reason}`);
+  };
+
+  log("INFO", "Console initialized");
 }
 
-/* ---------------------------------- */
-/* Open / Close */
-/* ---------------------------------- */
+/* -------------------------- */
+/* TOGGLE */
+/* -------------------------- */
 
-export function toggleConsole() {
-
-  if (!consoleWrap) return;
-
-  consoleWrap.classList.toggle("hidden");
+function toggleConsole() {
+  panel.classList.toggle("hidden");
 }
 
-export function closeConsole() {
-
-  if (!consoleWrap) return;
-
-  consoleWrap.classList.add("hidden");
+function closeConsole() {
+  panel.classList.add("hidden");
 }
 
-/* ---------------------------------- */
-/* Render Logs */
-/* ---------------------------------- */
+/* -------------------------- */
+/* LOGGER */
+/* -------------------------- */
 
-export function renderConsole() {
+export function log(type = "INFO", message = "") {
 
-  if (!consoleBody) return;
+  if (!body) return;
 
-  const logs = [...state.logs].reverse();
+  const time = new Date().toLocaleTimeString();
 
-  consoleBody.innerHTML = logs.map(log => {
+  const row = document.createElement("div");
 
-    const color =
-      log.type === "ERROR" ? "#f87171" :
-      log.type === "SUCCESS" ? "#4ade80" :
-      log.type === "WARN" ? "#fbbf24" :
-      "#cbd5e1";
+  row.style.marginBottom = "8px";
 
-    return `
-      <div style="color:${color}">
-        [${log.time}] [${log.type}] ${log.message}
-      </div>
-    `;
-  }).join("");
+  row.innerHTML = `[${time}] <b>${type}</b> ${message}`;
 
-  consoleBody.scrollTop = 0;
-}
-
-/* ---------------------------------- */
-/* Public Log Helper */
-/* ---------------------------------- */
-
-export function log(type, message) {
-
-  pushLog(type, message);
-
-  renderConsole();
-}
-
-/* ---------------------------------- */
-/* Clear */
-/* ---------------------------------- */
-
-export function resetConsole() {
-
-  clearLogs();
-
-  renderConsole();
-}
-
-/* ---------------------------------- */
-/* Capture JS Errors */
-/* ---------------------------------- */
-
-function captureWindowErrors() {
-
-  window.addEventListener("error", (event) => {
-
-    pushLog(
-      "ERROR",
-      `${event.message} (${event.filename}:${event.lineno})`
-    );
-
-    renderConsole();
-  });
-
-  window.addEventListener("unhandledrejection", (event) => {
-
-    pushLog(
-      "ERROR",
-      `Promise Rejection: ${event.reason}`
-    );
-
-    renderConsole();
-  });
+  body.prepend(row);
 }
