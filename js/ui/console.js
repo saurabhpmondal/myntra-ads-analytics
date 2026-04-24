@@ -5,9 +5,9 @@ let body;
 let toggleBtn;
 let closeBtn;
 
-/* -------------------------- */
+/* ---------------------------------- */
 /* INIT */
-/* -------------------------- */
+/* ---------------------------------- */
 
 export function initConsole() {
 
@@ -18,52 +18,58 @@ export function initConsole() {
 
   if (!panel || !body) return;
 
-  if (toggleBtn) {
-    toggleBtn.onclick = toggleConsole;
-  }
+  if (toggleBtn) toggleBtn.onclick = togglePanel;
+  if (closeBtn) closeBtn.onclick = closePanel;
 
-  if (closeBtn) {
-    closeBtn.onclick = closeConsole;
-  }
+  captureErrors();
 
-  window.onerror = function(msg, file, line) {
-    log("ERROR", `${msg} @ line ${line}`);
-  };
-
-  window.onunhandledrejection = function(e) {
-    log("ERROR", `Promise: ${e.reason}`);
-  };
-
-  log("INFO", "Console initialized");
+  log("INFO", "Console ready");
 }
 
-/* -------------------------- */
-/* TOGGLE */
-/* -------------------------- */
+/* ---------------------------------- */
+/* PANEL */
+/* ---------------------------------- */
 
-function toggleConsole() {
+function togglePanel() {
   panel.classList.toggle("hidden");
 }
 
-function closeConsole() {
+function closePanel() {
   panel.classList.add("hidden");
 }
 
-/* -------------------------- */
+/* ---------------------------------- */
 /* LOGGER */
-/* -------------------------- */
+/* ---------------------------------- */
 
 export function log(type = "INFO", message = "") {
 
   if (!body) return;
 
-  const time = new Date().toLocaleTimeString();
-
   const row = document.createElement("div");
 
-  row.style.marginBottom = "8px";
+  const tm = new Date().toLocaleTimeString();
 
-  row.innerHTML = `[${time}] <b>${type}</b> ${message}`;
+  const color =
+    type === "ERROR" ? "#f87171" :
+    type === "SUCCESS" ? "#4ade80" :
+    type === "WARN" ? "#fbbf24" :
+    "#cbd5e1";
+
+  row.style.color = color;
+  row.style.marginBottom = "8px";
+  row.style.lineHeight = "1.45";
+
+  row.textContent = `[${tm}] ${type}: ${message}`;
 
   body.prepend(row);
 }
+
+/* ---------------------------------- */
+/* GLOBAL ERRORS */
+/* ---------------------------------- */
+
+function captureErrors() {
+
+  window.onerror = function(msg, file, line) {
+    log("ERROR
