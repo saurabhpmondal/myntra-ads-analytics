@@ -1,148 +1,59 @@
 // FILE: js/ui/tabs.js
 
-import { state, setActiveTab } from "../core/state.js";
 import { renderDashboard } from "../dashboard/dashboardPage.js";
-import { log } from "./console.js";
 
-/* ---------------------------------- */
-/* Init Tabs */
-/* ---------------------------------- */
+/* -------------------------- */
+/* INIT TABS */
+/* -------------------------- */
 
 export function initTabs() {
 
   const tabs = document.querySelectorAll(".tab");
 
-  if (!tabs.length) return;
+  tabs.forEach(btn => {
 
-  tabs.forEach(tab => {
+    btn.onclick = () => {
 
-    tab.addEventListener("click", () => {
+      tabs.forEach(x => x.classList.remove("active"));
+      btn.classList.add("active");
 
-      const label = tab.textContent.trim();
+      const name = btn.textContent.trim();
 
-      const tabId = getTabId(label);
-
-      activateTab(tabId);
-    });
-
+      routeTab(name);
+    };
   });
 }
 
-/* ---------------------------------- */
-/* Activate Tab */
-/* ---------------------------------- */
+/* -------------------------- */
+/* ROUTER */
+/* -------------------------- */
 
-export function activateTab(tabId = "dashboard") {
-
-  setActiveTab(tabId);
-
-  updateTabUI();
-
-  renderActivePage();
-
-  log("INFO", `Tab changed: ${tabId}`);
-}
-
-/* ---------------------------------- */
-/* UI Active State */
-/* ---------------------------------- */
-
-function updateTabUI() {
-
-  const tabs = document.querySelectorAll(".tab");
-
-  tabs.forEach(tab => {
-
-    const label = tab.textContent.trim();
-    const tabId = getTabId(label);
-
-    tab.classList.toggle(
-      "active",
-      tabId === state.activeTab
-    );
-  });
-}
-
-/* ---------------------------------- */
-/* Page Router */
-/* ---------------------------------- */
-
-function renderActivePage() {
-
-  switch (state.activeTab) {
-
-    case "dashboard":
-      renderDashboard();
-      break;
-
-    case "campaign":
-      renderComingSoon("Campaign Report");
-      break;
-
-    case "adgroup":
-      renderComingSoon("Adgroup Report");
-      break;
-
-    case "style":
-      renderComingSoon("Style Report");
-      break;
-
-    case "analysis":
-      renderComingSoon("Analysis Engine");
-      break;
-
-    case "export":
-      renderComingSoon("Export Center");
-      break;
-
-    default:
-      renderDashboard();
-  }
-}
-
-/* ---------------------------------- */
-/* Helpers */
-/* ---------------------------------- */
-
-function getTabId(label = "") {
-
-  const map = {
-    "Dashboard": "dashboard",
-    "Campaign": "campaign",
-    "Adgroup": "adgroup",
-    "Style": "style",
-    "Analysis": "analysis",
-    "Export Center": "export"
-  };
-
-  return map[label] || "dashboard";
-}
-
-/* ---------------------------------- */
-/* Temporary Pages */
-/* ---------------------------------- */
-
-function renderComingSoon(title) {
+function routeTab(name) {
 
   const page = document.querySelector(".page-wrap");
 
   if (!page) return;
 
+  if (name === "Dashboard") {
+    renderDashboard();
+    return;
+  }
+
   page.innerHTML = `
     <section class="panel-card">
       <div class="panel-head">
-        <h3>${title}</h3>
+        <h3>${name}</h3>
       </div>
 
       <div style="
-        min-height:280px;
+        min-height:300px;
         display:grid;
         place-items:center;
         color:#64748b;
         font-weight:700;
         font-size:18px;
       ">
-        ${title} Coming Soon
+        ${name} Module Ready For Build
       </div>
     </section>
   `;
