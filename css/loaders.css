@@ -1,0 +1,115 @@
+/* FILE: css/loaders.css */
+
+/* shimmer animation */
+@keyframes shimmerMove{
+  0%{
+    background-position:-500px 0;
+  }
+  100%{
+    background-position:500px 0;
+  }
+}
+
+.shimmer{
+  position:relative;
+  overflow:hidden;
+
+  background:linear-gradient(
+    90deg,
+    #f3f4f6 0%,
+    #ffffff 40%,
+    #f3f4f6 80%
+  );
+
+  background-size:800px 100%;
+  animation:shimmerMove 1.35s linear infinite;
+}
+
+/* generic skeleton block */
+.skeleton{
+  border-radius:14px;
+  min-height:18px;
+}
+
+.skeleton-row{
+  display:grid;
+  gap:10px;
+}
+
+.skeleton-card{
+  height:110px;
+  border-radius:20px;
+}
+
+.skeleton-chart{
+  height:320px;
+  border-radius:18px;
+}
+
+.skeleton-table{
+  height:420px;
+  border-radius:18px;
+}
+
+/* loading spinner */
+@keyframes spin{
+  from{ transform:rotate(0deg); }
+  to{ transform:rotate(360deg); }
+}
+
+.loader-spinner{
+  width:24px;
+  height:24px;
+  border-radius:50%;
+  border:3px solid #e5e7eb;
+  border-top-color:var(--brand);
+  animation:spin .8s linear infinite;
+}
+
+/* inline loader text */
+.loader-inline{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:13px;
+  font-weight:700;
+  color:var(--text-soft);
+}
+
+/* page center loader */
+.page-loader{
+  min-height:320px;
+  display:grid;
+  place-items:center;
+}
+
+/* top progress bar future use */
+@keyframes progressSlide{
+  0%{ transform:translateX(-100%); }
+  100%{ transform:translateX(300%); }
+}
+
+.top-progress{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:3px;
+  background:transparent;
+  z-index:999;
+  overflow:hidden;
+}
+
+.top-progress::after{
+  content:"";
+  position:absolute;
+  inset:0 auto 0 0;
+  width:35%;
+  background:linear-gradient(90deg,var(--brand),#ff6b91);
+  animation:progressSlide 1.2s ease infinite;
+}
+
+/* hidden utility */
+.is-hidden{
+  display:none !important;
+}
