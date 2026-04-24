@@ -1,55 +1,110 @@
 // FILE: js/core/app.js
 
+import { fetchCSV } from "../data/fetcher.js";
 import { renderDashboard } from "../dashboard/dashboardPage.js";
 
-document.addEventListener("DOMContentLoaded", boot);
+/* ---------------------------------- */
+/* CONFIG */
+/* ---------------------------------- */
 
-function boot(){
+const CDR_URL =
+"https://docs.google.com/spreadsheets/d/e/2PACX-1vTGOsj66mo-CpS5eTerQgEcjYvr5GuOkQUIQ_9Sy4bwFu6FjGv9wBvCZn5UQBcFB7M-dcuJdbxMxSnj/pub?gid=1175680150&single=true&output=csv";
 
-console.log("BOOT START");
+/* ---------------------------------- */
+/* BOOT */
+/* ---------------------------------- */
 
-try{
+document.addEventListener("DOMContentLoaded", initApp);
 
-fillFilters();
+async function initApp() {
 
-bindButtons();
+  buildFilters();
 
-renderDashboard();
+  bindActions();
 
-console.log("DASHBOARD RENDERED");
-
-}catch(err){
-
-console.error(err);
-
-document.querySelector(".page-wrap").innerHTML =
-'<div style="padding:30px;color:red;font-weight:700;">ERROR: '+err.message+'</div>';
-
-}
+  await loadDashboard();
 }
 
-function fillFilters(){
+/* ---------------------------------- */
+/* FILTERS */
+/* ---------------------------------- */
 
-const y=document.getElementById("yearFilter");
-const m=document.getElementById("monthFilter");
+function buildFilters() {
 
-y.innerHTML='<option>2026</option><option>2025</option>';
+  const yearEl = document.getElementById("yearFilter");
+  const monthEl = document.getElementById("monthFilter");
 
-m.innerHTML=`
-<option value="1">January</option>
-<option value="2">February</option>
-<option value="3">March</option>
-<option value="4">April</option>
-`;
+  const years = [2026, 2025, 2024];
 
+  yearEl.innerHTML = years.map(y =>
+    `<option value="${y}">${y}</option>`
+  ).join("");
+
+  const months = [
+    "January","February","March","April",
+    "May","June","July","August",
+    "September","October","November","December"
+  ];
+
+  monthEl.innerHTML = months.map((m, i) =>
+    `<option value="${i+1}">${m}</option>`
+  ).join("");
+
+  monthEl.value = new Date().getMonth() + 1;
 }
 
-function bindButtons(){
+/* ---------------------------------- */
+/* ACTIONS */
+/* ---------------------------------- */
 
-const r=document.getElementById("refreshBtn");
-const a=document.getElementById("applyBtn");
+function bindActions() {
 
-if(r) r.onclick=()=>location.reload();
-if(a) a.onclick=()=>renderDashboard();
+  document.getElementById("applyBtn").onclick = async () => {
+    await loadDashboard();
+  };
 
+  document.getElementById("refreshBtn").onclick = async () => {
+    await loadDashboard();
+  };
+}
+
+/* ---------------------------------- */
+/* LOAD */
+/* ---------------------------------- */
+
+async function loadDashboard() {
+
+  const rows = await fetchCSV(CDR_URL);
+
+  const filtered = applyFilters(rows);
+
+  renderDashboard(filtered);
+}
+
+/* ---------------------------------- */
+/* FILTER ENGINE */
+/* uses year month date columns
+/* ---------------------------------- */
+
+function applyFilters(rows = []) {
+
+  const year = document.getElementById("yearFilter").value;
+  const month = document.getElementById("monthFilter").value;
+  const start = document.getElementById("startDate").value;
+  const end = document.getElementById("endDate").value;
+
+  return rows.filter(r => {
+
+    const rowYear = String(r.year || "").trim();
+    const rowMonth = String(r.month || "").trim();
+    const rowDate = String(r.date || "").trim();
+
+    if (year && rowYear !== year) return false;
+    if (month && Number(rowMonth) !== Number(month)) return false;
+
+    if (start && rowDate < start) return false;
+    if (end && rowDate > end) return false;
+
+    return true;
+  });
 }
