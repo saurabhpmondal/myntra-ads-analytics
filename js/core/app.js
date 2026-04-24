@@ -1,0 +1,1 @@
+console.log('Myntra Ads Analytics app booted');
