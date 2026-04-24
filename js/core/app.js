@@ -1,146 +1,55 @@
 // FILE: js/core/app.js
 
-import { CONFIG } from "./config.js";
-import { setReportData } from "./state.js";
-import { fetchCSV } from "../data/fetcher.js";
-import { initConsole, log } from "../ui/console.js";
-import { initTabs } from "../ui/tabs.js";
 import { renderDashboard } from "../dashboard/dashboardPage.js";
 
-/* ---------------------------------- */
-/* BOOT */
-/* ---------------------------------- */
+document.addEventListener("DOMContentLoaded", boot);
 
-document.addEventListener("DOMContentLoaded", initApp);
+function boot(){
 
-async function initApp() {
+console.log("BOOT START");
 
-  try {
+try{
 
-    initConsole();
-    log("INFO", "Boot started");
+fillFilters();
 
-    buildFilters();
+bindButtons();
 
-    bindActions();
+renderDashboard();
 
-    initTabs();
+console.log("DASHBOARD RENDERED");
 
-    await loadDashboard();
+}catch(err){
 
-    log("SUCCESS", "Dashboard ready");
+console.error(err);
 
-  } catch (err) {
+document.querySelector(".page-wrap").innerHTML =
+'<div style="padding:30px;color:red;font-weight:700;">ERROR: '+err.message+'</div>';
 
-    console.error(err);
-    log("ERROR", err.message);
-  }
+}
 }
 
-/* ---------------------------------- */
-/* FILTER UI */
-/* ---------------------------------- */
+function fillFilters(){
 
-function buildFilters() {
+const y=document.getElementById("yearFilter");
+const m=document.getElementById("monthFilter");
 
-  const yearEl = document.getElementById("yearFilter");
-  const monthEl = document.getElementById("monthFilter");
+y.innerHTML='<option>2026</option><option>2025</option>';
 
-  const years = [2026, 2025, 2024];
+m.innerHTML=`
+<option value="1">January</option>
+<option value="2">February</option>
+<option value="3">March</option>
+<option value="4">April</option>
+`;
 
-  if (yearEl) {
-    yearEl.innerHTML = years.map(y =>
-      `<option value="${y}">${y}</option>`
-    ).join("");
-  }
-
-  const months = [
-    "January","February","March","April",
-    "May","June","July","August",
-    "September","October","November","December"
-  ];
-
-  if (monthEl) {
-    monthEl.innerHTML = months.map((m, i) =>
-      `<option value="${i + 1}">${m}</option>`
-    ).join("");
-
-    monthEl.value = new Date().getMonth() + 1;
-  }
 }
 
-/* ---------------------------------- */
-/* ACTIONS */
-/* ---------------------------------- */
+function bindButtons(){
 
-function bindActions() {
+const r=document.getElementById("refreshBtn");
+const a=document.getElementById("applyBtn");
 
-  const applyBtn = document.getElementById("applyBtn");
-  const refreshBtn = document.getElementById("refreshBtn");
+if(r) r.onclick=()=>location.reload();
+if(a) a.onclick=()=>renderDashboard();
 
-  if (applyBtn) {
-    applyBtn.onclick = async () => {
-      await loadDashboard();
-    };
-  }
-
-  if (refreshBtn) {
-    refreshBtn.onclick = async () => {
-      await loadDashboard();
-    };
-  }
-}
-
-/* ---------------------------------- */
-/* LOAD + FILTER */
-/* Uses date / month / year columns
-/* ---------------------------------- */
-
-async function loadDashboard() {
-
-  log("INFO", "Loading CDR");
-
-  const rows = await fetchCSV(CONFIG.REPORT_URLS.CDR);
-
-  log("INFO", `Rows fetched: ${rows.length}`);
-
-  const filtered = applyFilters(rows);
-
-  setReportData("cdr", filtered);
-
-  renderDashboard();
-
-  log("SUCCESS", `Rows after filter: ${filtered.length}`);
-}
-
-/* ---------------------------------- */
-/* FILTER ENGINE */
-/* ---------------------------------- */
-
-function applyFilters(rows = []) {
-
-  const yearVal = document.getElementById("yearFilter")?.value || "";
-  const monthVal = document.getElementById("monthFilter")?.value || "";
-
-  const startVal = document.getElementById("startDate")?.value || "";
-  const endVal = document.getElementById("endDate")?.value || "";
-
-  return rows.filter(row => {
-
-    const rowYear = String(row.year || "").trim();
-    const rowMonth = String(row.month || "").trim();
-    const rowDate = String(row.date || "").trim();
-
-    /* Year */
-    if (yearVal && rowYear !== yearVal) return false;
-
-    /* Month */
-    if (monthVal && Number(rowMonth) !== Number(monthVal)) return false;
-
-    /* Custom Date */
-    if (startVal && rowDate < startVal) return false;
-    if (endVal && rowDate > endVal) return false;
-
-    return true;
-  });
 }
