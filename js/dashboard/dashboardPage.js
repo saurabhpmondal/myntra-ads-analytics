@@ -4,7 +4,7 @@ import { state } from "../core/state.js";
 import { num } from "../data/parser.js";
 
 /* ---------------------------------- */
-/* Render Dashboard */
+/* RENDER DASHBOARD */
 /* ---------------------------------- */
 
 export function renderDashboard() {
@@ -18,50 +18,37 @@ export function renderDashboard() {
   const kpi = buildKPI(rows);
 
   page.innerHTML = `
-    <!-- KPI CARDS -->
     <section class="cards-grid">
 
       ${card("Spend", money(kpi.spend), true)}
       ${card("Revenue", money(kpi.revenue))}
       ${card("ROI", kpi.roi.toFixed(2))}
-      ${card("Clicks", formatNum(kpi.clicks))}
-      ${card("Units", formatNum(kpi.units))}
-      ${card("Impressions", formatNum(kpi.impressions))}
+      ${card("Clicks", fmt(kpi.clicks))}
+      ${card("Units", fmt(kpi.units))}
+      ${card("Impressions", fmt(kpi.impressions))}
 
     </section>
 
-    <!-- Trend -->
     <section class="panel-card">
       <div class="panel-head">
-        <h3>Spend vs Revenue Trend</h3>
+        <h3>Daily Trend (${rows.length} Rows)</h3>
       </div>
 
-      <div class="chart-placeholder">
-        <div style="
-          height:100%;
-          display:grid;
-          place-items:center;
-          color:#64748b;
-          font-weight:700;
-        ">
-          Chart Integration Next Phase
-        </div>
-      </div>
+      ${dailyTrend(rows)}
     </section>
 
-    <!-- Table -->
     <section class="panel-card">
       <div class="panel-head">
-        <h3>Daily Performance Summary</h3>
+        <h3>Performance Summary</h3>
       </div>
 
-      ${buildTable(rows)}
+      ${summaryTable(rows)}
     </section>
   `;
 }
 
 /* ---------------------------------- */
-/* KPI Builder */
+/* KPI */
 /* ---------------------------------- */
 
 function buildKPI(rows = []) {
@@ -72,16 +59,14 @@ function buildKPI(rows = []) {
   let units = 0;
   let impressions = 0;
 
-  rows.forEach(row => {
+  rows.forEach(r => {
 
-    spend += num(row.ad_spend);
-    revenue += num(row.total_revenue);
-    clicks += num(row.clicks);
-    units += num(row.units_sold_total);
-    impressions += num(row.impressions);
+    spend += num(r.ad_spend);
+    revenue += num(r.total_revenue);
+    clicks += num(r.clicks);
+    units += num(r.units_sold_total);
+    impressions += num(r.impressions);
   });
-
-  const roi = spend ? revenue / spend : 0;
 
   return {
     spend,
@@ -89,51 +74,69 @@ function buildKPI(rows = []) {
     clicks,
     units,
     impressions,
-    roi
+    roi: spend ? revenue / spend : 0
   };
 }
 
 /* ---------------------------------- */
-/* Cards */
+/* DAILY TREND */
 /* ---------------------------------- */
 
-function card(label, value, primary = false) {
+function dailyTrend(rows = []) {
+
+  if (!rows.length) return empty("No data found");
+
+  const map = {};
+
+  rows.forEach(r => {
+
+    const d = r.date || "NA";
+
+    if (!map[d]) {
+      map[d] = {
+        spend: 0,
+        revenue: 0
+      };
+    }
+
+    map[d].spend += num(r.ad_spend);
+    map[d].revenue += num(r.total_revenue);
+  });
+
+  const days = Object.keys(map).sort().slice(-10);
 
   return `
-    <div class="kpi-card ${primary ? "primary" : ""}">
-      <span class="kpi-label">${label}</span>
-      <strong class="kpi-value">${value}</strong>
+    <div style="display:grid;gap:10px;">
+      ${days.map(day => `
+        <div style="
+          display:grid;
+          grid-template-columns:120px 1fr 1fr;
+          gap:12px;
+          align-items:center;
+          font-size:13px;
+        ">
+          <div><b>${day}</b></div>
+          <div>Spend: ${money(map[day].spend)}</div>
+          <div>Revenue: ${money(map[day].revenue)}</div>
+        </div>
+      `).join("")}
     </div>
   `;
 }
 
 /* ---------------------------------- */
-/* Table */
+/* TABLE */
 /* ---------------------------------- */
 
-function buildTable(rows = []) {
+function summaryTable(rows = []) {
 
-  if (!rows.length) {
-    return emptyState("No rows loaded.");
-  }
+  if (!rows.length) return empty("No rows available");
 
-  const topRows = rows.slice(0, 20);
-
-  const trs = topRows.map(row => `
-    <tr>
-      <td>${row.date || "-"}</td>
-      <td>${row.campaign_name || "-"}</td>
-      <td>${money(num(row.ad_spend))}</td>
-      <td>${formatNum(num(row.clicks))}</td>
-      <td>${formatNum(num(row.units_sold_total))}</td>
-      <td>${money(num(row.total_revenue))}</td>
-      <td>${roi(row.ad_spend, row.total_revenue)}</td>
-    </tr>
-  `).join("");
+  const top = rows.slice(0, 20);
 
   return `
     <div style="overflow:auto;">
-      <table style="width:100%; min-width:900px;">
+      <table style="width:100%;min-width:900px;">
         <thead>
           <tr>
             <th>Date</th>
@@ -147,30 +150,39 @@ function buildTable(rows = []) {
         </thead>
 
         <tbody>
-          ${trs}
+          ${top.map(r => `
+            <tr>
+              <td>${r.date || "-"}</td>
+              <td>${r.campaign_name || "-"}</td>
+              <td>${money(num(r.ad_spend))}</td>
+              <td>${fmt(num(r.clicks))}</td>
+              <td>${fmt(num(r.units_sold_total))}</td>
+              <td>${money(num(r.total_revenue))}</td>
+              <td>${roi(r.ad_spend, r.total_revenue)}</td>
+            </tr>
+          `).join("")}
         </tbody>
       </table>
     </div>
   `;
 }
 
-function emptyState(text) {
+/* ---------------------------------- */
+/* CARD */
+/* ---------------------------------- */
+
+function card(label, value, primary = false) {
 
   return `
-    <div style="
-      min-height:220px;
-      display:grid;
-      place-items:center;
-      color:#64748b;
-      font-weight:700;
-    ">
-      ${text}
+    <div class="kpi-card ${primary ? "primary" : ""}">
+      <span class="kpi-label">${label}</span>
+      <strong class="kpi-value">${value}</strong>
     </div>
   `;
 }
 
 /* ---------------------------------- */
-/* Helpers */
+/* HELPERS */
 /* ---------------------------------- */
 
 function money(v) {
@@ -179,14 +191,28 @@ function money(v) {
   });
 }
 
-function formatNum(v) {
+function fmt(v) {
   return Number(v || 0).toLocaleString("en-IN");
 }
 
-function roi(spend, revenue) {
+function roi(s, r) {
 
-  const s = num(spend);
-  const r = num(revenue);
+  const spend = num(s);
+  const rev = num(r);
 
-  return s ? (r / s).toFixed(2) : "0.00";
+  return spend ? (rev / spend).toFixed(2) : "0.00";
+}
+
+function empty(t) {
+  return `
+    <div style="
+      min-height:220px;
+      display:grid;
+      place-items:center;
+      color:#64748b;
+      font-weight:700;
+    ">
+      ${t}
+    </div>
+  `;
 }
