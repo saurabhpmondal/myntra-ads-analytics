@@ -7,30 +7,28 @@ import { initConsole, log } from "../ui/console.js";
 import { initTabs } from "../ui/tabs.js";
 import { renderDashboard } from "../dashboard/dashboardPage.js";
 
-/* -------------------------- */
+/* ---------------------------------- */
 /* BOOT */
-/* -------------------------- */
+/* ---------------------------------- */
 
-document.addEventListener("DOMContentLoaded", bootApp);
+document.addEventListener("DOMContentLoaded", initApp);
 
-async function bootApp() {
+async function initApp() {
 
   try {
 
     initConsole();
-    log("INFO", "App boot started");
+    log("INFO", "Boot started");
 
-    fillFilters();
+    buildFilters();
 
     bindActions();
 
     initTabs();
 
-    await loadCDR();
+    await loadDashboard();
 
-    renderDashboard();
-
-    log("SUCCESS", "App ready");
+    log("SUCCESS", "Dashboard ready");
 
   } catch (err) {
 
@@ -39,70 +37,110 @@ async function bootApp() {
   }
 }
 
-/* -------------------------- */
-/* FILTERS */
-/* -------------------------- */
+/* ---------------------------------- */
+/* FILTER UI */
+/* ---------------------------------- */
 
-function fillFilters() {
+function buildFilters() {
 
   const yearEl = document.getElementById("yearFilter");
   const monthEl = document.getElementById("monthFilter");
 
+  const years = [2026, 2025, 2024];
+
   if (yearEl) {
-    yearEl.innerHTML = `
-      <option>2026</option>
-      <option>2025</option>
-    `;
+    yearEl.innerHTML = years.map(y =>
+      `<option value="${y}">${y}</option>`
+    ).join("");
   }
 
+  const months = [
+    "January","February","March","April",
+    "May","June","July","August",
+    "September","October","November","December"
+  ];
+
   if (monthEl) {
-
-    const months = [
-      "January","February","March","April",
-      "May","June","July","August",
-      "September","October","November","December"
-    ];
-
-    monthEl.innerHTML = months.map(m =>
-      `<option>${m}</option>`
+    monthEl.innerHTML = months.map((m, i) =>
+      `<option value="${i + 1}">${m}</option>`
     ).join("");
 
-    monthEl.value = months[new Date().getMonth()];
+    monthEl.value = new Date().getMonth() + 1;
   }
 }
 
-/* -------------------------- */
+/* ---------------------------------- */
 /* ACTIONS */
-/* -------------------------- */
+/* ---------------------------------- */
 
 function bindActions() {
 
-  const refreshBtn = document.getElementById("refreshBtn");
   const applyBtn = document.getElementById("applyBtn");
-
-  if (refreshBtn) {
-    refreshBtn.addEventListener("click", loadCDR);
-  }
+  const refreshBtn = document.getElementById("refreshBtn");
 
   if (applyBtn) {
-    applyBtn.addEventListener("click", async () => {
-      await loadCDR();
-      renderDashboard();
-    });
+    applyBtn.onclick = async () => {
+      await loadDashboard();
+    };
+  }
+
+  if (refreshBtn) {
+    refreshBtn.onclick = async () => {
+      await loadDashboard();
+    };
   }
 }
 
-/* -------------------------- */
-/* DATA */
-/* -------------------------- */
+/* ---------------------------------- */
+/* LOAD + FILTER */
+/* Uses date / month / year columns
+/* ---------------------------------- */
 
-async function loadCDR() {
+async function loadDashboard() {
 
-  log("INFO", "Loading CDR...");
+  log("INFO", "Loading CDR");
 
   const rows = await fetchCSV(CONFIG.REPORT_URLS.CDR);
 
-  setReportData("cdr", rows);
+  log("INFO", `Rows fetched: ${rows.length}`);
 
-  log("SUCCESS", `CDR rows: ${rows.length}`);
+  const filtered = applyFilters(rows);
+
+  setReportData("cdr", filtered);
+
+  renderDashboard();
+
+  log("SUCCESS", `Rows after filter: ${filtered.length}`);
+}
+
+/* ---------------------------------- */
+/* FILTER ENGINE */
+/* ---------------------------------- */
+
+function applyFilters(rows = []) {
+
+  const yearVal = document.getElementById("yearFilter")?.value || "";
+  const monthVal = document.getElementById("monthFilter")?.value || "";
+
+  const startVal = document.getElementById("startDate")?.value || "";
+  const endVal = document.getElementById("endDate")?.value || "";
+
+  return rows.filter(row => {
+
+    const rowYear = String(row.year || "").trim();
+    const rowMonth = String(row.month || "").trim();
+    const rowDate = String(row.date || "").trim();
+
+    /* Year */
+    if (yearVal && rowYear !== yearVal) return false;
+
+    /* Month */
+    if (monthVal && Number(rowMonth) !== Number(monthVal)) return false;
+
+    /* Custom Date */
+    if (startVal && rowDate < startVal) return false;
+    if (endVal && rowDate > endVal) return false;
+
+    return true;
+  });
 }
