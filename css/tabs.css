@@ -1,0 +1,97 @@
+/* FILE: css/tabs.css */
+
+.tabs-wrap{
+  position:sticky;
+  top:calc(var(--header-h) + var(--filter-h));
+  z-index:40;
+
+  display:flex;
+  align-items:center;
+  gap:10px;
+
+  padding:14px 24px;
+
+  background:rgba(246,248,252,.94);
+  backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--border);
+
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+
+.tabs-wrap::-webkit-scrollbar{
+  display:none;
+}
+
+.tab{
+  flex:0 0 auto;
+
+  height:42px;
+  padding:0 18px;
+
+  border:1px solid var(--border);
+  border-radius:14px;
+
+  background:#fff;
+  color:var(--text-soft);
+
+  font-size:14px;
+  font-weight:700;
+  letter-spacing:-0.01em;
+
+  cursor:pointer;
+  transition:.18s ease;
+}
+
+.tab:hover{
+  transform:translateY(-1px);
+  box-shadow:var(--shadow-sm);
+  color:var(--text);
+}
+
+.tab.active{
+  background:linear-gradient(135deg,var(--brand),#ff6b91);
+  border-color:transparent;
+  color:#fff;
+  box-shadow:var(--shadow-md);
+}
+
+/* Optional badge support */
+.tab-badge{
+  margin-left:8px;
+  padding:2px 8px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:800;
+  background:rgba(255,255,255,.18);
+}
+
+/* Compact mode */
+@media (max-width: 900px){
+
+  .tabs-wrap{
+    padding:12px 16px;
+    gap:8px;
+  }
+
+  .tab{
+    height:38px;
+    padding:0 14px;
+    border-radius:12px;
+    font-size:13px;
+  }
+}
+
+@media (max-width: 640px){
+
+  .tabs-wrap{
+    top:calc(var(--header-h) + var(--filter-h));
+    padding:10px 12px;
+  }
+
+  .tab{
+    height:36px;
+    padding:0 12px;
+    font-size:12px;
+  }
+}
