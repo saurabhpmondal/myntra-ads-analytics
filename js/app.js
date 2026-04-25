@@ -1,2 +1,2 @@
 import { initDashboard } from './dashboard/dashboardController.js';
-initDashboard();
+window.addEventListener('DOMContentLoaded', initDashboard);
