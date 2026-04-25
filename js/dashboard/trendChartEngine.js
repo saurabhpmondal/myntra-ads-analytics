@@ -2,7 +2,9 @@ export function buildTrendRows(rows) {
   const map = new Map();
 
   rows.forEach(r => {
-    const key = r.date;
+    const key =
+      r.date ||
+      `${r.year}-${String(r.month).padStart(2, "0")}-${String(r.day).padStart(2, "0")}`;
 
     if (!map.has(key)) {
       map.set(key, {
@@ -13,8 +15,9 @@ export function buildTrendRows(rows) {
     }
 
     const x = map.get(key);
-    x.spend += r.ad_spend;
-    x.revenue += r.total_revenue;
+
+    x.spend += r.ad_spend || 0;
+    x.revenue += r.total_revenue || 0;
   });
 
   return [...map.values()].sort((a, b) =>
@@ -24,7 +27,7 @@ export function buildTrendRows(rows) {
 
 export function renderTrendChart(rows) {
   if (!rows.length) {
-    return `<div class="card">No chart data available</div>`;
+    return `<section class="card"><h3>Daily Spend vs Revenue</h3><div>No data</div></section>`;
   }
 
   const max = Math.max(
@@ -32,15 +35,17 @@ export function renderTrendChart(rows) {
     1
   );
 
-  const bars = rows.map(r => {
+  const html = rows.map(r => {
     const spendH = (r.spend / max) * 140;
     const revH = (r.revenue / max) * 140;
+
+    const label = String(r.date).slice(-2);
 
     return `
       <div class="bar-group">
         <div class="bar spend" style="height:${spendH}px"></div>
         <div class="bar revenue" style="height:${revH}px"></div>
-        <small>${r.date.slice(-2)}</small>
+        <small>${label}</small>
       </div>
     `;
   }).join("");
@@ -48,9 +53,7 @@ export function renderTrendChart(rows) {
   return `
     <section class="card">
       <h3>Daily Spend vs Revenue</h3>
-      <div class="chart-wrap">
-        ${bars}
-      </div>
+      <div class="chart-wrap">${html}</div>
       <div class="legend">
         <span><i class="lg spend"></i> Spend</span>
         <span><i class="lg revenue"></i> Revenue</span>
