@@ -6,6 +6,7 @@ import { parseCSV } from "../core/parser.js";
 let LIMIT = 50;
 let SEARCH = "";
 let LOADING = false;
+let SEARCH_TIMER = null;
 
 function fmt(n) {
   return Number(n || 0).toLocaleString("en-IN", {
@@ -81,8 +82,6 @@ export function initStyleTab() {
             <thead>
               <tr>
                 <th>Style ID</th>
-                <th>Name</th>
-                <th>Brand</th>
                 <th>Spend</th>
                 <th>Impr</th>
                 <th>Clicks</th>
@@ -99,8 +98,6 @@ export function initStyleTab() {
               ${visible.map(r => `
                 <tr>
                   <td>${r.id}</td>
-                  <td>${r.name}</td>
-                  <td>${r.brand}</td>
                   <td>${fmt(r.spend)}</td>
                   <td>${fmt(r.impressions)}</td>
                   <td>${fmt(r.clicks)}</td>
@@ -123,10 +120,18 @@ export function initStyleTab() {
       </section>
     `;
 
-    document.getElementById("styleSearch").oninput = e => {
-      SEARCH = e.target.value;
-      LIMIT = 50;
-      window.renderStyleTab();
+    const search = document.getElementById("styleSearch");
+
+    search.oninput = e => {
+      clearTimeout(SEARCH_TIMER);
+
+      const val = e.target.value;
+
+      SEARCH_TIMER = setTimeout(() => {
+        SEARCH = val;
+        LIMIT = 50;
+        window.renderStyleTab();
+      }, 300);
     };
 
     const more = document.getElementById("styleMore");
