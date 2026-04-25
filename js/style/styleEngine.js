@@ -1,14 +1,20 @@
+function cleanId(v) {
+  return String(v ?? "")
+    .trim()
+    .replace(/\.0$/, "");
+}
+
 export function buildStyleReport(rows) {
   const map = new Map();
 
   rows.forEach(r => {
-    const key = r.product_id || "Unknown";
+    const key = cleanId(r.product_id);
+
+    if (!key) return;
 
     if (!map.has(key)) {
       map.set(key, {
         id: key,
-        name: r.product_name || "",
-        brand: r.brand || "",
         spend: 0,
         impressions: 0,
         clicks: 0,
@@ -19,11 +25,11 @@ export function buildStyleReport(rows) {
 
     const x = map.get(key);
 
-    x.spend += r.budget_spend || 0;
-    x.impressions += r.impressions || 0;
-    x.clicks += r.clicks || 0;
-    x.units += r.units_sold_total || 0;
-    x.revenue += r.total_revenue || 0;
+    x.spend += Number(r.budget_spend || 0);
+    x.impressions += Number(r.impressions || 0);
+    x.clicks += Number(r.clicks || 0);
+    x.units += Number(r.units_sold_total || 0);
+    x.revenue += Number(r.total_revenue || 0);
   });
 
   return [...map.values()]
