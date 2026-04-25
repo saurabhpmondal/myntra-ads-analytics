@@ -4,6 +4,7 @@ import { initAdgroupTab } from "./adgroup/adgroupUI.js";
 import { initStyleTab } from "./style/styleUI.js";
 import { initPPRTab } from "./ppr/pprUI.js";
 import { initAnalysisTab } from "./analysis/analysisUI.js";
+import { initExportTab } from "./export/exportUI.js";
 
 window.addEventListener("DOMContentLoaded", async () => {
   await initDashboard();
@@ -13,6 +14,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   initStyleTab();
   initPPRTab();
   initAnalysisTab();
+  initExportTab();
 
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.onclick = () => {
@@ -30,7 +32,8 @@ window.addEventListener("DOMContentLoaded", async () => {
         "adgroup",
         "style",
         "ppr",
-        "analysis"
+        "analysis",
+        "export"
       ].forEach(id => {
         document.getElementById(id).style.display =
           id === tab ? "block" : "none";
@@ -41,6 +44,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       if (tab === "style") window.renderStyleTab?.();
       if (tab === "ppr") window.renderPPRTab?.();
       if (tab === "analysis") window.renderAnalysisTab?.();
+      if (tab === "export") window.renderExportTab?.();
     };
   });
 });
