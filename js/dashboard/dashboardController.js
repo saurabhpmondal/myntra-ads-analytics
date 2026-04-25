@@ -65,6 +65,7 @@ function refreshAllTabs() {
   window.renderAdgroupTab?.();
   window.renderStyleTab?.();
   window.renderPPRTab?.();
+  window.renderAnalysisTab?.();
 }
 
 function card(label, value) {
@@ -140,6 +141,9 @@ function render() {
   window.ALL = ALL;
   window.FILTERED_ROWS = rows;
   window.ACTIVE_FILTER = { ...FILTER };
+
+  const latest = latestMonth(ALL);
+  window.LATEST_MONTH = latest;
 
   const k = buildKPI(rows);
 
