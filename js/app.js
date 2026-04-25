@@ -3,6 +3,7 @@ import { initCampaignTab } from "./campaign/campaignUI.js";
 import { initAdgroupTab } from "./adgroup/adgroupUI.js";
 import { initStyleTab } from "./style/styleUI.js";
 import { initPPRTab } from "./ppr/pprUI.js";
+import { initAnalysisTab } from "./analysis/analysisUI.js";
 
 window.addEventListener("DOMContentLoaded", async () => {
   await initDashboard();
@@ -11,6 +12,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   initAdgroupTab();
   initStyleTab();
   initPPRTab();
+  initAnalysisTab();
 
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.onclick = () => {
@@ -22,7 +24,14 @@ window.addEventListener("DOMContentLoaded", async () => {
 
       btn.classList.add("active");
 
-      ["dashboard","campaign","adgroup","style","ppr"].forEach(id => {
+      [
+        "dashboard",
+        "campaign",
+        "adgroup",
+        "style",
+        "ppr",
+        "analysis"
+      ].forEach(id => {
         document.getElementById(id).style.display =
           id === tab ? "block" : "none";
       });
@@ -31,6 +40,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       if (tab === "adgroup") window.renderAdgroupTab?.();
       if (tab === "style") window.renderStyleTab?.();
       if (tab === "ppr") window.renderPPRTab?.();
+      if (tab === "analysis") window.renderAnalysisTab?.();
     };
   });
 });
