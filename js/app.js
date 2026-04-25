@@ -1,12 +1,14 @@
 import { initDashboard } from "./dashboard/dashboardController.js";
 import { initCampaignTab } from "./campaign/campaignUI.js";
 import { initAdgroupTab } from "./adgroup/adgroupUI.js";
+import { initStyleTab } from "./style/styleUI.js";
 
 window.addEventListener("DOMContentLoaded", async () => {
   await initDashboard();
 
   initCampaignTab();
   initAdgroupTab();
+  initStyleTab();
 
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.onclick = () => {
@@ -18,22 +20,14 @@ window.addEventListener("DOMContentLoaded", async () => {
 
       btn.classList.add("active");
 
-      document.getElementById("dashboard").style.display =
-        tab === "dashboard" ? "block" : "none";
+      ["dashboard","campaign","adgroup","style"].forEach(id => {
+        document.getElementById(id).style.display =
+          id === tab ? "block" : "none";
+      });
 
-      document.getElementById("campaign").style.display =
-        tab === "campaign" ? "block" : "none";
-
-      document.getElementById("adgroup").style.display =
-        tab === "adgroup" ? "block" : "none";
-
-      if (tab === "campaign") {
-        window.renderCampaignTab?.();
-      }
-
-      if (tab === "adgroup") {
-        window.renderAdgroupTab?.();
-      }
+      if (tab === "campaign") window.renderCampaignTab?.();
+      if (tab === "adgroup") window.renderAdgroupTab?.();
+      if (tab === "style") window.renderStyleTab?.();
     };
   });
 });
