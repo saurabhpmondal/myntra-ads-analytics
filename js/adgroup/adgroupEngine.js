@@ -24,5 +24,7 @@ export function buildAdgroupReport(rows) {
     x.revenue += r.total_revenue || 0;
   });
 
-  return [...map.values()].sort((a, b) => b.spend - a.spend);
+  return [...map.values()]
+    .filter(r => r.spend > 0)
+    .sort((a, b) => b.spend - a.spend);
 }
