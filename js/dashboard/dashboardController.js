@@ -1,7 +1,9 @@
 import { SHEETS } from "../config/sheets.js";
 import { fetchCSV } from "../core/fetcher.js";
 import { parseCSV } from "../core/parser.js";
+
 import { buildKPI } from "./kpiEngine.js";
+
 import {
   getYears,
   getMonths,
@@ -17,7 +19,11 @@ import {
   renderTrendChart
 } from "./trendChartEngine.js";
 
+import { buildPlacementRows } from "./placementTableEngine.js";
+
 let ALL = [];
+let PPR = [];
+
 let FILTER = {
   year: 0,
   month: 0,
@@ -28,6 +34,7 @@ let FILTER = {
 function latestMonth(rows) {
   return rows.reduce((best, r) => {
     const score = r.year * 100 + r.month;
+
     return score > best.score
       ? { score, year: r.year, month: r.month }
       : best;
@@ -62,13 +69,44 @@ function table(title, heads, rowsHtml) {
           <thead>
             <tr>${heads.map(h => `<th>${h}</th>`).join("")}</tr>
           </thead>
-          <tbody>
-            ${rowsHtml}
-          </tbody>
+          <tbody>${rowsHtml}</tbody>
         </table>
       </div>
     </section>
   `;
+}
+
+function placementSection() {
+  if (!PPR.length) {
+    return `
+      <section class="card">
+        <h3>Placement Wise</h3>
+        <div>Loading placement data...</div>
+      </section>
+    `;
+  }
+
+  const rows = PPR.filter(r =>
+    r.year === FILTER.year &&
+    r.month === FILTER.month
+  );
+
+  const html = buildPlacementRows(rows)
+    .slice(0, 20)
+    .map(r => `
+      <tr>
+        <td>${r.name}</td>
+        <td>${fmt(r.spend)}</td>
+        <td>${fmt(r.revenue)}</td>
+        <td>${fmt(roi(r.revenue, r.spend))}x</td>
+      </tr>
+    `).join("");
+
+  return table(
+    "Placement Wise",
+    ["Placement", "Spend", "Revenue", "ROI"],
+    html
+  );
 }
 
 function render() {
@@ -143,6 +181,8 @@ function render() {
       ["Adgroup", "Spend", "Revenue", "ROI"],
       adRows
     )}
+
+    ${placementSection()}
   `;
 }
 
@@ -198,6 +238,12 @@ function renderFilters() {
   };
 }
 
+async function loadPPR() {
+  const csv = await fetchCSV(SHEETS.PPR);
+  PPR = parseCSV(csv);
+  render();
+}
+
 export async function initDashboard() {
   document.getElementById("dashboard").innerHTML =
     `<div class="card">Loading dashboard...</div>`;
@@ -213,4 +259,6 @@ export async function initDashboard() {
 
   renderFilters();
   render();
+
+  loadPPR();
 }
