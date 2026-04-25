@@ -1,8 +1,36 @@
+function makeDateKey(r) {
+  if (r.date && String(r.date).trim()) {
+    return String(r.date).trim();
+  }
+
+  const y = Number(r.year) || 0;
+  const m = Number(r.month) || 0;
+  const d = Number(r.day) || 0;
+
+  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+function sortValue(v) {
+  const txt = String(v);
+
+  const p = txt.split("-");
+
+  if (p.length === 3) {
+    const y = Number(p[0]) || 0;
+    const m = Number(p[1]) || 0;
+    const d = Number(p[2]) || 0;
+
+    return y * 10000 + m * 100 + d;
+  }
+
+  return txt;
+}
+
 export function buildDateRows(rows) {
   const map = new Map();
 
   rows.forEach(r => {
-    const key = r.date || `${r.year}-${r.month}-${r.day}`;
+    const key = makeDateKey(r);
 
     if (!map.has(key)) {
       map.set(key, {
@@ -24,7 +52,7 @@ export function buildDateRows(rows) {
     x.revenue += r.total_revenue || 0;
   });
 
-  return [...map.values()].sort((a, b) =>
-    String(a.date).localeCompare(String(b.date))
+  return [...map.values()].sort(
+    (a, b) => sortValue(a.date) - sortValue(b.date)
   );
 }
