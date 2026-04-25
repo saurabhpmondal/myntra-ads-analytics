@@ -2,6 +2,7 @@ import { initDashboard } from "./dashboard/dashboardController.js";
 import { initCampaignTab } from "./campaign/campaignUI.js";
 import { initAdgroupTab } from "./adgroup/adgroupUI.js";
 import { initStyleTab } from "./style/styleUI.js";
+import { initPPRTab } from "./ppr/pprUI.js";
 
 window.addEventListener("DOMContentLoaded", async () => {
   await initDashboard();
@@ -9,6 +10,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   initCampaignTab();
   initAdgroupTab();
   initStyleTab();
+  initPPRTab();
 
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.onclick = () => {
@@ -20,7 +22,7 @@ window.addEventListener("DOMContentLoaded", async () => {
 
       btn.classList.add("active");
 
-      ["dashboard","campaign","adgroup","style"].forEach(id => {
+      ["dashboard","campaign","adgroup","style","ppr"].forEach(id => {
         document.getElementById(id).style.display =
           id === tab ? "block" : "none";
       });
@@ -28,6 +30,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       if (tab === "campaign") window.renderCampaignTab?.();
       if (tab === "adgroup") window.renderAdgroupTab?.();
       if (tab === "style") window.renderStyleTab?.();
+      if (tab === "ppr") window.renderPPRTab?.();
     };
   });
 });
