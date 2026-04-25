@@ -25,11 +25,31 @@ let LIMIT = {
   placement: 20
 };
 
+const MONTH_NAMES = {
+  1: "January",
+  2: "February",
+  3: "March",
+  4: "April",
+  5: "May",
+  6: "June",
+  7: "July",
+  8: "August",
+  9: "September",
+  10: "October",
+  11: "November",
+  12: "December"
+};
+
 function latestMonth(rows) {
   return rows.reduce((best, r) => {
-    const score = r.year * 100 + r.month;
+    const score = Number(r.year) * 100 + Number(r.month);
+
     return score > best.score
-      ? { score, year: r.year, month: r.month }
+      ? {
+          score,
+          year: Number(r.year),
+          month: Number(r.month)
+        }
       : best;
   }, { score: 0, year: 0, month: 0 });
 }
@@ -45,7 +65,12 @@ function roi(rev, spend) {
 }
 
 function card(label, value) {
-  return `<div class="card kpi"><small>${label}</small><strong>${value}</strong></div>`;
+  return `
+    <div class="card kpi">
+      <small>${label}</small>
+      <strong>${value}</strong>
+    </div>
+  `;
 }
 
 function table(title, heads, rowsHtml, key = "") {
@@ -57,7 +82,9 @@ function table(title, heads, rowsHtml, key = "") {
           <thead>
             <tr>${heads.map(h => `<th>${h}</th>`).join("")}</tr>
           </thead>
-          <tbody>${rowsHtml || `<tr><td colspan="${heads.length}" class="empty">No data</td></tr>`}</tbody>
+          <tbody>
+            ${rowsHtml || `<tr><td colspan="${heads.length}">No data</td></tr>`}
+          </tbody>
         </table>
       </div>
       ${key ? `<button class="load-more" data-more="${key}">Load More</button>` : ""}
@@ -67,12 +94,17 @@ function table(title, heads, rowsHtml, key = "") {
 
 function placementSection() {
   if (!PPR.length) {
-    return `<section class="card"><h3>Placement Wise</h3><div>Loading placement data...</div></section>`;
+    return `
+      <section class="card">
+        <h3>Placement Wise</h3>
+        <div>Loading placement data...</div>
+      </section>
+    `;
   }
 
   const rows = PPR.filter(r =>
-    r.year === FILTER.year &&
-    r.month === FILTER.month
+    Number(r.year) === FILTER.year &&
+    Number(r.month) === FILTER.month
   );
 
   const html = buildPlacementRows(rows)
@@ -81,6 +113,10 @@ function placementSection() {
       <tr>
         <td>${r.name}</td>
         <td>${fmt(r.spend)}</td>
+        <td>${fmt(r.impressions)}</td>
+        <td>${fmt(r.clicks)}</td>
+        <td>${fmt(roi(r.clicks, r.impressions) * 100)}%</td>
+        <td>${fmt(r.units)}</td>
         <td>${fmt(r.revenue)}</td>
         <td>${fmt(roi(r.revenue, r.spend))}x</td>
       </tr>
@@ -88,7 +124,7 @@ function placementSection() {
 
   return table(
     "Placement Wise",
-    ["Placement", "Spend", "Revenue", "ROI"],
+    ["Placement", "Spend", "Impressions", "Clicks", "CTR", "Units Sold", "Revenue", "ROI"],
     html,
     "placement"
   );
@@ -100,8 +136,55 @@ function render() {
   const rows = applyFilters(ALL, FILTER);
   const k = buildKPI(rows);
 
-  const camp = buildCampaignRows(rows);
-  const adg = buildAdgroupRows(rows);
+  const campaign = buildCampaignRows(rows);
+  const adgroup = buildAdgroupRows(rows);
+
+  const dateRows = buildDateRows(rows)
+    .map(r => `
+      <tr>
+        <td>${r.date}</td>
+        <td>${fmt(r.spend)}</td>
+        <td>${fmt(r.impressions)}</td>
+        <td>${fmt(r.clicks)}</td>
+        <td>${fmt(r.units)}</td>
+        <td>${fmt(r.revenue)}</td>
+        <td>${fmt(roi(r.revenue, r.spend))}x</td>
+      </tr>
+    `).join("");
+
+  const campRows = campaign
+    .slice(0, LIMIT.campaign)
+    .map(r => `
+      <tr>
+        <td>${r.name}</td>
+        <td>${fmt(r.spend)}</td>
+        <td>${fmt(r.impressions)}</td>
+        <td>${fmt(r.clicks)}</td>
+        <td>${fmt(roi(r.clicks, r.impressions) * 100)}%</td>
+        <td>${fmt(r.units ? (r.units / r.clicks) * 100 : 0)}%</td>
+        <td>${fmt(r.clicks ? r.spend / r.clicks : 0)}</td>
+        <td>${fmt(r.units)}</td>
+        <td>${fmt(r.revenue)}</td>
+        <td>${fmt(roi(r.revenue, r.spend))}x</td>
+      </tr>
+    `).join("");
+
+  const adRows = adgroup
+    .slice(0, LIMIT.adgroup)
+    .map(r => `
+      <tr>
+        <td>${r.name}</td>
+        <td>${fmt(r.spend)}</td>
+        <td>${fmt(r.impressions)}</td>
+        <td>${fmt(r.clicks)}</td>
+        <td>${fmt(roi(r.clicks, r.impressions) * 100)}%</td>
+        <td>${fmt(r.units ? (r.units / r.clicks) * 100 : 0)}%</td>
+        <td>${fmt(r.clicks ? r.spend / r.clicks : 0)}</td>
+        <td>${fmt(r.units)}</td>
+        <td>${fmt(r.revenue)}</td>
+        <td>${fmt(roi(r.revenue, r.spend))}x</td>
+      </tr>
+    `).join("");
 
   root.innerHTML = `
     <section class="grid kpis">
@@ -117,42 +200,21 @@ function render() {
 
     ${table(
       "Date Wise",
-      ["Date", "Spend", "Revenue", "ROI"],
-      buildDateRows(rows).map(r => `
-        <tr>
-          <td>${r.date}</td>
-          <td>${fmt(r.spend)}</td>
-          <td>${fmt(r.revenue)}</td>
-          <td>${fmt(roi(r.revenue, r.spend))}x</td>
-        </tr>
-      `).join("")
+      ["Date", "Spend", "Impressions", "Clicks", "Units Sold", "Revenue", "ROI"],
+      dateRows
     )}
 
     ${table(
       "Campaign Wise",
-      ["Campaign", "Spend", "Revenue", "ROI"],
-      camp.slice(0, LIMIT.campaign).map(r => `
-        <tr>
-          <td>${r.name}</td>
-          <td>${fmt(r.spend)}</td>
-          <td>${fmt(r.revenue)}</td>
-          <td>${fmt(roi(r.revenue, r.spend))}x</td>
-        </tr>
-      `).join(""),
+      ["Campaign Name", "Spend", "Impressions", "Clicks", "CTR", "CVR", "Avg CPC", "Units Sold", "Revenue", "ROI"],
+      campRows,
       "campaign"
     )}
 
     ${table(
       "Adgroup Wise",
-      ["Adgroup", "Spend", "Revenue", "ROI"],
-      adg.slice(0, LIMIT.adgroup).map(r => `
-        <tr>
-          <td>${r.name}</td>
-          <td>${fmt(r.spend)}</td>
-          <td>${fmt(r.revenue)}</td>
-          <td>${fmt(roi(r.revenue, r.spend))}x</td>
-        </tr>
-      `).join(""),
+      ["Adgroup Name", "Spend", "Impressions", "Clicks", "CTR", "CVR", "Avg CPC", "Units Sold", "Revenue", "ROI"],
+      adRows,
       "adgroup"
     )}
 
@@ -165,8 +227,7 @@ function render() {
 function bindMore() {
   document.querySelectorAll("[data-more]").forEach(btn => {
     btn.onclick = () => {
-      const key = btn.dataset.more;
-      LIMIT[key] += 20;
+      LIMIT[btn.dataset.more] += 20;
       render();
     };
   });
@@ -180,13 +241,17 @@ function renderFilters() {
 
   wrap.innerHTML = `
     <div class="filter-bar">
-      <select id="fy">${years.map(y =>
-        `<option ${y === FILTER.year ? "selected" : ""}>${y}</option>`
-      ).join("")}</select>
+      <select id="fy">
+        ${years.map(y =>
+          `<option value="${y}" ${y === FILTER.year ? "selected" : ""}>${y}</option>`
+        ).join("")}
+      </select>
 
-      <select id="fm">${months.map(m =>
-        `<option ${m === FILTER.month ? "selected" : ""}>${m}</option>`
-      ).join("")}</select>
+      <select id="fm">
+        ${months.map(m =>
+          `<option value="${m}" ${m === FILTER.month ? "selected" : ""}>${m} - ${MONTH_NAMES[m]}</option>`
+        ).join("")}
+      </select>
 
       <input id="fs" type="date" value="${FILTER.start}">
       <input id="fe" type="date" value="${FILTER.end}">
@@ -194,7 +259,7 @@ function renderFilters() {
   `;
 
   fy.onchange = e => {
-    FILTER.year = +e.target.value;
+    FILTER.year = Number(e.target.value);
     FILTER.month = getMonths(ALL, FILTER.year)[0];
     FILTER.start = "";
     FILTER.end = "";
@@ -203,7 +268,7 @@ function renderFilters() {
   };
 
   fm.onchange = e => {
-    FILTER.month = +e.target.value;
+    FILTER.month = Number(e.target.value);
     FILTER.start = "";
     FILTER.end = "";
     render();
