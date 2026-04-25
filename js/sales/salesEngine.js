@@ -1,46 +1,58 @@
-function num(v) {
-  return Number(String(v ?? "").replace(/,/g, "").trim()) || 0;
+function num(v){
+  return Number(String(v ?? "").replace(/,/g,"").trim()) || 0;
 }
 
-function txt(v) {
+function txt(v){
   return String(v ?? "").trim();
 }
 
-function normMonth(v) {
+function monthNum(v){
   const s = txt(v).toUpperCase();
 
   const map = {
-    JAN: 1, JANUARY: 1,
-    FEB: 2, FEBRUARY: 2,
-    MAR: 3, MARCH: 3,
-    APR: 4, APRIL: 4,
-    MAY: 5,
-    JUN: 6, JUNE: 6,
-    JUL: 7, JULY: 7,
-    AUG: 8, AUGUST: 8,
-    SEP: 9, SEPTEMBER: 9,
-    OCT: 10, OCTOBER: 10,
-    NOV: 11, NOVEMBER: 11,
-    DEC: 12, DECEMBER: 12
+    JAN:1,
+    FEB:2,
+    MAR:3,
+    APR:4,
+    MAY:5,
+    JUNE:6,
+    JUN:6,
+    JULY:7,
+    JUL:7,
+    AUG:8,
+    SEP:9,
+    SEPT:9,
+    OCT:10,
+    NOV:11,
+    DEC:12
   };
 
   return map[s] || num(v);
 }
 
-function passFilter(row, filter) {
+function validSale(row){
+  const s = txt(row.order_status).toUpperCase();
+  return s !== "RTO" && s !== "F";
+}
+
+function validReturn(row){
+  return txt(row.type).toUpperCase() === "RETURN";
+}
+
+function passFilter(row, filter){
   const y = num(row.year);
-  const m = normMonth(row.month);
+  const m = monthNum(row.month);
   const d = num(row.date || row.day);
 
   if (filter.year && y !== num(filter.year)) return false;
   if (filter.month && m !== num(filter.month)) return false;
 
-  if (filter.start) {
+  if (filter.start){
     const sd = Number(String(filter.start).slice(-2));
     if (d < sd) return false;
   }
 
-  if (filter.end) {
+  if (filter.end){
     const ed = Number(String(filter.end).slice(-2));
     if (d > ed) return false;
   }
@@ -48,16 +60,7 @@ function passFilter(row, filter) {
   return true;
 }
 
-function validSale(row) {
-  const s = txt(row.order_status).toUpperCase();
-  return s !== "RTO" && s !== "F";
-}
-
-function validReturn(row) {
-  return txt(row.type).toUpperCase() === "RETURN";
-}
-
-export function buildSalesData(salesRows, returnRows, filter) {
+export function buildSalesData(salesRows, returnRows, filter){
   const map = {};
   const orders = new Map();
 
@@ -72,7 +75,7 @@ export function buildSalesData(salesRows, returnRows, filter) {
 
     orders.set(order, style);
 
-    if (!map[style]) {
+    if (!map[style]){
       map[style] = {
         id: style,
         sold: 0,
@@ -104,19 +107,17 @@ export function buildSalesData(salesRows, returnRows, filter) {
     return r;
   });
 
-  rows.sort((a, b) => b.value - a.value);
+  rows.sort((a,b) => b.value - a.value);
 
   const cards = {
-    sold: rows.reduce((a, r) => a + r.sold, 0),
-    value: rows.reduce((a, r) => a + r.value, 0),
-    returns: rows.reduce((a, r) => a + r.returns, 0),
-    netUnits: rows.reduce((a, r) => a + r.netUnits, 0),
+    sold: rows.reduce((s,r)=>s+r.sold,0),
+    value: rows.reduce((s,r)=>s+r.value,0),
+    returns: rows.reduce((s,r)=>s+r.returns,0),
+    netUnits: rows.reduce((s,r)=>s+r.netUnits,0),
     styles: rows.length
   };
 
-  cards.returnPct = cards.sold
-    ? (cards.returns / cards.sold) * 100
-    : 0;
+  cards.returnPct = cards.sold ? (cards.returns/cards.sold)*100 : 0;
 
   return { cards, rows };
 }
