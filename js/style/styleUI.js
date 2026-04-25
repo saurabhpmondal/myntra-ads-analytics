@@ -1,4 +1,7 @@
 import { buildStyleReport } from "./styleEngine.js";
+import { SHEETS } from "../config/sheets.js";
+import { fetchCSV } from "../core/fetcher.js";
+import { parseCSV } from "../core/parser.js";
 
 let LIMIT = 50;
 let SEARCH = "";
@@ -20,14 +23,8 @@ async function ensureCPR() {
 
   LOADING = true;
 
-  const [{ SHEETS }, fetcher, parser] = await Promise.all([
-    import("/js/config/sheets.js"),
-    import("/js/core/fetcher.js"),
-    import("/js/core/parser.js")
-  ]);
-
-  const csv = await fetcher.fetchCSV(SHEETS.CPR);
-  window.CPR_ROWS = parser.parseCSV(csv);
+  const csv = await fetchCSV(SHEETS.CPR);
+  window.CPR_ROWS = parseCSV(csv);
 
   LOADING = false;
 }
@@ -44,9 +41,11 @@ export function initStyleTab() {
 
     await ensureCPR();
 
+    const active = window.ACTIVE_FILTER || {};
+
     const rows = (window.CPR_ROWS || []).filter(r =>
-      Number(r.year) === Number(window.ACTIVE_FILTER?.year || 0) &&
-      Number(r.month) === Number(window.ACTIVE_FILTER?.month || 0)
+      Number(r.year) === Number(active.year || 0) &&
+      Number(r.month) === Number(active.month || 0)
     );
 
     const data = buildStyleReport(rows).filter(r =>
@@ -105,12 +104,12 @@ export function initStyleTab() {
                   <td>${fmt(r.spend)}</td>
                   <td>${fmt(r.impressions)}</td>
                   <td>${fmt(r.clicks)}</td>
-                  <td>${fmt(r.impressions ? (r.clicks/r.impressions)*100 : 0)}%</td>
-                  <td>${fmt(r.clicks ? (r.units/r.clicks)*100 : 0)}%</td>
-                  <td>${fmt(r.clicks ? r.spend/r.clicks : 0)}</td>
+                  <td>${fmt(r.impressions ? (r.clicks / r.impressions) * 100 : 0)}%</td>
+                  <td>${fmt(r.clicks ? (r.units / r.clicks) * 100 : 0)}%</td>
+                  <td>${fmt(r.clicks ? r.spend / r.clicks : 0)}</td>
                   <td>${fmt(r.units)}</td>
                   <td>${fmt(r.revenue)}</td>
-                  <td>${fmt(roi(r.revenue,r.spend))}x</td>
+                  <td>${fmt(roi(r.revenue, r.spend))}x</td>
                 </tr>
               `).join("")}
             </tbody>
