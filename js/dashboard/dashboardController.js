@@ -1,39 +1,216 @@
-import { SHEETS } from '../config/sheets.js';
-import { fetchCSV } from '../core/fetcher.js';
-import { parseCSV } from '../core/parser.js';
-import { buildKPI } from './kpiEngine.js';
+import { SHEETS } from "../config/sheets.js";
+import { fetchCSV } from "../core/fetcher.js";
+import { parseCSV } from "../core/parser.js";
+import { buildKPI } from "./kpiEngine.js";
+import {
+  getYears,
+  getMonths,
+  applyFilters
+} from "../core/filters.js";
 
-function latestMonth(rows){
-  return rows.reduce((best,r)=>{
+import { buildDateRows } from "./dateTableEngine.js";
+import { buildCampaignRows } from "./campaignTableEngine.js";
+import { buildAdgroupRows } from "./adgroupTableEngine.js";
+
+import {
+  buildTrendRows,
+  renderTrendChart
+} from "./trendChartEngine.js";
+
+let ALL = [];
+let FILTER = {
+  year: 0,
+  month: 0,
+  start: "",
+  end: ""
+};
+
+function latestMonth(rows) {
+  return rows.reduce((best, r) => {
     const score = r.year * 100 + r.month;
-    return score > best.score ? { score, year:r.year, month:r.month } : best;
-  }, {score:0, year:0, month:0});
+    return score > best.score
+      ? { score, year: r.year, month: r.month }
+      : best;
+  }, { score: 0, year: 0, month: 0 });
 }
 
-function fmt(n){ return n.toLocaleString('en-IN', {maximumFractionDigits:2}); }
+function fmt(n) {
+  return n.toLocaleString("en-IN", {
+    maximumFractionDigits: 2
+  });
+}
 
-function renderKPI(k){
+function roi(rev, spend) {
+  return spend ? rev / spend : 0;
+}
+
+function card(label, value) {
   return `
-  <section class="grid kpis">
-    <div class="card"><small>Spend</small><strong>₹${fmt(k.spend)}</strong></div>
-    <div class="card"><small>Impressions</small><strong>${fmt(k.impressions)}</strong></div>
-    <div class="card"><small>Clicks</small><strong>${fmt(k.clicks)}</strong></div>
-    <div class="card"><small>Units Sold</small><strong>${fmt(k.units)}</strong></div>
-    <div class="card"><small>Revenue</small><strong>₹${fmt(k.revenue)}</strong></div>
-    <div class="card"><small>ROI</small><strong>${fmt(k.roi)}x</strong></div>
-  </section>`;
+    <div class="card kpi">
+      <small>${label}</small>
+      <strong>${value}</strong>
+    </div>
+  `;
 }
 
-export async function initDashboard(){
-  const root = document.getElementById('dashboard');
-  root.innerHTML = '<div class="card">Loading CDR...</div>';
-  const csv = await fetchCSV(SHEETS.CDR);
-  const rows = parseCSV(csv);
-  const latest = latestMonth(rows);
-  const filtered = rows.filter(r => r.year === latest.year && r.month === latest.month);
-  const kpi = buildKPI(filtered);
-  root.innerHTML = `
-    <div class="card"><strong>Current Month:</strong> ${latest.month}/${latest.year}</div>
-    ${renderKPI(kpi)}
+function table(title, heads, rowsHtml) {
+  return `
+    <section class="card">
+      <h3>${title}</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>${heads.map(h => `<th>${h}</th>`).join("")}</tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+      </div>
+    </section>
   `;
+}
+
+function render() {
+  const root = document.getElementById("dashboard");
+
+  const rows = applyFilters(ALL, FILTER);
+
+  const k = buildKPI(rows);
+
+  const trend = renderTrendChart(
+    buildTrendRows(rows)
+  );
+
+  const dateRows = buildDateRows(rows)
+    .map(r => `
+      <tr>
+        <td>${r.date}</td>
+        <td>${fmt(r.spend)}</td>
+        <td>${fmt(r.revenue)}</td>
+        <td>${fmt(roi(r.revenue, r.spend))}x</td>
+      </tr>
+    `).join("");
+
+  const campRows = buildCampaignRows(rows)
+    .slice(0, 20)
+    .map(r => `
+      <tr>
+        <td>${r.name}</td>
+        <td>${fmt(r.spend)}</td>
+        <td>${fmt(r.revenue)}</td>
+        <td>${fmt(roi(r.revenue, r.spend))}x</td>
+      </tr>
+    `).join("");
+
+  const adRows = buildAdgroupRows(rows)
+    .slice(0, 20)
+    .map(r => `
+      <tr>
+        <td>${r.name}</td>
+        <td>${fmt(r.spend)}</td>
+        <td>${fmt(r.revenue)}</td>
+        <td>${fmt(roi(r.revenue, r.spend))}x</td>
+      </tr>
+    `).join("");
+
+  root.innerHTML = `
+    <section class="grid kpis">
+      ${card("Spend", "₹" + fmt(k.spend))}
+      ${card("Impressions", fmt(k.impressions))}
+      ${card("Clicks", fmt(k.clicks))}
+      ${card("Units Sold", fmt(k.units))}
+      ${card("Revenue", "₹" + fmt(k.revenue))}
+      ${card("ROI", fmt(k.roi) + "x")}
+    </section>
+
+    ${trend}
+
+    ${table(
+      "Date Wise",
+      ["Date", "Spend", "Revenue", "ROI"],
+      dateRows
+    )}
+
+    ${table(
+      "Campaign Wise",
+      ["Campaign", "Spend", "Revenue", "ROI"],
+      campRows
+    )}
+
+    ${table(
+      "Adgroup Wise",
+      ["Adgroup", "Spend", "Revenue", "ROI"],
+      adRows
+    )}
+  `;
+}
+
+function renderFilters() {
+  const wrap = document.getElementById("filters");
+
+  const years = getYears(ALL);
+  const months = getMonths(ALL, FILTER.year);
+
+  wrap.innerHTML = `
+    <div class="filter-bar">
+      <select id="fy">
+        ${years.map(y =>
+          `<option ${y === FILTER.year ? "selected" : ""}>${y}</option>`
+        ).join("")}
+      </select>
+
+      <select id="fm">
+        ${months.map(m =>
+          `<option ${m === FILTER.month ? "selected" : ""}>${m}</option>`
+        ).join("")}
+      </select>
+
+      <input id="fs" type="date" value="${FILTER.start}">
+      <input id="fe" type="date" value="${FILTER.end}">
+    </div>
+  `;
+
+  fy.onchange = e => {
+    FILTER.year = +e.target.value;
+    FILTER.month = getMonths(ALL, FILTER.year)[0];
+    FILTER.start = "";
+    FILTER.end = "";
+    renderFilters();
+    render();
+  };
+
+  fm.onchange = e => {
+    FILTER.month = +e.target.value;
+    FILTER.start = "";
+    FILTER.end = "";
+    render();
+  };
+
+  fs.onchange = e => {
+    FILTER.start = e.target.value;
+    render();
+  };
+
+  fe.onchange = e => {
+    FILTER.end = e.target.value;
+    render();
+  };
+}
+
+export async function initDashboard() {
+  document.getElementById("dashboard").innerHTML =
+    `<div class="card">Loading dashboard...</div>`;
+
+  const csv = await fetchCSV(SHEETS.CDR);
+
+  ALL = parseCSV(csv);
+
+  const latest = latestMonth(ALL);
+
+  FILTER.year = latest.year;
+  FILTER.month = latest.month;
+
+  renderFilters();
+  render();
 }
