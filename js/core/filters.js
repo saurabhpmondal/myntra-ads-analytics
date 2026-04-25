@@ -1,3 +1,12 @@
+const MONTH_ORDER = [
+  "JAN", "FEB", "MAR", "APR", "MAY", "JUN",
+  "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"
+];
+
+function norm(v) {
+  return String(v || "").trim().toUpperCase();
+}
+
 export function getYears(rows) {
   return [...new Set(
     rows.map(r => r.year).filter(Boolean)
@@ -5,12 +14,16 @@ export function getYears(rows) {
 }
 
 export function getMonths(rows, year) {
-  return [...new Set(
+  const months = [...new Set(
     rows
       .filter(r => r.year === year)
-      .map(r => r.month)
+      .map(r => norm(r.month))
       .filter(Boolean)
-  )].sort((a, b) => b - a);
+  )];
+
+  return months.sort(
+    (a, b) => MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a)
+  );
 }
 
 export function applyFilters(rows, filter) {
@@ -19,7 +32,7 @@ export function applyFilters(rows, filter) {
       return false;
     }
 
-    if (filter.month && r.month !== filter.month) {
+    if (filter.month && norm(r.month) !== norm(filter.month)) {
       return false;
     }
 
