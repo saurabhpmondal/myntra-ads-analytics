@@ -1,26 +1,65 @@
 function num(v) {
-  return Number(v || 0);
+  return Number(
+    String(v ?? "")
+      .replace(/,/g, "")
+      .trim()
+  ) || 0;
 }
 
-function validSale(row) {
-  const s = String(row.order_status || "").trim().toUpperCase();
+function txt(v) {
+  return String(v ?? "").trim();
+}
+
+function saleValid(row) {
+  const s = txt(row.order_status).toUpperCase();
   return s !== "RTO" && s !== "F";
 }
 
-function validReturn(row) {
-  return String(row.type || "").trim().toUpperCase() === "RETURN";
+function returnValid(row) {
+  return txt(row.type).toUpperCase() === "RETURN";
 }
 
-function matchFilter(row, filter) {
-  if (filter.year && Number(row.year) !== Number(filter.year)) return false;
-  if (filter.month && Number(row.month) !== Number(filter.month)) return false;
+function getYear(row) {
+  return num(row.year);
+}
 
-  if (filter.start && Number(row.date) < Number(filter.start.slice(-2))) {
+function getMonth(row) {
+  return num(row.month);
+}
+
+function getDay(row) {
+  if (row.date !== undefined && row.date !== "") {
+    return num(row.date);
+  }
+
+  if (row.day !== undefined && row.day !== "") {
+    return num(row.day);
+  }
+
+  return 0;
+}
+
+function passFilter(row, filter) {
+  const y = getYear(row);
+  const m = getMonth(row);
+  const d = getDay(row);
+
+  if (filter.year && y !== num(filter.year)) {
     return false;
   }
 
-  if (filter.end && Number(row.date) > Number(filter.end.slice(-2))) {
+  if (filter.month && m !== num(filter.month)) {
     return false;
+  }
+
+  if (filter.start) {
+    const sd = Number(String(filter.start).slice(-2));
+    if (d < sd) return false;
+  }
+
+  if (filter.end) {
+    const ed = Number(String(filter.end).slice(-2));
+    if (d > ed) return false;
   }
 
   return true;
@@ -29,60 +68,72 @@ function matchFilter(row, filter) {
 export function buildSalesData(salesRows, returnRows, filter) {
   const map = {};
 
-  salesRows.forEach(r => {
-    if (!validSale(r)) return;
-    if (!matchFilter(r, filter)) return;
+  salesRows.forEach(row => {
+    if (!saleValid(row)) return;
+    if (!passFilter(row, filter)) return;
 
-    const id = String(r.style_id || "").trim();
+    const id = txt(row.style_id);
     if (!id) return;
 
     if (!map[id]) {
       map[id] = {
-        id,
-        sold: 0,
-        value: 0,
-        returns: 0,
-        netUnits: 0,
-        returnPct: 0
+        style_id: id,
+        sold_units: 0,
+        sales_value: 0,
+        return_units: 0,
+        return_pct: 0,
+        net_units: 0
       };
     }
 
-    map[id].sold += 1;
-    map[id].value += num(r.final_amount);
+    map[id].sold_units += 1;
+    map[id].sales_value += num(row.final_amount);
   });
 
-  returnRows.forEach(r => {
-    if (!validReturn(r)) return;
-    if (!matchFilter(r, filter)) return;
+  returnRows.forEach(row => {
+    if (!returnValid(row)) return;
+    if (!passFilter(row, filter)) return;
 
-    const id = String(r.style_id || "").trim();
-    if (!id || !map[id]) return;
+    const id = txt(row.style_id);
+    if (!id) return;
 
-    map[id].returns += 1;
+    if (!map[id]) {
+      map[id] = {
+        style_id: id,
+        sold_units: 0,
+        sales_value: 0,
+        return_units: 0,
+        return_pct: 0,
+        net_units: 0
+      };
+    }
+
+    map[id].return_units += 1;
   });
 
   const rows = Object.values(map).map(r => {
-    r.netUnits = r.sold - r.returns;
-    r.returnPct = r.sold ? (r.returns / r.sold) * 100 : 0;
+    r.net_units = r.sold_units - r.return_units;
+
+    r.return_pct = r.sold_units
+      ? (r.return_units / r.sold_units) * 100
+      : 0;
+
     return r;
   });
 
-  rows.sort((a, b) => b.value - a.value);
+  rows.sort((a, b) => b.sales_value - a.sales_value);
 
   const cards = {
-    sold: rows.reduce((a, r) => a + r.sold, 0),
-    value: rows.reduce((a, r) => a + r.value, 0),
-    returns: rows.reduce((a, r) => a + r.returns, 0),
-    netUnits: rows.reduce((a, r) => a + r.netUnits, 0),
-    styles: rows.length
+    units_sold: rows.reduce((s, r) => s + r.sold_units, 0),
+    sales_value: rows.reduce((s, r) => s + r.sales_value, 0),
+    returned_units: rows.reduce((s, r) => s + r.return_units, 0),
+    net_units: rows.reduce((s, r) => s + r.net_units, 0),
+    active_styles: rows.length
   };
 
-  cards.returnPct = cards.sold
-    ? (cards.returns / cards.sold) * 100
+  cards.return_pct = cards.units_sold
+    ? (cards.returned_units / cards.units_sold) * 100
     : 0;
 
-  return {
-    cards,
-    rows
-  };
+  return { cards, rows };
 }
