@@ -83,6 +83,8 @@ function refreshAllTabs() {
   window.renderStyleTab?.();
   window.renderPPRTab?.();
   window.renderAnalysisTab?.();
+  window.renderSalesTab?.();
+  window.renderExportTab?.();
 }
 
 function card(label, value, sub = "") {
