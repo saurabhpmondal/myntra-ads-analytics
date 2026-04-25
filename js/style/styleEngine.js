@@ -33,6 +33,5 @@ export function buildStyleReport(rows) {
   });
 
   return [...map.values()]
-    .filter(r => r.spend > 0)
     .sort((a, b) => b.spend - a.spend);
 }
