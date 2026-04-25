@@ -10,47 +10,20 @@ function txt(v) {
   return String(v ?? "").trim();
 }
 
-function saleValid(row) {
+function isValidSale(row) {
   const s = txt(row.order_status).toUpperCase();
   return s !== "RTO" && s !== "F";
 }
 
-function returnValid(row) {
+function isValidReturn(row) {
   return txt(row.type).toUpperCase() === "RETURN";
 }
 
-function getYear(row) {
-  return num(row.year);
-}
+function passMonthFilter(row, filter) {
+  if (filter.year && num(row.year) !== num(filter.year)) return false;
+  if (filter.month && num(row.month) !== num(filter.month)) return false;
 
-function getMonth(row) {
-  return num(row.month);
-}
-
-function getDay(row) {
-  if (row.date !== undefined && row.date !== "") {
-    return num(row.date);
-  }
-
-  if (row.day !== undefined && row.day !== "") {
-    return num(row.day);
-  }
-
-  return 0;
-}
-
-function passFilter(row, filter) {
-  const y = getYear(row);
-  const m = getMonth(row);
-  const d = getDay(row);
-
-  if (filter.year && y !== num(filter.year)) {
-    return false;
-  }
-
-  if (filter.month && m !== num(filter.month)) {
-    return false;
-  }
+  const d = num(row.date || row.day);
 
   if (filter.start) {
     const sd = Number(String(filter.start).slice(-2));
@@ -66,74 +39,74 @@ function passFilter(row, filter) {
 }
 
 export function buildSalesData(salesRows, returnRows, filter) {
-  const map = {};
+  const styleMap = {};
+  const saleOrders = new Map();
 
+  /* STEP 1: selected month sales cohort */
   salesRows.forEach(row => {
-    if (!saleValid(row)) return;
-    if (!passFilter(row, filter)) return;
+    if (!isValidSale(row)) return;
+    if (!passMonthFilter(row, filter)) return;
 
-    const id = txt(row.style_id);
-    if (!id) return;
+    const style = txt(row.style_id);
+    const orderId = txt(row.order_line_id);
 
-    if (!map[id]) {
-      map[id] = {
-        style_id: id,
-        sold_units: 0,
-        sales_value: 0,
-        return_units: 0,
-        return_pct: 0,
-        net_units: 0
+    if (!style || !orderId) return;
+
+    saleOrders.set(orderId, style);
+
+    if (!styleMap[style]) {
+      styleMap[style] = {
+        id: style,
+        sold: 0,
+        value: 0,
+        returns: 0,
+        netUnits: 0,
+        returnPct: 0
       };
     }
 
-    map[id].sold_units += 1;
-    map[id].sales_value += num(row.final_amount);
+    styleMap[style].sold += 1;
+    styleMap[style].value += num(row.final_amount);
   });
 
+  /* STEP 2: match returns by order_line_id */
   returnRows.forEach(row => {
-    if (!returnValid(row)) return;
-    if (!passFilter(row, filter)) return;
+    if (!isValidReturn(row)) return;
 
-    const id = txt(row.style_id);
-    if (!id) return;
+    const orderId = txt(row.order_line_id);
+    if (!orderId) return;
 
-    if (!map[id]) {
-      map[id] = {
-        style_id: id,
-        sold_units: 0,
-        sales_value: 0,
-        return_units: 0,
-        return_pct: 0,
-        net_units: 0
-      };
-    }
+    const style = saleOrders.get(orderId);
+    if (!style) return;
 
-    map[id].return_units += 1;
+    if (!styleMap[style]) return;
+
+    styleMap[style].returns += 1;
   });
 
-  const rows = Object.values(map).map(r => {
-    r.net_units = r.sold_units - r.return_units;
-
-    r.return_pct = r.sold_units
-      ? (r.return_units / r.sold_units) * 100
-      : 0;
-
+  /* STEP 3: finalize */
+  const rows = Object.values(styleMap).map(r => {
+    r.netUnits = r.sold - r.returns;
+    r.returnPct = r.sold ? (r.returns / r.sold) * 100 : 0;
     return r;
   });
 
-  rows.sort((a, b) => b.sales_value - a.sales_value);
+  rows.sort((a, b) => b.value - a.value);
 
   const cards = {
-    units_sold: rows.reduce((s, r) => s + r.sold_units, 0),
-    sales_value: rows.reduce((s, r) => s + r.sales_value, 0),
-    returned_units: rows.reduce((s, r) => s + r.return_units, 0),
-    net_units: rows.reduce((s, r) => s + r.net_units, 0),
-    active_styles: rows.length
+    sold: rows.reduce((s, r) => s + r.sold, 0),
+    value: rows.reduce((s, r) => s + r.value, 0),
+    returns: rows.reduce((s, r) => s + r.returns, 0),
+    netUnits: rows.reduce((s, r) => s + r.netUnits, 0),
+    styles: rows.length
   };
 
-  cards.return_pct = cards.units_sold
-    ? (cards.returned_units / cards.units_sold) * 100
+  cards.returnPct = cards.sold
+    ? (cards.returns / cards.sold) * 100
     : 0;
 
-  return { cards, rows };
+  return {
+    cards,
+    rows
+  };
 }
