@@ -8,6 +8,10 @@ let SEARCH = "";
 let LOADING = false;
 let SEARCH_TIMER = null;
 
+function num(v) {
+  return Number(String(v ?? "").trim());
+}
+
 function fmt(n) {
   return Number(n || 0).toLocaleString("en-IN", {
     maximumFractionDigits: 2
@@ -23,11 +27,19 @@ async function ensureCPR() {
   if (LOADING) return;
 
   LOADING = true;
-
   const csv = await fetchCSV(SHEETS.CPR);
   window.CPR_ROWS = parseCSV(csv);
-
   LOADING = false;
+}
+
+function getFilteredRows() {
+  const active = window.ACTIVE_FILTER || {};
+  const fy = num(active.year);
+  const fm = num(active.month);
+
+  return (window.CPR_ROWS || []).filter(r => {
+    return num(r.year) === fy && num(r.month) === fm;
+  });
 }
 
 export function initStyleTab() {
@@ -42,14 +54,11 @@ export function initStyleTab() {
 
     await ensureCPR();
 
-    const active = window.ACTIVE_FILTER || {};
+    const rows = getFilteredRows();
 
-    const rows = (window.CPR_ROWS || []).filter(r =>
-      Number(r.year) === Number(active.year || 0) &&
-      Number(r.month) === Number(active.month || 0)
-    );
+    const report = buildStyleReport(rows);
 
-    const data = buildStyleReport(rows).filter(r =>
+    const data = report.filter(r =>
       SEARCH
         ? String(r.id).toLowerCase().includes(SEARCH.toLowerCase())
         : true
@@ -123,9 +132,9 @@ export function initStyleTab() {
     const search = document.getElementById("styleSearch");
 
     search.oninput = e => {
-      clearTimeout(SEARCH_TIMER);
-
       const val = e.target.value;
+
+      clearTimeout(SEARCH_TIMER);
 
       SEARCH_TIMER = setTimeout(() => {
         SEARCH = val;
