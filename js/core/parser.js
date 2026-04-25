@@ -6,70 +6,124 @@ function num(v) {
   ) || 0;
 }
 
-function splitCSVLine(line) {
-  const out = [];
-  let cur = "";
-  let quote = false;
+/* -------------------------------- */
+/* Robust CSV Parser */
+/* Handles:
+   - quoted commas
+   - escaped quotes ""
+   - empty cells
+   - BOM
+   - CRLF / LF
+*/
+/* -------------------------------- */
+function parseCSVRows(text) {
+  const rows = [];
+  let row = [];
+  let cell = "";
 
-  for (let i = 0; i < line.length; i++) {
-    const ch = line[i];
+  let i = 0;
+  let inQuotes = false;
 
+  while (i < text.length) {
+    const ch = text[i];
+
+    if (inQuotes) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') {
+          cell += '"';
+          i += 2;
+          continue;
+        } else {
+          inQuotes = false;
+          i++;
+          continue;
+        }
+      } else {
+        cell += ch;
+        i++;
+        continue;
+      }
+    }
+
+    /* outside quotes */
     if (ch === '"') {
-      quote = !quote;
+      inQuotes = true;
+      i++;
       continue;
     }
 
-    if (ch === "," && !quote) {
-      out.push(cur);
-      cur = "";
+    if (ch === ",") {
+      row.push(cell);
+      cell = "";
+      i++;
       continue;
     }
 
-    cur += ch;
+    if (ch === "\r") {
+      i++;
+      continue;
+    }
+
+    if (ch === "\n") {
+      row.push(cell);
+      rows.push(row);
+
+      row = [];
+      cell = "";
+      i++;
+      continue;
+    }
+
+    cell += ch;
+    i++;
   }
 
-  out.push(cur);
-  return out;
+  /* last cell */
+  row.push(cell);
+  rows.push(row);
+
+  return rows.filter(r => r.some(v => String(v).trim() !== ""));
 }
 
 export function parseCSV(text) {
-  const clean = String(text || "").replace(/^\uFEFF/, "").trim();
+  const clean = String(text || "")
+    .replace(/^\uFEFF/, "")
+    .trim();
 
   if (!clean) return [];
 
-  const lines = clean.split(/\r?\n/);
+  const rows = parseCSVRows(clean);
 
-  const headers = splitCSVLine(lines.shift()).map(h => h.trim());
+  if (!rows.length) return [];
 
-  return lines
-    .filter(line => line.trim())
-    .map(line => {
-      const cols = splitCSVLine(line);
-      const row = {};
+  const headers = rows[0].map(h => String(h).trim());
 
-      headers.forEach((h, i) => {
-        row[h] = (cols[i] ?? "").trim();
-      });
+  return rows.slice(1).map(cols => {
+    const row = {};
 
-      /* Common date fields */
-      row.year = num(row.year);
-      row.month = num(row.month);
-      row.day = num(row.day);
-      row.date = num(row.date);
-
-      /* Ads fields */
-      row.impressions = num(row.impressions);
-      row.clicks = num(row.clicks);
-      row.ad_spend = num(row.ad_spend);
-      row.budget_spend = num(row.budget_spend);
-      row.units_sold_total = num(row.units_sold_total);
-      row.total_revenue = num(row.total_revenue);
-
-      /* Sales fields */
-      row.qty = num(row.qty);
-      row.final_amount = num(row.final_amount);
-      row.seller_price = num(row.seller_price);
-
-      return row;
+    headers.forEach((h, i) => {
+      row[h] = String(cols[i] ?? "").trim();
     });
+
+    /* Common Date Fields */
+    row.year = num(row.year);
+    row.month = num(row.month);
+    row.day = num(row.day);
+    row.date = num(row.date);
+
+    /* Ads Metrics */
+    row.impressions = num(row.impressions);
+    row.clicks = num(row.clicks);
+    row.ad_spend = num(row.ad_spend);
+    row.budget_spend = num(row.budget_spend);
+    row.units_sold_total = num(row.units_sold_total);
+    row.total_revenue = num(row.total_revenue);
+
+    /* Sales Metrics */
+    row.qty = num(row.qty);
+    row.final_amount = num(row.final_amount);
+    row.seller_price = num(row.seller_price);
+
+    return row;
+  });
 }
