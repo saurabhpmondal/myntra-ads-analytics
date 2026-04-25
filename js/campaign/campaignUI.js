@@ -12,7 +12,7 @@ function roi(rev, spend) {
 
 export function initCampaignTab() {
   window.renderCampaignTab = () => {
-    const rows = window.ALL || [];
+    const rows = window.FILTERED_ROWS || window.ALL || [];
 
     const root = document.getElementById("campaign");
 
