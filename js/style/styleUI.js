@@ -1,7 +1,11 @@
 import { buildStyleReport } from "./styleEngine.js";
+import { SHEETS } from "../config/sheets.js";
+import { fetchCSV } from "../core/fetcher.js";
+import { parseCSV } from "../core/parser.js";
 
 let LIMIT = 50;
 let SEARCH = "";
+let LOADING = false;
 
 function fmt(n) {
   return Number(n || 0).toLocaleString("en-IN", {
@@ -13,18 +17,41 @@ function roi(rev, spend) {
   return spend ? rev / spend : 0;
 }
 
+async function ensureCPR() {
+  if (window.CPR_ROWS) return;
+
+  if (LOADING) return;
+
+  LOADING = true;
+
+  const csv = await fetchCSV(SHEETS.CPR);
+  window.CPR_ROWS = parseCSV(csv);
+
+  LOADING = false;
+}
+
 export function initStyleTab() {
   window.renderStyleTab = async () => {
     const root = document.getElementById("style");
 
-    const rows = window.CPR_ROWS || [];
+    root.innerHTML = `
+      <section class="panel">
+        <div class="loading">Loading style data...</div>
+      </section>
+    `;
 
-    const data = buildStyleReport(rows)
-      .filter(r =>
-        SEARCH
-          ? String(r.id).toLowerCase().includes(SEARCH.toLowerCase())
-          : true
-      );
+    await ensureCPR();
+
+    const rows = (window.CPR_ROWS || []).filter(r =>
+      Number(r.year) === Number(window.ACTIVE_FILTER?.year || 0) &&
+      Number(r.month) === Number(window.ACTIVE_FILTER?.month || 0)
+    );
+
+    const data = buildStyleReport(rows).filter(r =>
+      SEARCH
+        ? String(r.id).toLowerCase().includes(SEARCH.toLowerCase())
+        : true
+    );
 
     const visible = data.slice(0, LIMIT);
 
@@ -42,6 +69,7 @@ export function initStyleTab() {
             value="${SEARCH}"
             style="width:100%;height:42px;border:1px solid #ddd;border-radius:10px;padding:0 10px;"
           >
+
           <div style="margin-top:8px;font-size:12px;color:#666;">
             Showing ${visible.length} of ${data.length} styles
           </div>
