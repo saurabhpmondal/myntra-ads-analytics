@@ -60,6 +60,12 @@ function roi(rev, spend) {
   return spend ? rev / spend : 0;
 }
 
+function refreshAllTabs() {
+  window.renderCampaignTab?.();
+  window.renderAdgroupTab?.();
+  window.renderStyleTab?.();
+}
+
 function card(label, value) {
   return `
     <div class="kpi-card">
@@ -132,7 +138,7 @@ function render() {
 
   window.ALL = ALL;
   window.FILTERED_ROWS = rows;
-  window.ACTIVE_FILTER = FILTER;
+  window.ACTIVE_FILTER = { ...FILTER };
 
   const k = buildKPI(rows);
 
@@ -220,6 +226,7 @@ function bindMore() {
     btn.onclick = () => {
       LIMIT[btn.dataset.more] += 20;
       render();
+      refreshAllTabs();
     };
   });
 }
@@ -271,6 +278,7 @@ function renderFilters() {
     FILTER.end = "";
     renderFilters();
     render();
+    refreshAllTabs();
   };
 
   fm.onchange = e => {
@@ -278,16 +286,19 @@ function renderFilters() {
     FILTER.start = "";
     FILTER.end = "";
     render();
+    refreshAllTabs();
   };
 
   fs.onchange = e => {
     FILTER.start = e.target.value;
     render();
+    refreshAllTabs();
   };
 
   fe.onchange = e => {
     FILTER.end = e.target.value;
     render();
+    refreshAllTabs();
   };
 }
 
@@ -295,6 +306,7 @@ async function loadPPR() {
   const csv = await fetchCSV(SHEETS.PPR);
   PPR = parseCSV(csv);
   render();
+  refreshAllTabs();
 }
 
 export async function initDashboard() {
