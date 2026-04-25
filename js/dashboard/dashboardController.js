@@ -43,6 +43,7 @@ const MONTH_NAMES = {
 function latestMonth(rows) {
   return rows.reduce((best, r) => {
     const score = Number(r.year) * 100 + Number(r.month);
+
     return score > best.score
       ? { score, year: Number(r.year), month: Number(r.month) }
       : best;
@@ -93,7 +94,7 @@ function table(title, heads, rowsHtml, key = "") {
 
 function placementSection() {
   if (!PPR.length) {
-    return `<section class="panel"><h3>Placement Wise</h3><div class="loading">Loading placement data...</div></section>`;
+    return `<section class="panel"><div class="loading">Loading placement data...</div></section>`;
   }
 
   const rows = PPR.filter(r =>
@@ -118,7 +119,7 @@ function placementSection() {
 
   return table(
     "Placement Wise",
-    ["Placement", "Spend", "Impressions", "Clicks", "CTR", "Units", "Revenue", "ROI"],
+    ["Placement", "Spend", "Impr", "Clicks", "CTR", "Units", "Revenue", "ROI"],
     html,
     "placement"
   );
@@ -128,6 +129,11 @@ function render() {
   const root = document.getElementById("dashboard");
 
   const rows = applyFilters(ALL, FILTER);
+
+  window.ALL = ALL;
+  window.FILTERED_ROWS = rows;
+  window.ACTIVE_FILTER = FILTER;
+
   const k = buildKPI(rows);
 
   const campaign = buildCampaignRows(rows);
@@ -149,7 +155,7 @@ function render() {
 
     ${table(
       "Date Wise",
-      ["Date", "Spend", "Impressions", "Clicks", "Units", "Revenue", "ROI"],
+      ["Date", "Spend", "Impr", "Clicks", "Units", "Revenue", "ROI"],
       buildDateRows(rows).map(r => `
         <tr>
           <td>${r.date}</td>
@@ -172,14 +178,15 @@ function render() {
           <td>${fmt(r.spend)}</td>
           <td>${fmt(r.impressions)}</td>
           <td>${fmt(r.clicks)}</td>
-          <td>${fmt(r.impressions ? (r.clicks / r.impressions) * 100 : 0)}%</td>
-          <td>${fmt(r.clicks ? (r.units / r.clicks) * 100 : 0)}%</td>
-          <td>${fmt(r.clicks ? r.spend / r.clicks : 0)}</td>
+          <td>${fmt(r.impressions ? (r.clicks/r.impressions)*100 : 0)}%</td>
+          <td>${fmt(r.clicks ? (r.units/r.clicks)*100 : 0)}%</td>
+          <td>${fmt(r.clicks ? r.spend/r.clicks : 0)}</td>
           <td>${fmt(r.units)}</td>
           <td>${fmt(r.revenue)}</td>
-          <td>${fmt(roi(r.revenue, r.spend))}x</td>
+          <td>${fmt(roi(r.revenue,r.spend))}x</td>
         </tr>
-      `).join(""), "campaign"
+      `).join(""),
+      "campaign"
     )}
 
     ${table(
@@ -191,14 +198,15 @@ function render() {
           <td>${fmt(r.spend)}</td>
           <td>${fmt(r.impressions)}</td>
           <td>${fmt(r.clicks)}</td>
-          <td>${fmt(r.impressions ? (r.clicks / r.impressions) * 100 : 0)}%</td>
-          <td>${fmt(r.clicks ? (r.units / r.clicks) * 100 : 0)}%</td>
-          <td>${fmt(r.clicks ? r.spend / r.clicks : 0)}</td>
+          <td>${fmt(r.impressions ? (r.clicks/r.impressions)*100 : 0)}%</td>
+          <td>${fmt(r.clicks ? (r.units/r.clicks)*100 : 0)}%</td>
+          <td>${fmt(r.clicks ? r.spend/r.clicks : 0)}</td>
           <td>${fmt(r.units)}</td>
           <td>${fmt(r.revenue)}</td>
-          <td>${fmt(roi(r.revenue, r.spend))}x</td>
+          <td>${fmt(roi(r.revenue,r.spend))}x</td>
         </tr>
-      `).join(""), "adgroup"
+      `).join(""),
+      "adgroup"
     )}
 
     ${placementSection()}
@@ -294,7 +302,9 @@ export async function initDashboard() {
     `<section class="panel"><div class="loading">Loading dashboard...</div></section>`;
 
   const csv = await fetchCSV(SHEETS.CDR);
+
   ALL = parseCSV(csv);
+  window.ALL = ALL;
 
   const latest = latestMonth(ALL);
 
