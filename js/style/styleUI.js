@@ -1,7 +1,4 @@
 import { buildStyleReport } from "./styleEngine.js";
-import { SHEETS } from "../config/sheets.js";
-import { fetchCSV } from "../core/fetcher.js";
-import { parseCSV } from "../core/parser.js";
 
 let LIMIT = 50;
 let SEARCH = "";
@@ -19,13 +16,18 @@ function roi(rev, spend) {
 
 async function ensureCPR() {
   if (window.CPR_ROWS) return;
-
   if (LOADING) return;
 
   LOADING = true;
 
-  const csv = await fetchCSV(SHEETS.CPR);
-  window.CPR_ROWS = parseCSV(csv);
+  const [{ SHEETS }, fetcher, parser] = await Promise.all([
+    import("/js/config/sheets.js"),
+    import("/js/core/fetcher.js"),
+    import("/js/core/parser.js")
+  ]);
+
+  const csv = await fetcher.fetchCSV(SHEETS.CPR);
+  window.CPR_ROWS = parser.parseCSV(csv);
 
   LOADING = false;
 }
@@ -115,9 +117,9 @@ export function initStyleTab() {
           </table>
         </div>
 
-        ${visible.length < data.length ? `
-          <button class="load-more" id="styleMore">Load More</button>
-        ` : ""}
+        ${visible.length < data.length
+          ? `<button class="load-more" id="styleMore">Load More</button>`
+          : ""}
 
       </section>
     `;
