@@ -7,38 +7,23 @@ function norm(v) {
   return String(v || "").trim().toUpperCase();
 }
 
-function parseDate(v) {
+function parseInputDate(v) {
   const s = String(v || "").trim();
 
   if (!s) return null;
 
-  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
-    const d = new Date(s + "T00:00:00");
-    return isNaN(d) ? null : d;
-  }
-
-  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(s)) {
-    const [dd, mm, yyyy] = s.split("/");
-    const d = new Date(
-      Number(yyyy),
-      Number(mm) - 1,
-      Number(dd)
-    );
-    return isNaN(d) ? null : d;
-  }
-
-  if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(s)) {
-    const [dd, mm, yyyy] = s.split("-");
-    const d = new Date(
-      Number(yyyy),
-      Number(mm) - 1,
-      Number(dd)
-    );
-    return isNaN(d) ? null : d;
-  }
-
-  const d = new Date(s);
+  const d = new Date(s + "T00:00:00");
   return isNaN(d) ? null : d;
+}
+
+function rowDate(r) {
+  const y = Number(r.year || 0);
+  const m = Number(r.month || 0);
+  const d = Number(r.day || 0);
+
+  if (!y || !m || !d) return null;
+
+  return new Date(y, m - 1, d);
 }
 
 export function getYears(rows) {
@@ -48,38 +33,36 @@ export function getYears(rows) {
 }
 
 export function getMonths(rows, year) {
-  const months = [...new Set(
+  const nums = [...new Set(
     rows
       .filter(r => Number(r.year) === Number(year))
-      .map(r => norm(r.month))
+      .map(r => Number(r.month))
       .filter(Boolean)
   )];
 
-  return months.sort(
-    (a, b) => MONTH_ORDER.indexOf(b) - MONTH_ORDER.indexOf(a)
-  );
+  return nums.sort((a, b) => b - a);
 }
 
 export function applyFilters(rows, filter) {
-  const start = parseDate(filter.start);
-  const end = parseDate(filter.end);
+  const start = parseInputDate(filter.start);
+  const end = parseInputDate(filter.end);
 
   return rows.filter(r => {
     if (filter.year && Number(r.year) !== Number(filter.year)) {
       return false;
     }
 
-    if (filter.month && norm(r.month) !== norm(filter.month)) {
+    if (filter.month && Number(r.month) !== Number(filter.month)) {
       return false;
     }
 
-    const rowDate = parseDate(r.date);
+    const dt = rowDate(r);
 
-    if (start && rowDate && rowDate < start) {
+    if (start && dt && dt < start) {
       return false;
     }
 
-    if (end && rowDate && rowDate > end) {
+    if (end && dt && dt > end) {
       return false;
     }
 
