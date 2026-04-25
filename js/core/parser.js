@@ -7,82 +7,75 @@ function num(v) {
 }
 
 /* -------------------------------- */
-/* Robust CSV Parser */
-/* Handles:
-   - quoted commas
-   - escaped quotes ""
-   - empty cells
-   - BOM
-   - CRLF / LF
-*/
+/* Robust CSV row parser */
 /* -------------------------------- */
 function parseCSVRows(text) {
   const rows = [];
   let row = [];
   let cell = "";
-
-  let i = 0;
   let inQuotes = false;
 
-  while (i < text.length) {
+  for (let i = 0; i < text.length; i++) {
     const ch = text[i];
 
     if (inQuotes) {
       if (ch === '"') {
         if (text[i + 1] === '"') {
           cell += '"';
-          i += 2;
-          continue;
+          i++;
         } else {
           inQuotes = false;
-          i++;
-          continue;
         }
       } else {
         cell += ch;
-        i++;
-        continue;
       }
+      continue;
     }
 
-    /* outside quotes */
     if (ch === '"') {
       inQuotes = true;
-      i++;
       continue;
     }
 
     if (ch === ",") {
       row.push(cell);
       cell = "";
-      i++;
       continue;
     }
 
-    if (ch === "\r") {
-      i++;
-      continue;
-    }
+    if (ch === "\r") continue;
 
     if (ch === "\n") {
       row.push(cell);
       rows.push(row);
-
       row = [];
       cell = "";
-      i++;
       continue;
     }
 
     cell += ch;
-    i++;
   }
 
-  /* last cell */
   row.push(cell);
   rows.push(row);
 
-  return rows.filter(r => r.some(v => String(v).trim() !== ""));
+  return rows.filter(r =>
+    r.some(x => String(x).trim() !== "")
+  );
+}
+
+function smartMonth(v) {
+  const raw = String(v ?? "").trim();
+
+  if (!raw) return 0;
+
+  const n = Number(raw);
+
+  if (!isNaN(n) && raw !== "") {
+    return n;
+  }
+
+  return raw.toUpperCase();
 }
 
 export function parseCSV(text) {
@@ -105,9 +98,9 @@ export function parseCSV(text) {
       row[h] = String(cols[i] ?? "").trim();
     });
 
-    /* Common Date Fields */
+    /* Date fields */
     row.year = num(row.year);
-    row.month = num(row.month);
+    row.month = smartMonth(row.month);
     row.day = num(row.day);
     row.date = num(row.date);
 
