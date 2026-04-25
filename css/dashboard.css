@@ -226,3 +226,25 @@ tbody tr:hover{
     font-size:16px;
   }
 }
+
+.tabs-bar{
+  display:flex;
+  gap:8px;
+  padding:0 12px 12px;
+  background:#f7f7f7;
+}
+
+.tab-btn{
+  height:40px;
+  padding:0 16px;
+  border:1px solid #e3e3e3;
+  background:#fff;
+  border-radius:10px;
+  font-weight:700;
+}
+
+.tab-btn.active{
+  background:#111;
+  color:#fff;
+  border-color:#111;
+}
