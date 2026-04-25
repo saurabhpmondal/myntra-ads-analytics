@@ -40,6 +40,7 @@ export function initSalesTab() {
       const filter = window.ACTIVE_FILTER || {};
 
       const data = buildSalesData(SALES, RETURNS, filter);
+      const dbg = data.cards?.debug || {};
 
       const salesKeys =
         SALES.length ? Object.keys(SALES[0]).join(", ") : "NO SALES ROWS";
@@ -58,6 +59,17 @@ export function initSalesTab() {
 
           <p><strong>Cards Sold:</strong> ${data.cards?.sold || 0}</p>
           <p><strong>Cards Returns:</strong> ${data.cards?.returns || 0}</p>
+
+          <hr>
+
+          <h4>Engine Counters</h4>
+
+          <p><strong>Total Sales:</strong> ${dbg.totalSales || 0}</p>
+          <p><strong>After Valid Sale:</strong> ${dbg.afterValidSale || 0}</p>
+          <p><strong>After Filter:</strong> ${dbg.afterFilter || 0}</p>
+          <p><strong>After Style:</strong> ${dbg.afterStyle || 0}</p>
+          <p><strong>After Order:</strong> ${dbg.afterOrder || 0}</p>
+          <p><strong>Matched Returns:</strong> ${dbg.matchedReturns || 0}</p>
 
           <hr>
 
