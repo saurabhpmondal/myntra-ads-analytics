@@ -27,19 +27,30 @@ async function ensureCPR() {
   if (LOADING) return;
 
   LOADING = true;
+
   const csv = await fetchCSV(SHEETS.CPR);
   window.CPR_ROWS = parseCSV(csv);
+
   LOADING = false;
 }
 
-function getFilteredRows() {
-  const active = window.ACTIVE_FILTER || {};
-  const fy = num(active.year);
-  const fm = num(active.month);
+function getLiveFilters() {
+  const fy = document.getElementById("fy");
+  const fm = document.getElementById("fm");
 
-  return (window.CPR_ROWS || []).filter(r => {
-    return num(r.year) === fy && num(r.month) === fm;
-  });
+  return {
+    year: num(fy ? fy.value : 0),
+    month: num(fm ? fm.value : 0)
+  };
+}
+
+function getFilteredRows() {
+  const active = getLiveFilters();
+
+  return (window.CPR_ROWS || []).filter(r =>
+    num(r.year) === active.year &&
+    num(r.month) === active.month
+  );
 }
 
 export function initStyleTab() {
@@ -55,7 +66,6 @@ export function initStyleTab() {
     await ensureCPR();
 
     const rows = getFilteredRows();
-
     const report = buildStyleReport(rows);
 
     const data = report.filter(r =>
