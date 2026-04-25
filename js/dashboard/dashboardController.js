@@ -64,6 +64,7 @@ function refreshAllTabs() {
   window.renderCampaignTab?.();
   window.renderAdgroupTab?.();
   window.renderStyleTab?.();
+  window.renderPPRTab?.();
 }
 
 function card(label, value) {
