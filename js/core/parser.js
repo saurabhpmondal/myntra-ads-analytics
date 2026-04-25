@@ -33,32 +33,43 @@ function splitCSVLine(line) {
 }
 
 export function parseCSV(text) {
-  const lines = text.trim().split(/\r?\n/);
+  const clean = String(text || "").replace(/^\uFEFF/, "").trim();
 
-  const headers = splitCSVLine(lines.shift()).map(x => x.trim());
+  if (!clean) return [];
 
-  return lines.map(line => {
-    const cols = splitCSVLine(line);
+  const lines = clean.split(/\r?\n/);
 
-    const row = {};
+  const headers = splitCSVLine(lines.shift()).map(h => h.trim());
 
-    headers.forEach((h, i) => {
-      row[h] = (cols[i] ?? "").trim();
+  return lines
+    .filter(line => line.trim())
+    .map(line => {
+      const cols = splitCSVLine(line);
+      const row = {};
+
+      headers.forEach((h, i) => {
+        row[h] = (cols[i] ?? "").trim();
+      });
+
+      /* Common date fields */
+      row.year = num(row.year);
+      row.month = num(row.month);
+      row.day = num(row.day);
+      row.date = num(row.date);
+
+      /* Ads fields */
+      row.impressions = num(row.impressions);
+      row.clicks = num(row.clicks);
+      row.ad_spend = num(row.ad_spend);
+      row.budget_spend = num(row.budget_spend);
+      row.units_sold_total = num(row.units_sold_total);
+      row.total_revenue = num(row.total_revenue);
+
+      /* Sales fields */
+      row.qty = num(row.qty);
+      row.final_amount = num(row.final_amount);
+      row.seller_price = num(row.seller_price);
+
+      return row;
     });
-
-    row.year = num(row.year);
-    row.month = num(row.month);
-    row.day = num(row.day);
-
-    row.impressions = num(row.impressions);
-    row.clicks = num(row.clicks);
-
-    row.ad_spend = num(row.ad_spend);
-    row.budget_spend = num(row.budget_spend);
-
-    row.units_sold_total = num(row.units_sold_total);
-    row.total_revenue = num(row.total_revenue);
-
-    return row;
-  });
 }
