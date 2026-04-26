@@ -49,7 +49,6 @@ function csvEscape(v) {
 
 function downloadCSV(name, rows) {
   const csv = rows.map(r => r.map(csvEscape).join(",")).join("\n");
-
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
 
@@ -73,9 +72,9 @@ function metaRows(out, title, cfg, data, rows, scope = "") {
   if (scope) out.push(["Brand Scope", scope]);
 
   out.push(["Total Styles", rows.length]);
-  out.push(["Total Projection Qty", rows.reduce((s, r) => s + r.projectionQty, 0)]);
-  out.push(["Total Shipment Qty", rows.reduce((s, r) => s + r.shipmentQty, 0)]);
-  out.push(["Total Recall Qty", rows.reduce((s, r) => s + r.recallQty, 0)]);
+  out.push(["Total Projection Qty", rows.reduce((s, r) => s + Number(r.projectionQty || 0), 0)]);
+  out.push(["Total Shipment Qty", rows.reduce((s, r) => s + Number(r.shipmentQty || 0), 0)]);
+  out.push(["Total Recall Qty", rows.reduce((s, r) => s + Number(r.recallQty || 0), 0)]);
   out.push([]);
 }
 
@@ -155,7 +154,7 @@ function exportSJIT() {
   );
 }
 
-function exportSOR() {
+function exportSORBrand(brandName) {
   const cfg = {
     salesDays: Number(window.SOR_SALES_DAYS || 30),
     coverDays: Number(window.SOR_COVER_DAYS || 45),
@@ -173,21 +172,26 @@ function exportSOR() {
     cfg
   );
 
+  const rows = data.rows.filter(
+    r => String(r.brand || "").trim().toUpperCase() === brandName.toUpperCase()
+  );
+
   const out = [];
+
   metaRows(
     out,
-    "SOR Planner Export",
+    `${brandName} SOR Planner Export`,
     cfg,
     data,
-    data.rows,
-    "KALINI + Mitera"
+    rows,
+    brandName
   );
 
   addHeaders(out, "SOR Stock");
-  addRows(out, data.rows);
+  addRows(out, rows);
 
   downloadCSV(
-    `SOR_Planner_${cfg.salesDays}D_${cfg.coverDays}C_${cfg.recallDays}R.csv`,
+    `${brandName}_SOR_Planner_${cfg.salesDays}D_${cfg.coverDays}C_${cfg.recallDays}R.csv`,
     out
   );
 }
@@ -222,7 +226,8 @@ export function initExportTab() {
               <option value="style">Product ID</option>
               <option value="analysis">Analysis</option>
               <option value="sjit">SJIT Planner</option>
-              <option value="sor">SOR Planner</option>
+              <option value="sor_kalini">SOR Planner - KALINI</option>
+              <option value="sor_mitera">SOR Planner - Mitera</option>
             </select>
           </div>
 
@@ -249,7 +254,8 @@ export function initExportTab() {
 
     btn.onclick = () => {
       if (TYPE === "sjit") return exportSJIT();
-      if (TYPE === "sor") return exportSOR();
+      if (TYPE === "sor_kalini") return exportSORBrand("KALINI");
+      if (TYPE === "sor_mitera") return exportSORBrand("Mitera");
 
       exportReport(TYPE);
     };
