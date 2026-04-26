@@ -1,48 +1,50 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Myntra Ads Analytics</title>
 
-  <link rel="icon" type="image/png" href="./icons8-favicon-94.png">
+  <link rel="stylesheet" href="./css/style.css">
 
-  <link rel="stylesheet" href="./css/reset.css">
-  <link rel="stylesheet" href="./css/variables.css">
-  <link rel="stylesheet" href="./css/layout.css">
-  <link rel="stylesheet" href="./css/components.css">
-  <link rel="stylesheet" href="./css/dashboard.css">
+  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+  <script>
+    eruda.init();
+  </script>
 </head>
-
 <body>
 
-<header class="topbar" style="text-align:center;">
-  Myntra Ads Analytics
-</header>
+  <header class="topbar">
+    <div class="brand">Myntra Ads Analytics V2.5</div>
+  </header>
 
-<section id="filters"></section>
+  <section id="filters"></section>
 
-<section class="tabs-bar">
-  <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
-  <button class="tab-btn" data-tab="campaign">Campaign</button>
-  <button class="tab-btn" data-tab="adgroup">Adgroup</button>
-  <button class="tab-btn" data-tab="style">Style</button>
-  <button class="tab-btn" data-tab="ppr">PPR</button>
-  <button class="tab-btn" data-tab="analysis">Analysis</button>
-  <button class="tab-btn" data-tab="sales">Sales Intelligence</button>
-  <button class="tab-btn" data-tab="export">Export</button>
-</section>
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+    <button class="tab-btn" data-tab="campaign">Campaign</button>
+    <button class="tab-btn" data-tab="adgroup">Adgroup</button>
+    <button class="tab-btn" data-tab="style">Style</button>
+    <button class="tab-btn" data-tab="ppr">PPR</button>
+    <button class="tab-btn" data-tab="analysis">Analysis</button>
+    <button class="tab-btn" data-tab="sales">Sales</button>
+    <button class="tab-btn" data-tab="sjit">SJIT</button>
+    <button class="tab-btn" data-tab="export">Export</button>
+  </nav>
 
-<main id="dashboard"></main>
-<main id="campaign" style="display:none;"></main>
-<main id="adgroup" style="display:none;"></main>
-<main id="style" style="display:none;"></main>
-<main id="ppr" style="display:none;"></main>
-<main id="analysis" style="display:none;"></main>
-<main id="sales" style="display:none;"></main>
-<main id="export" style="display:none;"></main>
+  <main class="page-wrap">
+    <section id="dashboard"></section>
+    <section id="campaign" style="display:none;"></section>
+    <section id="adgroup" style="display:none;"></section>
+    <section id="style" style="display:none;"></section>
+    <section id="ppr" style="display:none;"></section>
+    <section id="analysis" style="display:none;"></section>
+    <section id="sales" style="display:none;"></section>
+    <section id="sjit" style="display:none;"></section>
+    <section id="export" style="display:none;"></section>
+  </main>
 
-<script type="module" src="./js/app.js"></script>
+  <script type="module" src="./js/app.js"></script>
 
 </body>
 </html>
