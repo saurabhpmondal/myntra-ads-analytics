@@ -79,6 +79,10 @@ function validReturn(row) {
   return txt(row.type).toUpperCase() === "RETURN";
 }
 
+function isContinue(status) {
+  return txt(status).toUpperCase() === "CONTINUE";
+}
+
 export function buildSJITDebug(data) {
   const {
     salesRows,
@@ -157,29 +161,51 @@ export function buildSJITDebug(data) {
     const g = gross[style] || 0;
     const rr = ret[style] || 0;
     const net = Math.max(0, g - rr);
+
     const drr = net / 30;
     const stock = stockMap[style] || 0;
     const sc = drr > 0 ? stock / drr : 999999;
 
+    const rating = trafficMap[style] || 0;
+    const status = masterMap[style]?.status || "";
+
+    const need45 = drr * 45;
+
+    const recallFlag =
+      sc > 60 ||
+      rating < 3.8 ||
+      !isContinue(status);
+
+    let shipmentQty = 0;
+    let recallQty = 0;
+
+    if (recallFlag) {
+      recallQty = Math.floor(Math.max(0, stock - need45));
+    } else {
+      shipmentQty = Math.ceil(Math.max(0, need45 - stock));
+    }
+
     return {
       style_id: style,
       erp_sku: masterMap[style]?.erp_sku || "",
-      status: masterMap[style]?.status || "",
+      status,
       brand: masterMap[style]?.brand || "",
       launch_date: masterMap[style]?.launch_date || "",
       live_date: masterMap[style]?.live_date || "",
-      rating: trafficMap[style] || 0,
+      rating,
       gross: g,
       returns: rr,
       net,
       returnPct: g ? (rr / g) * 100 : 0,
       drr,
       stock,
-      sc
+      sc,
+      shipmentQty,
+      recallQty
     };
   });
 
-  rows.sort((a, b) => b.net - a.net);
+  rows.sort((a, b) => b.shipmentQty - a.shipmentQty);
 
   return {
     anchorDate: anchor ? keyDate(anchor) : "",
