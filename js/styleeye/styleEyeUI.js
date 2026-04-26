@@ -11,6 +11,7 @@ let MASTER = [];
 let SJIT = [];
 let SOR = [];
 let CPR = [];
+let TRAFFIC = [];
 
 async function ensureData() {
   if (READY) return;
@@ -21,7 +22,8 @@ async function ensureData() {
     fetchCSV(SHEETS.PRODUCT_MASTER),
     fetchCSV(SHEETS.SJIT_STOCK),
     fetchCSV(SHEETS.SOR_STOCK),
-    fetchCSV(SHEETS.CPR)
+    fetchCSV(SHEETS.CPR),
+    fetchCSV(SHEETS.TRAFFIC)
   ]);
 
   SALES = parseCSV(files[0]);
@@ -30,6 +32,7 @@ async function ensureData() {
   SJIT = parseCSV(files[3]);
   SOR = parseCSV(files[4]);
   CPR = parseCSV(files[5]);
+  TRAFFIC = parseCSV(files[6]);
 
   READY = true;
 }
@@ -98,7 +101,6 @@ function renderSingle(root, d) {
 
     <section class="panel">
       <div class="panel-head"><h3>Inventory Pulse</h3></div>
-
       <section class="kpi-grid">
         ${card("SJIT Stock", fmt(d.inventory.sjit.stock))}
         ${card("SJIT SC", Number(d.inventory.sjit.sc) >= 999999 ? "∞" : fmt(d.inventory.sjit.sc))}
@@ -123,6 +125,27 @@ function renderSingle(root, d) {
         ${card("CTR", pct(d.ads.ctr))}
         ${card("CVR", pct(d.ads.cvr))}
       </section>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h3>Quality Pulse</h3></div>
+      <section class="kpi-grid">
+        ${card("Rating", fmt(d.quality.rating))}
+        ${card("Top Return Reason", d.quality.topReason)}
+        ${card("Return Risk", d.quality.returnRisk)}
+      </section>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h3>Action Engine</h3></div>
+
+      <div style="padding:16px;display:grid;gap:10px;">
+        ${d.actions.map(a => `
+          <div style="padding:12px;border:1px solid #eee;border-radius:12px;">
+            ${a}
+          </div>
+        `).join("")}
+      </div>
     </section>
   `;
 }
@@ -216,7 +239,8 @@ export function initStyleEyeTab() {
           stockRows: SJIT,
           sorRows: SOR,
           masterRows: MASTER,
-          cprRows: CPR
+          cprRows: CPR,
+          trafficRows: TRAFFIC
         },
         q
       );
