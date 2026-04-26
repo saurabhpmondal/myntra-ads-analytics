@@ -7,6 +7,7 @@ import { initAnalysisTab } from "./analysis/analysisUI.js";
 import { initSalesTab } from "./sales/salesUI.js";
 import { initSJITTab } from "./sjit/sjitUI.js";
 import { initSORTab } from "./sor/sorUI.js";
+import { initStyleEyeTab } from "./styleeye/styleEyeUI.js";
 import { initExportTab } from "./export/exportUI.js";
 
 window.addEventListener("DOMContentLoaded", async () => {
@@ -20,6 +21,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   initSalesTab();
   initSJITTab();
   initSORTab();
+  initStyleEyeTab();
   initExportTab();
 
   document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -42,10 +44,11 @@ window.addEventListener("DOMContentLoaded", async () => {
         "sales",
         "sjit",
         "sor",
+        "styleeye",
         "export"
       ].forEach(id => {
-        document.getElementById(id).style.display =
-          id === tab ? "block" : "none";
+        const el = document.getElementById(id);
+        if (el) el.style.display = id === tab ? "block" : "none";
       });
 
       if (tab === "campaign") window.renderCampaignTab?.();
@@ -56,6 +59,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       if (tab === "sales") window.renderSalesTab?.();
       if (tab === "sjit") window.renderSJITTab?.();
       if (tab === "sor") window.renderSORTab?.();
+      if (tab === "styleeye") window.renderStyleEyeTab?.();
       if (tab === "export") window.renderExportTab?.();
     };
   });
