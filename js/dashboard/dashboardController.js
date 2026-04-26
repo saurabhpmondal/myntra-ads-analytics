@@ -154,4 +154,171 @@ function placementSection() {
   );
 }
 
-/* keep your existing render(), bindMore(), renderFilters(), loadPPR(), initDashboard() unchanged below this line */
+function render() {
+  const root = document.getElementById("dashboard");
+
+  const rows = applyFilters(ALL, FILTER);
+
+  const prev = previousMonth(FILTER.year, FILTER.month);
+
+  const prevRows = ALL.filter(r =>
+    Number(r.year) === prev.year &&
+    Number(r.month) === prev.month
+  );
+
+  window.ALL = ALL;
+  window.FILTERED_ROWS = rows;
+  window.ACTIVE_FILTER = { ...FILTER };
+
+  const k = buildKPI(rows, prevRows);
+
+  const campaign = buildCampaignRows(rows);
+  const adgroup = buildAdgroupRows(rows);
+
+  root.innerHTML = `
+    <section class="kpi-grid">
+      ${card("Spend", "₹" + fmt(k.spend), pctLabel(k.delta?.spend))}
+      ${card("Impressions", fmt(k.impressions), pctLabel(k.delta?.impressions))}
+      ${card("Clicks", fmt(k.clicks), pctLabel(k.delta?.clicks))}
+      ${card("Units Sold", fmt(k.units), pctLabel(k.delta?.units))}
+      ${card("Revenue", "₹" + fmt(k.revenue), pctLabel(k.delta?.revenue))}
+      ${card("ROI", fmt(k.roi) + "x", roiLabel(k.delta?.roi))}
+    </section>
+
+    <section class="panel">
+      ${renderTrendChart(buildTrendRows(rows))}
+    </section>
+
+    ${table(
+      "Campaign Wise",
+      ["Campaign", "Spend", "Revenue", "ROI"],
+      campaign.slice(0, LIMIT.campaign).map(r => `
+        <tr>
+          <td>${r.name}</td>
+          <td>${fmt(r.spend)}</td>
+          <td>${fmt(r.revenue)}</td>
+          <td>${fmt(roi(r.revenue,r.spend))}x</td>
+        </tr>
+      `).join(""),
+      "campaign"
+    )}
+
+    ${table(
+      "Adgroup Wise",
+      ["Adgroup", "Spend", "Revenue", "ROI"],
+      adgroup.slice(0, LIMIT.adgroup).map(r => `
+        <tr>
+          <td>${r.name}</td>
+          <td>${fmt(r.spend)}</td>
+          <td>${fmt(r.revenue)}</td>
+          <td>${fmt(roi(r.revenue,r.spend))}x</td>
+        </tr>
+      `).join(""),
+      "adgroup"
+    )}
+
+    ${placementSection()}
+  `;
+
+  bindMore();
+}
+
+function bindMore() {
+  document.querySelectorAll("[data-more]").forEach(btn => {
+    btn.onclick = () => {
+      LIMIT[btn.dataset.more] += 20;
+      render();
+      refreshAllTabs();
+    };
+  });
+}
+
+function renderFilters() {
+  const wrap = document.getElementById("filters");
+
+  const years = getYears(ALL);
+  const months = getMonths(ALL, FILTER.year);
+
+  wrap.innerHTML = `
+    <div class="filter-shell">
+      <div class="f-item">
+        <label>Year</label>
+        <select id="fy">
+          ${years.map(y => `<option value="${y}" ${y===FILTER.year?"selected":""}>${y}</option>`).join("")}
+        </select>
+      </div>
+
+      <div class="f-item">
+        <label>Month</label>
+        <select id="fm">
+          ${months.map(m => `<option value="${m}" ${Number(m)===Number(FILTER.month)?"selected":""}>${m} - ${MONTH_NAMES[m]}</option>`).join("")}
+        </select>
+      </div>
+
+      <div class="f-item">
+        <label>Start</label>
+        <input id="fs" type="date" value="${FILTER.start}">
+      </div>
+
+      <div class="f-item">
+        <label>End</label>
+        <input id="fe" type="date" value="${FILTER.end}">
+      </div>
+    </div>
+  `;
+
+  fy.onchange = e => {
+    FILTER.year = Number(e.target.value);
+    FILTER.month = Number(getMonths(ALL, FILTER.year)[0]);
+    FILTER.start = "";
+    FILTER.end = "";
+    renderFilters();
+    render();
+    refreshAllTabs();
+  };
+
+  fm.onchange = e => {
+    FILTER.month = Number(e.target.value);
+    FILTER.start = "";
+    FILTER.end = "";
+    render();
+    refreshAllTabs();
+  };
+
+  fs.onchange = e => {
+    FILTER.start = e.target.value;
+    render();
+    refreshAllTabs();
+  };
+
+  fe.onchange = e => {
+    FILTER.end = e.target.value;
+    render();
+    refreshAllTabs();
+  };
+}
+
+async function loadPPR() {
+  const csv = await fetchCSV(SHEETS.PPR);
+  PPR = parseCSV(csv);
+  render();
+}
+
+export async function initDashboard() {
+  document.getElementById("dashboard").innerHTML =
+    `<section class="panel"><div class="loading">Loading dashboard...</div></section>`;
+
+  const csv = await fetchCSV(SHEETS.CDR);
+
+  ALL = parseCSV(csv);
+
+  const latest = latestMonth(ALL);
+
+  FILTER.year = latest.year;
+  FILTER.month = latest.month;
+
+  renderFilters();
+  render();
+
+  loadPPR();
+}
