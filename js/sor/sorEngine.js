@@ -82,6 +82,11 @@ function isContinue(v) {
   return txt(v).toUpperCase() === "CONTINUE";
 }
 
+function allowedBrand(v) {
+  const b = txt(v).toUpperCase();
+  return b === "KALINI" || b === "MITERA";
+}
+
 export function buildSORDebug(data, cfg = {}) {
   const salesDays = Number(cfg.salesDays || 30);
   const coverDays = Number(cfg.coverDays || 45);
@@ -97,18 +102,46 @@ export function buildSORDebug(data, cfg = {}) {
 
   const anchor = latestDate(salesRows);
 
-  const salesWin = salesRows.filter(r =>
-    validSale(r) && inWindow(r, anchor, salesDays)
-  );
+  const masterMap = {};
+  masterRows.forEach(r => {
+    const style = txt(r.style_id);
+    if (!style) return;
 
-  const returnWin = returnRows.filter(r =>
-    validReturn(r) && inWindow(r, anchor, salesDays)
-  );
+    const brand = txt(r.brand);
+
+    if (!allowedBrand(brand)) return;
+
+    masterMap[style] = {
+      erp_sku: txt(r.erp_sku),
+      status: txt(r.status),
+      brand,
+      launch_date: txt(r.launch_date),
+      live_date: txt(r.live_date)
+    };
+  });
+
+  const salesWin = salesRows.filter(r => {
+    const style = txt(r.style_id);
+    return (
+      masterMap[style] &&
+      validSale(r) &&
+      inWindow(r, anchor, salesDays)
+    );
+  });
+
+  const returnWin = returnRows.filter(r => {
+    const style = txt(r.style_id);
+    return (
+      masterMap[style] &&
+      validReturn(r) &&
+      inWindow(r, anchor, salesDays)
+    );
+  });
 
   const stockMap = {};
   stockRows.forEach(r => {
     const style = txt(r.style_id);
-    if (!style) return;
+    if (!masterMap[style]) return;
 
     stockMap[style] = (stockMap[style] || 0) + num(r.units);
   });
@@ -116,60 +149,36 @@ export function buildSORDebug(data, cfg = {}) {
   const trafficMap = {};
   trafficRows.forEach(r => {
     const style = txt(r.style_id);
-    if (!style) return;
+    if (!masterMap[style]) return;
 
     trafficMap[style] = num(r.rating);
-  });
-
-  const masterMap = {};
-  masterRows.forEach(r => {
-    const style = txt(r.style_id);
-    if (!style) return;
-
-    masterMap[style] = {
-      erp_sku: txt(r.erp_sku),
-      status: txt(r.status),
-      brand: txt(r.brand),
-      launch_date: txt(r.launch_date),
-      live_date: txt(r.live_date)
-    };
   });
 
   const gross = {};
   salesWin.forEach(r => {
     const style = txt(r.style_id);
-    if (!style) return;
-
     gross[style] = (gross[style] || 0) + num(r.qty || 1);
   });
 
   const ret = {};
   returnWin.forEach(r => {
     const style = txt(r.style_id);
-    if (!style) return;
-
     ret[style] = (ret[style] || 0) + 1;
   });
 
-  const styles = new Set([
-    ...Object.keys(gross),
-    ...Object.keys(ret),
-    ...Object.keys(stockMap),
-    ...Object.keys(masterMap)
-  ]);
+  const styles = Object.keys(masterMap);
 
-  const rows = [...styles].map(style => {
+  const rows = styles.map(style => {
     const g = gross[style] || 0;
     const rr = ret[style] || 0;
     const net = Math.max(0, g - rr);
 
     const drr = salesDays ? net / salesDays : 0;
-
     const stock = stockMap[style] || 0;
     const sc = drr > 0 ? stock / drr : 999999;
 
     const rating = trafficMap[style] || 0;
-    const status = masterMap[style]?.status || "";
+    const status = masterMap[style].status;
 
     const projectionQty = Math.ceil(
       Math.max((coverDays * drr) - stock, 0)
@@ -186,22 +195,19 @@ export function buildSORDebug(data, cfg = {}) {
 
     return {
       style_id: style,
-      erp_sku: masterMap[style]?.erp_sku || "",
+      erp_sku: masterMap[style].erp_sku,
       status,
-      brand: masterMap[style]?.brand || "",
-      launch_date: masterMap[style]?.launch_date || "",
-      live_date: masterMap[style]?.live_date || "",
+      brand: masterMap[style].brand,
+      launch_date: masterMap[style].launch_date,
+      live_date: masterMap[style].live_date,
       rating,
-
       gross: g,
       returns: rr,
       net,
       returnPct: g ? (rr / g) * 100 : 0,
-
       drr,
       stock,
       sc,
-
       projectionQty,
       shipmentQty: blocked ? 0 : projectionQty,
       recallQty: blocked ? recallCalc : 0
