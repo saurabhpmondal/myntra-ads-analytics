@@ -14,6 +14,7 @@ let SOR = [];
 
 let QUERY = "";
 let LIMIT = 50;
+let SORT = "sales";
 let TIMER = null;
 
 async function ensureData() {
@@ -51,12 +52,23 @@ function fmt(n) {
   });
 }
 
+function sortRows(rows) {
+  const out = [...rows];
+
+  if (SORT === "sales") out.sort((a, b) => b.net - a.net);
+  if (SORT === "ship") out.sort((a, b) => b.shipmentQty - a.shipmentQty);
+  if (SORT === "recall") out.sort((a, b) => b.recallQty - a.recallQty);
+  if (SORT === "stock") out.sort((a, b) => b.stock - a.stock);
+
+  return out;
+}
+
 export function initSJITTab() {
   window.renderSJITTab = async () => {
     const root = document.getElementById("sjit");
 
     root.innerHTML =
-      `<section class="panel"><div class="loading">Loading SJIT Debug...</div></section>`;
+      `<section class="panel"><div class="loading">Loading SJIT Planning...</div></section>`;
 
     await ensureData();
 
@@ -81,14 +93,30 @@ export function initSJITTab() {
       );
     }
 
+    rows = sortRows(rows);
+
     const show = rows.slice(0, LIMIT);
 
-    const preview = show.map(r => `
+    const shipStyles = rows.filter(r => r.shipmentQty > 0).length;
+    const recallStyles = rows.filter(r => r.recallQty > 0).length;
+
+    const shipQty = rows.reduce((s, r) => s + r.shipmentQty, 0);
+    const recallQty = rows.reduce((s, r) => s + r.recallQty, 0);
+    const totalStock = rows.reduce((s, r) => s + r.stock, 0);
+
+    const avgReturn =
+      rows.length
+        ? rows.reduce((s, r) => s + r.returnPct, 0) / rows.length
+        : 0;
+
+    const body = show.map(r => `
       <tr>
         <td>${r.style_id}</td>
         <td>${r.erp_sku}</td>
         <td>${r.status}</td>
         <td>${r.brand}</td>
+        <td>${r.launch_date}</td>
+        <td>${r.live_date}</td>
         <td>${fmt(r.rating)}</td>
         <td>${fmt(r.gross)}</td>
         <td>${fmt(r.returns)}</td>
@@ -97,23 +125,37 @@ export function initSJITTab() {
         <td>${fmt(r.drr)}</td>
         <td>${fmt(r.stock)}</td>
         <td>${r.sc >= 999999 ? "∞" : fmt(r.sc)}</td>
+        <td>${fmt(r.shipmentQty)}</td>
+        <td>${fmt(r.recallQty)}</td>
       </tr>
     `).join("");
 
     root.innerHTML = `
       <section class="kpi-grid">
-        <div class="kpi-card"><span>Anchor Date</span><strong>${data.endDate}</strong></div>
-        <div class="kpi-card"><span>30D Start</span><strong>${data.startDate}</strong></div>
-        <div class="kpi-card"><span>30D Sales Rows</span><strong>${fmt(data.salesRows30)}</strong></div>
-        <div class="kpi-card"><span>30D Return Rows</span><strong>${fmt(data.returnRows30)}</strong></div>
-        <div class="kpi-card"><span>Total Styles</span><strong>${fmt(rows.length)}</strong></div>
-        <div class="kpi-card"><span>Shown Rows</span><strong>${fmt(show.length)}</strong></div>
+        <div class="kpi-card"><span>Styles To Ship</span><strong>${fmt(shipStyles)}</strong></div>
+        <div class="kpi-card"><span>Total Shipment Qty</span><strong>${fmt(shipQty)}</strong></div>
+        <div class="kpi-card"><span>Styles To Recall</span><strong>${fmt(recallStyles)}</strong></div>
+        <div class="kpi-card"><span>Total Recall Qty</span><strong>${fmt(recallQty)}</strong></div>
+        <div class="kpi-card"><span>Avg Return %</span><strong>${fmt(avgReturn)}%</strong></div>
+        <div class="kpi-card"><span>Total Stock</span><strong>${fmt(totalStock)}</strong></div>
       </section>
 
       <section class="panel">
-        <div style="padding:16px;">
-          <label style="font-size:12px;color:#666;">Search Style / ERP SKU / Brand</label>
-          <input id="sjitSearch" value="${QUERY}" placeholder="Type to search...">
+        <div style="padding:16px;display:grid;gap:12px;grid-template-columns:1fr 220px;align-items:end;">
+          <div>
+            <label style="font-size:12px;color:#666;">Search Style / ERP SKU / Brand</label>
+            <input id="sjitSearch" value="${QUERY}" placeholder="Type to search...">
+          </div>
+
+          <div>
+            <label style="font-size:12px;color:#666;">Sort</label>
+            <select id="sjitSort">
+              <option value="sales">Sales High to Low</option>
+              <option value="ship">Shipment High to Low</option>
+              <option value="recall">Recall High to Low</option>
+              <option value="stock">Stock High to Low</option>
+            </select>
+          </div>
         </div>
 
         <div class="table-wrap">
@@ -124,6 +166,8 @@ export function initSJITTab() {
                 <th>ERP SKU</th>
                 <th>Status</th>
                 <th>Brand</th>
+                <th>Launch</th>
+                <th>Live</th>
                 <th>Rating</th>
                 <th>Gross</th>
                 <th>Returns</th>
@@ -132,10 +176,12 @@ export function initSJITTab() {
                 <th>DRR</th>
                 <th>Stock</th>
                 <th>SC</th>
+                <th>Shipment</th>
+                <th>Recall</th>
               </tr>
             </thead>
             <tbody>
-              ${preview || `<tr><td colspan="12">No data</td></tr>`}
+              ${body || `<tr><td colspan="16">No data</td></tr>`}
             </tbody>
           </table>
         </div>
@@ -148,23 +194,8 @@ export function initSJITTab() {
       </section>
     `;
 
-    document.getElementById("sjitSearch").oninput = e => {
-      clearTimeout(TIMER);
+    document.getElementById("sjitSort").value = SORT;
 
-      TIMER = setTimeout(() => {
-        QUERY = e.target.value.trim();
-        LIMIT = 50;
-        window.renderSJITTab();
-      }, 300);
-    };
-
-    const more = document.getElementById("sjitMore");
-
-    if (more) {
-      more.onclick = () => {
-        LIMIT += 50;
-        window.renderSJITTab();
-      };
-    }
-  };
-}
+    document.getElementById("sjitSort").onchange = e => {
+      SORT = e.target.value;
+      LIMIT
