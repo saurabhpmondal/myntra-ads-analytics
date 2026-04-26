@@ -58,6 +58,12 @@ function sortRows(rows) {
   return out;
 }
 
+function sum(rows, key, brand) {
+  return rows
+    .filter(r => r.brand.toUpperCase() === brand)
+    .reduce((s, r) => s + Number(r[key] || 0), 0);
+}
+
 export function initSORTab() {
   window.renderSORTab = async function () {
     const root = document.getElementById("sor");
@@ -99,19 +105,23 @@ export function initSORTab() {
 
       const show = rows.slice(0, LIMIT);
 
-      const projectionQty = rows.reduce((s, r) => s + r.projectionQty, 0);
-      const shipmentQty = rows.reduce((s, r) => s + r.shipmentQty, 0);
-      const recallQty = rows.reduce((s, r) => s + r.recallQty, 0);
-      const totalStock = rows.reduce((s, r) => s + r.stock, 0);
+      const kaliniShip = sum(rows, "shipmentQty", "KALINI");
+      const kaliniRecall = sum(rows, "recallQty", "KALINI");
+      const kaliniStock = sum(rows, "stock", "KALINI");
+
+      const miteraShip = sum(rows, "shipmentQty", "MITERA");
+      const miteraRecall = sum(rows, "recallQty", "MITERA");
+      const miteraStock = sum(rows, "stock", "MITERA");
 
       let html = `
         <section class="kpi-grid">
-          <div class="kpi-card"><span>Total Projection</span><strong>${fmt(projectionQty)}</strong></div>
-          <div class="kpi-card"><span>Total Shipment Qty</span><strong>${fmt(shipmentQty)}</strong></div>
-          <div class="kpi-card"><span>Total Recall Qty</span><strong>${fmt(recallQty)}</strong></div>
-          <div class="kpi-card"><span>Total Stock</span><strong>${fmt(totalStock)}</strong></div>
-          <div class="kpi-card"><span>Styles</span><strong>${fmt(rows.length)}</strong></div>
-          <div class="kpi-card"><span>Mode</span><strong>SOR</strong></div>
+          <div class="kpi-card"><span>KALINI Shipment</span><strong>${fmt(kaliniShip)}</strong></div>
+          <div class="kpi-card"><span>KALINI Recall</span><strong>${fmt(kaliniRecall)}</strong></div>
+          <div class="kpi-card"><span>KALINI Stock</span><strong>${fmt(kaliniStock)}</strong></div>
+
+          <div class="kpi-card"><span>Mitera Shipment</span><strong>${fmt(miteraShip)}</strong></div>
+          <div class="kpi-card"><span>Mitera Recall</span><strong>${fmt(miteraRecall)}</strong></div>
+          <div class="kpi-card"><span>Mitera Stock</span><strong>${fmt(miteraStock)}</strong></div>
         </section>
 
         <section class="panel">
@@ -158,11 +168,11 @@ export function initSORTab() {
           </div>
 
           <div style="margin:0 16px 16px 16px;padding:12px;border-radius:10px;background:#f6f7f9;font-size:13px;">
+            <strong>Brand Scope:</strong> KALINI + Mitera
+            &nbsp;|&nbsp;
             <strong>Period:</strong> ${data.startDate} to ${data.endDate}
             &nbsp;|&nbsp;
             <strong>Window:</strong> ${SALES_DAYS} Days
-            &nbsp;|&nbsp;
-            Based on latest sales date
           </div>
 
           <div style="padding:0 16px 16px 16px;">
@@ -235,18 +245,21 @@ export function initSORTab() {
 
       document.getElementById("salesDays").onchange = e => {
         SALES_DAYS = Number(e.target.value);
+        window.SOR_SALES_DAYS = SALES_DAYS;
         LIMIT = 50;
         window.renderSORTab();
       };
 
       document.getElementById("coverDays").onchange = e => {
         COVER_DAYS = Number(e.target.value);
+        window.SOR_COVER_DAYS = COVER_DAYS;
         LIMIT = 50;
         window.renderSORTab();
       };
 
       document.getElementById("recallDays").onchange = e => {
         RECALL_DAYS = Number(e.target.value);
+        window.SOR_RECALL_DAYS = RECALL_DAYS;
         LIMIT = 50;
         window.renderSORTab();
       };
