@@ -2,8 +2,8 @@ function txt(v){return String(v==null?"":v).trim();}
 function num(v){return Number(String(v==null?"":v).replace(/,/g,"").trim())||0;}
 
 function monthNum(v){
-  const s=txt(v).toUpperCase();
-  const m={
+  var s=txt(v).toUpperCase();
+  var m={
     JAN:1,FEB:2,MAR:3,APR:4,MAY:5,JUN:6,JUNE:6,
     JUL:7,JULY:7,AUG:8,SEP:9,SEPT:9,OCT:10,NOV:11,DEC:12
   };
@@ -11,7 +11,7 @@ function monthNum(v){
 }
 
 function validSale(r){
-  const s=txt(r.order_status).toUpperCase();
+  var s=txt(r.order_status).toUpperCase();
   return s!=="RTO" && s!=="F";
 }
 
@@ -108,6 +108,11 @@ function buildActions(x){
   return out;
 }
 
+function cleanId(v){
+  var n=parseInt(txt(v),10);
+  return isNaN(n) ? txt(v) : String(n);
+}
+
 export function buildStyleEyeData(data,query){
   var q=txt(query).toLowerCase();
 
@@ -136,7 +141,7 @@ export function buildStyleEyeData(data,query){
     var exact=false;
 
     master.forEach(function(r){
-      if(txt(r.style_id)===query) exact=true;
+      if(txt(r.style_id)===txt(query)) exact=true;
     });
 
     if(!exact){
@@ -203,13 +208,13 @@ export function buildStyleEyeData(data,query){
   var growthPct=prevUnits?((net-prevUnits)/prevUnits)*100:0;
 
   var sjitStock=stockRows
-    .filter(function(r){return txt(r.style_id)===styleId;})
+    .filter(function(r){ return txt(r.style_id)===styleId; })
     .reduce(function(s,r){
       return s+num(r.sellable_inventory_count||r.units);
     },0);
 
   var sorStock=sorRows
-    .filter(function(r){return txt(r.style_id)===styleId;})
+    .filter(function(r){ return txt(r.style_id)===styleId; })
     .reduce(function(s,r){
       return s+num(r.units);
     },0);
@@ -233,10 +238,12 @@ export function buildStyleEyeData(data,query){
     return [k,allUnits[k]];
   });
 
-  overallArr.sort(function(a,b){return b[1]-a[1];});
+  overallArr.sort(function(a,b){ return b[1]-a[1]; });
 
   var overall=0;
-  for(var i=0;i<overallArr.length;i++){
+  var i;
+
+  for(i=0;i<overallArr.length;i++){
     if(overallArr[i][0]===styleId){
       overall=i+1;
       break;
@@ -247,6 +254,7 @@ export function buildStyleEyeData(data,query){
 
   masterRows.forEach(function(m){
     if(txt(m.brand).toUpperCase()!==brand.toUpperCase()) return;
+
     var sid=txt(m.style_id);
     brandUnits[sid]=allUnits[sid]||0;
   });
@@ -255,9 +263,10 @@ export function buildStyleEyeData(data,query){
     return [k,brandUnits[k]];
   });
 
-  brandArr.sort(function(a,b){return b[1]-a[1];});
+  brandArr.sort(function(a,b){ return b[1]-a[1]; });
 
   var brandRank=0;
+
   for(i=0;i<brandArr.length;i++){
     if(brandArr[i][0]===styleId){
       brandRank=i+1;
@@ -265,16 +274,30 @@ export function buildStyleEyeData(data,query){
     }
   }
 
+  /* EXACT CPR STYLE MATCH */
   var adsRows=cprRows.filter(function(r){
-    return txt(r.product_name||r.style_id||r.sku_id)===styleId;
+    return cleanId(r.product_id)===styleId &&
+      sameMonth(r,latest.year,latest.month);
   });
 
-  var spend=adsRows.reduce(function(s,r){return s+num(r.ad_spend);},0);
-  var revenue=adsRows.reduce(function(s,r){return s+num(r["total_revenue_(rs.)"]);},0);
-  var impressions=adsRows.reduce(function(s,r){return s+num(r.views);},0);
-  var clicks=adsRows.reduce(function(s,r){return s+num(r.clicks);},0);
+  var spend=adsRows.reduce(function(s,r){
+    return s+num(r.ad_spend);
+  },0);
+
+  var revenue=adsRows.reduce(function(s,r){
+    return s+num(r["total_revenue_(rs.)"] || r.total_revenue);
+  },0);
+
+  var impressions=adsRows.reduce(function(s,r){
+    return s+num(r.views || r.impressions);
+  },0);
+
+  var clicks=adsRows.reduce(function(s,r){
+    return s+num(r.clicks);
+  },0);
 
   var traffic=null;
+
   for(i=0;i<trafficRows.length;i++){
     if(txt(trafficRows[i].style_id)===styleId){
       traffic=trafficRows[i];
@@ -295,7 +318,7 @@ export function buildStyleEyeData(data,query){
     return [k,reasonMap[k]];
   });
 
-  reasonArr.sort(function(a,b){return b[1]-a[1];});
+  reasonArr.sort(function(a,b){ return b[1]-a[1]; });
 
   var topReason=reasonArr.length ? reasonArr[0][0] : "-";
 
