@@ -54,20 +54,19 @@ function latestDate(rows) {
   rows.forEach(r => {
     const dt = rowDate(r);
     if (!dt) return;
-
     if (!best || dt > best) best = dt;
   });
 
   return best;
 }
 
-function inLast30(row, anchor) {
+function inWindow(row, anchor, days) {
   const dt = rowDate(row);
   if (!dt || !anchor) return false;
 
   const diff = (anchor - dt) / 86400000;
 
-  return diff >= 0 && diff < 30;
+  return diff >= 0 && diff < days;
 }
 
 function validSale(row) {
@@ -79,11 +78,15 @@ function validReturn(row) {
   return txt(row.type).toUpperCase() === "RETURN";
 }
 
-function isContinue(status) {
-  return txt(status).toUpperCase() === "CONTINUE";
+function isContinue(v) {
+  return txt(v).toUpperCase() === "CONTINUE";
 }
 
-export function buildSJITDebug(data) {
+export function buildSJITDebug(data, cfg = {}) {
+  const salesDays = Number(cfg.salesDays || 30);
+  const coverDays = Number(cfg.coverDays || 45);
+  const recallDays = Number(cfg.recallDays || 60);
+
   const {
     salesRows,
     returnRows,
@@ -94,12 +97,12 @@ export function buildSJITDebug(data) {
 
   const anchor = latestDate(salesRows);
 
-  const sales30 = salesRows.filter(r =>
-    validSale(r) && inLast30(r, anchor)
+  const salesWin = salesRows.filter(r =>
+    validSale(r) && inWindow(r, anchor, salesDays)
   );
 
-  const return30 = returnRows.filter(r =>
-    validReturn(r) && inLast30(r, anchor)
+  const returnWin = returnRows.filter(r =>
+    validReturn(r) && inWindow(r, anchor, salesDays)
   );
 
   const stockMap = {};
@@ -135,7 +138,7 @@ export function buildSJITDebug(data) {
   });
 
   const gross = {};
-  sales30.forEach(r => {
+  salesWin.forEach(r => {
     const style = txt(r.style_id);
     if (!style) return;
 
@@ -143,7 +146,7 @@ export function buildSJITDebug(data) {
   });
 
   const ret = {};
-  return30.forEach(r => {
+  returnWin.forEach(r => {
     const style = txt(r.style_id);
     if (!style) return;
 
@@ -162,28 +165,28 @@ export function buildSJITDebug(data) {
     const rr = ret[style] || 0;
     const net = Math.max(0, g - rr);
 
-    const drr = net / 30;
+    const drr = salesDays ? net / salesDays : 0;
+
     const stock = stockMap[style] || 0;
     const sc = drr > 0 ? stock / drr : 999999;
 
     const rating = trafficMap[style] || 0;
     const status = masterMap[style]?.status || "";
 
-    const need45 = drr * 45;
+    const projectionQty = Math.ceil(
+      Math.max((coverDays * drr) - stock, 0)
+    );
+
+    const recallQty = Math.ceil(
+      Math.max(stock - (coverDays * drr), 0)
+    );
 
     const recallFlag =
-      sc > 60 ||
+      sc > recallDays ||
       rating < 3.8 ||
       !isContinue(status);
 
-    let shipmentQty = 0;
-    let recallQty = 0;
-
-    if (recallFlag) {
-      recallQty = Math.floor(Math.max(0, stock - need45));
-    } else {
-      shipmentQty = Math.ceil(Math.max(0, need45 - stock));
-    }
+    const shipmentQty = recallFlag ? 0 : projectionQty;
 
     return {
       style_id: style,
@@ -193,28 +196,32 @@ export function buildSJITDebug(data) {
       launch_date: masterMap[style]?.launch_date || "",
       live_date: masterMap[style]?.live_date || "",
       rating,
+
       gross: g,
       returns: rr,
       net,
       returnPct: g ? (rr / g) * 100 : 0,
+
       drr,
       stock,
       sc,
+
+      projectionQty,
       shipmentQty,
-      recallQty
+      recallQty: recallFlag ? recallQty : 0
     };
   });
 
-  rows.sort((a, b) => b.shipmentQty - a.shipmentQty);
+  rows.sort((a, b) => b.net - a.net);
 
   return {
     anchorDate: anchor ? keyDate(anchor) : "",
     startDate: anchor
-      ? keyDate(new Date(anchor.getTime() - 29 * 86400000))
+      ? keyDate(new Date(anchor.getTime() - (salesDays - 1) * 86400000))
       : "",
     endDate: anchor ? keyDate(anchor) : "",
-    salesRows30: sales30.length,
-    returnRows30: return30.length,
+    salesRows30: salesWin.length,
+    returnRows30: returnWin.length,
     rows
   };
 }
