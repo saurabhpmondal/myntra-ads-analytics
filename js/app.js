@@ -6,6 +6,7 @@ import { initPPRTab } from "./ppr/pprUI.js";
 import { initAnalysisTab } from "./analysis/analysisUI.js";
 import { initSalesTab } from "./sales/salesUI.js";
 import { initSJITTab } from "./sjit/sjitUI.js";
+import { initSORTab } from "./sor/sorUI.js";
 import { initExportTab } from "./export/exportUI.js";
 
 window.addEventListener("DOMContentLoaded", async () => {
@@ -18,6 +19,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   initAnalysisTab();
   initSalesTab();
   initSJITTab();
+  initSORTab();
   initExportTab();
 
   document.querySelectorAll(".tab-btn").forEach(btn => {
@@ -39,6 +41,7 @@ window.addEventListener("DOMContentLoaded", async () => {
         "analysis",
         "sales",
         "sjit",
+        "sor",
         "export"
       ].forEach(id => {
         document.getElementById(id).style.display =
@@ -52,6 +55,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       if (tab === "analysis") window.renderAnalysisTab?.();
       if (tab === "sales") window.renderSalesTab?.();
       if (tab === "sjit") window.renderSJITTab?.();
+      if (tab === "sor") window.renderSORTab?.();
       if (tab === "export") window.renderExportTab?.();
     };
   });
