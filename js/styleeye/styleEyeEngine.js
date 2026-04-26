@@ -1,3 +1,5 @@
+import { buildStyleReport } from "../style/styleEngine.js";
+
 function txt(v){return String(v==null?"":v).trim();}
 function num(v){return Number(String(v==null?"":v).replace(/,/g,"").trim())||0;}
 
@@ -106,11 +108,6 @@ function buildActions(x){
   if(!out.length) out.push("Stable style - maintain current plan");
 
   return out;
-}
-
-function cleanId(v){
-  var n=parseInt(txt(v),10);
-  return isNaN(n) ? txt(v) : String(n);
 }
 
 export function buildStyleEyeData(data,query){
@@ -274,27 +271,26 @@ export function buildStyleEyeData(data,query){
     }
   }
 
-  /* EXACT CPR STYLE MATCH */
-  var adsRows=cprRows.filter(function(r){
-    return cleanId(r.product_id)===styleId &&
-      sameMonth(r,latest.year,latest.month);
+  /* REUSE TRUSTED STYLE ENGINE */
+  var cprMonthRows=cprRows.filter(function(r){
+    return sameMonth(r,latest.year,latest.month);
   });
 
-  var spend=adsRows.reduce(function(s,r){
-    return s+num(r.ad_spend);
-  },0);
+  var styleReport=buildStyleReport(cprMonthRows);
 
-  var revenue=adsRows.reduce(function(s,r){
-    return s+num(r["total_revenue_(rs.)"] || r.total_revenue);
-  },0);
+  var adsMatch=null;
 
-  var impressions=adsRows.reduce(function(s,r){
-    return s+num(r.views || r.impressions);
-  },0);
+  for(i=0;i<styleReport.length;i++){
+    if(txt(styleReport[i].id)===styleId){
+      adsMatch=styleReport[i];
+      break;
+    }
+  }
 
-  var clicks=adsRows.reduce(function(s,r){
-    return s+num(r.clicks);
-  },0);
+  var spend=adsMatch ? num(adsMatch.spend) : 0;
+  var revenue=adsMatch ? num(adsMatch.revenue) : 0;
+  var impressions=adsMatch ? num(adsMatch.impressions) : 0;
+  var clicks=adsMatch ? num(adsMatch.clicks) : 0;
 
   var traffic=null;
 
