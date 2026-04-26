@@ -9,6 +9,7 @@ let SALES = [];
 let RETURNS = [];
 let MASTER = [];
 let SJIT = [];
+let SOR = [];
 let CPR = [];
 
 async function ensureData() {
@@ -19,6 +20,7 @@ async function ensureData() {
     fetchCSV(SHEETS.RETURNS),
     fetchCSV(SHEETS.PRODUCT_MASTER),
     fetchCSV(SHEETS.SJIT_STOCK),
+    fetchCSV(SHEETS.SOR_STOCK),
     fetchCSV(SHEETS.CPR)
   ]);
 
@@ -26,7 +28,8 @@ async function ensureData() {
   RETURNS = parseCSV(files[1]);
   MASTER = parseCSV(files[2]);
   SJIT = parseCSV(files[3]);
-  CPR = parseCSV(files[4]);
+  SOR = parseCSV(files[4]);
+  CPR = parseCSV(files[5]);
 
   READY = true;
 }
@@ -51,6 +54,8 @@ function card(label, value) {
 }
 
 function renderSingle(root, d) {
+  const sorNA = d.inventory.sor.na;
+
   root.innerHTML = `
     <section class="panel" style="padding:16px;">
       <div style="display:grid;gap:12px;grid-template-columns:1fr auto;">
@@ -93,8 +98,17 @@ function renderSingle(root, d) {
 
     <section class="panel">
       <div class="panel-head"><h3>Inventory Pulse</h3></div>
+
       <section class="kpi-grid">
-        ${card("SJIT Stock", fmt(d.inventory.stock))}
+        ${card("SJIT Stock", fmt(d.inventory.sjit.stock))}
+        ${card("SJIT SC", Number(d.inventory.sjit.sc) >= 999999 ? "∞" : fmt(d.inventory.sjit.sc))}
+        ${card("SJIT Projection", fmt(d.inventory.sjit.projection))}
+        ${card("SJIT Recall", fmt(d.inventory.sjit.recall))}
+
+        ${card("SOR Stock", sorNA ? "N/A" : fmt(d.inventory.sor.stock))}
+        ${card("SOR SC", sorNA ? "N/A" : (Number(d.inventory.sor.sc) >= 999999 ? "∞" : fmt(d.inventory.sor.sc)))}
+        ${card("SOR Projection", sorNA ? "N/A" : fmt(d.inventory.sor.projection))}
+        ${card("SOR Recall", sorNA ? "N/A" : fmt(d.inventory.sor.recall))}
       </section>
     </section>
 
@@ -117,6 +131,7 @@ function renderMulti(root, d) {
   root.innerHTML = `
     <section class="panel" style="padding:16px;">
       <h3>Multiple Styles Found</h3>
+
       <div style="font-size:13px;color:#666;margin-bottom:12px;">
         ERP SKU: ${d.erp_sku}
       </div>
@@ -132,6 +147,7 @@ function renderMulti(root, d) {
               <th>Dive</th>
             </tr>
           </thead>
+
           <tbody>
             ${d.options.map(r => `
               <tr>
@@ -198,6 +214,7 @@ export function initStyleEyeTab() {
           salesRows: SALES,
           returnRows: RETURNS,
           stockRows: SJIT,
+          sorRows: SOR,
           masterRows: MASTER,
           cprRows: CPR
         },
