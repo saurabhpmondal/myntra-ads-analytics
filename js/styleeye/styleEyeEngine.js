@@ -54,6 +54,48 @@ function isSORBrand(brand){
   return b==="KALINI" || b==="MITERA";
 }
 
+function riskLabel(returnPct,rating){
+  if(returnPct>=25 || rating<3.5) return "High";
+  if(returnPct>=15 || rating<3.8) return "Medium";
+  return "Low";
+}
+
+function buildActions(x){
+  const out=[];
+
+  if(x.inventory.sjit.projection>0)
+    out.push(`Ship ${x.inventory.sjit.projection} to SJIT`);
+
+  if(x.inventory.sjit.recall>0)
+    out.push(`Recall ${x.inventory.sjit.recall} from SJIT`);
+
+  if(!x.inventory.sor.na && x.inventory.sor.projection>0)
+    out.push(`Ship ${x.inventory.sor.projection} to SOR`);
+
+  if(!x.inventory.sor.na && x.inventory.sor.recall>0)
+    out.push(`Recall ${x.inventory.sor.recall} from SOR`);
+
+  if(x.ads.roi>=4 && x.sales.net>0)
+    out.push("Scale ads budget");
+
+  if(x.ads.spend>0 && x.ads.roi<1.5)
+    out.push("Review ads efficiency");
+
+  if(x.quality.rating && x.quality.rating<3.8)
+    out.push("Rating risk - improve listing quality");
+
+  if(x.quality.returnRisk==="High")
+    out.push("High return risk - inspect fit/quality");
+
+  if(x.ranking.brand>0 && x.ranking.brand<=5)
+    out.push("Top brand performer");
+
+  if(!out.length)
+    out.push("Stable style - maintain current plan");
+
+  return out;
+}
+
 export function buildStyleEyeData(data,query){
   const q=txt(query).toLowerCase();
 
@@ -63,7 +105,8 @@ export function buildStyleEyeData(data,query){
     stockRows,
     sorRows=[],
     masterRows,
-    cprRows=[]
+    cprRows=[],
+    trafficRows=[]
   }=data;
 
   const latest=latestMonth(salesRows);
@@ -80,6 +123,7 @@ export function buildStyleEyeData(data,query){
   if(master.length>1 && !master.some(r=>txt(r.style_id)===q)){
     const options=master.map(r=>{
       const sid=txt(r.style_id);
+
       const units=sumQty(
         salesRows.filter(x=>
           txt(x.style_id)===sid &&
@@ -87,6 +131,7 @@ export function buildStyleEyeData(data,query){
           sameMonth(x,latest.year,latest.month)
         )
       );
+
       return {
         style_id:sid,
         brand:txt(r.brand),
@@ -118,11 +163,13 @@ export function buildStyleEyeData(data,query){
   const gmv=sumAmt(curSales);
   const prevUnits=sumQty(prevSales);
 
-  const returns=returnRows.filter(r=>
+  const styleReturns=returnRows.filter(r=>
     txt(r.style_id)===styleId &&
     validReturn(r) &&
     sameMonth(r,latest.year,latest.month)
-  ).length;
+  );
+
+  const returns=styleReturns.length;
 
   const net=Math.max(0,gross-returns);
   const asp=net?gmv/net:0;
@@ -139,11 +186,13 @@ export function buildStyleEyeData(data,query){
     .reduce((s,r)=>s+num(r.units),0);
 
   const sjit=planner(sjitStock,drr,45,60);
+
   const sor=isSORBrand(brand)
     ? planner(sorStock,drr,45,60)
     : {stock:0,sc:0,projection:0,recall:0,na:true};
 
   const allUnits={};
+
   salesRows.forEach(r=>{
     if(!validSale(r) || !sameMonth(r,latest.year,latest.month)) return;
     const sid=txt(r.style_id);
@@ -154,6 +203,7 @@ export function buildStyleEyeData(data,query){
     Object.entries(allUnits).sort((a,b)=>b[1]-a[1]).findIndex(x=>x[0]===styleId)+1;
 
   const brandUnits={};
+
   masterRows.forEach(m=>{
     if(txt(m.brand).toUpperCase()!==brand.toUpperCase()) return;
     const sid=txt(m.style_id);
@@ -172,7 +222,19 @@ export function buildStyleEyeData(data,query){
   const impressions=adsRows.reduce((s,r)=>s+num(r.views),0);
   const clicks=adsRows.reduce((s,r)=>s+num(r.clicks),0);
 
-  return {
+  const traffic=trafficRows.find(r=>txt(r.style_id)===styleId);
+  const rating=num(traffic?.rating);
+
+  const reasonMap={};
+  styleReturns.forEach(r=>{
+    const reason=txt(r.return_reason||r.reason||r.reason_name||"Unknown");
+    reasonMap[reason]=(reasonMap[reason]||0)+1;
+  });
+
+  const topReason=
+    Object.entries(reasonMap).sort((a,b)=>b[1]-a[1])[0]?.[0] || "-";
+
+  const result={
     type:"single",
     style_id:styleId,
     erp_sku:txt(row.erp_sku),
@@ -187,10 +249,7 @@ export function buildStyleEyeData(data,query){
       gmv,gross,returns,net,asp,drr,returnPct,growthPct,prevUnits
     },
 
-    inventory:{
-      sjit,
-      sor
-    },
+    inventory:{sjit,sor},
 
     ads:{
       spend,
@@ -200,6 +259,16 @@ export function buildStyleEyeData(data,query){
       roi:spend?revenue/spend:0,
       ctr:impressions?(clicks/impressions)*100:0,
       cvr:clicks?(net/clicks)*100:0
+    },
+
+    quality:{
+      rating,
+      topReason,
+      returnRisk:riskLabel(returnPct,rating)
     }
   };
+
+  result.actions=buildActions(result);
+
+  return result;
 }
