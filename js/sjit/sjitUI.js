@@ -122,6 +122,7 @@ export function initSJITTab() {
         </section>
 
         <section class="panel">
+
           <div style="padding:16px;display:grid;gap:12px;grid-template-columns:repeat(4,minmax(0,1fr));align-items:end;">
             <div>
               <label style="font-size:12px;color:#666;">Sales Days</label>
@@ -161,6 +162,14 @@ export function initSJITTab() {
                 <option value="stock">Stock High to Low</option>
               </select>
             </div>
+          </div>
+
+          <div style="margin:0 16px 16px 16px;padding:12px;border-radius:10px;background:#f6f7f9;font-size:13px;">
+            <strong>Period:</strong> ${data.startDate} to ${data.endDate}
+            &nbsp;|&nbsp;
+            <strong>Window:</strong> ${SALES_DAYS} Days
+            &nbsp;|&nbsp;
+            Based on latest sales date
           </div>
 
           <div style="padding:0 16px 16px 16px;">
