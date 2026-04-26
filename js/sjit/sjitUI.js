@@ -1,6 +1,7 @@
 import { SHEETS } from "../config/sheets.js";
 import { fetchCSV } from "../core/fetcher.js";
 import { parseCSV } from "../core/parser.js";
+import { buildSJITDebug } from "./sjitEngine.js";
 
 let READY = false;
 
@@ -40,30 +41,10 @@ async function ensureData() {
   READY = true;
 }
 
-function uniq(rows, key) {
-  const s = new Set();
-
-  rows.forEach(r => {
-    const v = String(r[key] || "").trim();
-    if (v) s.add(v);
+function fmt(n) {
+  return Number(n || 0).toLocaleString("en-IN", {
+    maximumFractionDigits: 2
   });
-
-  return s.size;
-}
-
-function stockStyles(rows) {
-  const map = {};
-
-  rows.forEach(r => {
-    const style = String(r.style_id || "").trim();
-    if (!style) return;
-
-    map[style] =
-      (map[style] || 0) +
-      Number(r.sellable_inventory_count || 0);
-  });
-
-  return map;
 }
 
 export function initSJITTab() {
@@ -75,40 +56,45 @@ export function initSJITTab() {
 
     await ensureData();
 
-    const stockMap = stockStyles(STOCK);
+    const data = buildSJITDebug({
+      salesRows: SALES,
+      returnRows: RETURNS,
+      trafficRows: TRAFFIC,
+      stockRows: STOCK,
+      masterRows: MASTER,
+      sorRows: SOR
+    });
 
-    const preview = Object.entries(stockMap)
-      .slice(0, 20)
-      .map(([style, qty]) => `
+    const preview = data.rows
+      .slice(0, 50)
+      .map(r => `
         <tr>
-          <td>${style}</td>
-          <td>${qty}</td>
+          <td>${r.style_id}</td>
+          <td>${r.erp_sku}</td>
+          <td>${r.status}</td>
+          <td>${r.brand}</td>
+          <td>${fmt(r.rating)}</td>
+          <td>${fmt(r.gross)}</td>
+          <td>${fmt(r.returns)}</td>
+          <td>${fmt(r.net)}</td>
+          <td>${fmt(r.stock)}</td>
         </tr>
       `)
       .join("");
 
     root.innerHTML = `
       <section class="kpi-grid">
-        <div class="kpi-card"><span>Sales Rows</span><strong>${SALES.length}</strong></div>
-        <div class="kpi-card"><span>Return Rows</span><strong>${RETURNS.length}</strong></div>
-        <div class="kpi-card"><span>Traffic Rows</span><strong>${TRAFFIC.length}</strong></div>
-        <div class="kpi-card"><span>SJIT Stock Rows</span><strong>${STOCK.length}</strong></div>
-        <div class="kpi-card"><span>Master Rows</span><strong>${MASTER.length}</strong></div>
-        <div class="kpi-card"><span>SOR Rows</span><strong>${SOR.length}</strong></div>
-      </section>
-
-      <section class="kpi-grid">
-        <div class="kpi-card"><span>Sales Styles</span><strong>${uniq(SALES, "style_id")}</strong></div>
-        <div class="kpi-card"><span>Return Styles</span><strong>${uniq(RETURNS, "style_id")}</strong></div>
-        <div class="kpi-card"><span>Traffic Styles</span><strong>${uniq(TRAFFIC, "style_id")}</strong></div>
-        <div class="kpi-card"><span>Stock Styles</span><strong>${Object.keys(stockMap).length}</strong></div>
-        <div class="kpi-card"><span>Master Styles</span><strong>${uniq(MASTER, "style_id")}</strong></div>
-        <div class="kpi-card"><span>SOR Styles</span><strong>${uniq(SOR, "style_id")}</strong></div>
+        <div class="kpi-card"><span>Anchor Date</span><strong>${data.endDate}</strong></div>
+        <div class="kpi-card"><span>30D Start</span><strong>${data.startDate}</strong></div>
+        <div class="kpi-card"><span>30D Sales Rows</span><strong>${fmt(data.salesRows30)}</strong></div>
+        <div class="kpi-card"><span>30D Return Rows</span><strong>${fmt(data.returnRows30)}</strong></div>
+        <div class="kpi-card"><span>Total Styles</span><strong>${fmt(data.rows.length)}</strong></div>
+        <div class="kpi-card"><span>Preview Rows</span><strong>${Math.min(50, data.rows.length)}</strong></div>
       </section>
 
       <section class="panel">
         <div class="panel-head">
-          <h3>SJIT Stock Consolidation Preview</h3>
+          <h3>SJIT Joined Debug Preview</h3>
         </div>
 
         <div class="table-wrap">
@@ -116,11 +102,18 @@ export function initSJITTab() {
             <thead>
               <tr>
                 <th>Style ID</th>
-                <th>Sellable Stock</th>
+                <th>ERP SKU</th>
+                <th>Status</th>
+                <th>Brand</th>
+                <th>Rating</th>
+                <th>Gross</th>
+                <th>Returns</th>
+                <th>Net</th>
+                <th>Stock</th>
               </tr>
             </thead>
             <tbody>
-              ${preview || `<tr><td colspan="2">No data</td></tr>`}
+              ${preview || `<tr><td colspan="9">No data</td></tr>`}
             </tbody>
           </table>
         </div>
