@@ -49,6 +49,7 @@ function csvEscape(v) {
 
 function downloadCSV(name, rows) {
   const csv = rows.map(r => r.map(csvEscape).join(",")).join("\n");
+
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
 
@@ -60,7 +61,7 @@ function downloadCSV(name, rows) {
   URL.revokeObjectURL(url);
 }
 
-function buildMeta(out, title, cfg, data, rows) {
+function metaRows(out, title, cfg, data, rows, scope = "") {
   out.push(["Report Name", title]);
   out.push(["Generated At", new Date().toLocaleString()]);
   out.push(["Sales Days", cfg.salesDays]);
@@ -68,7 +69,9 @@ function buildMeta(out, title, cfg, data, rows) {
   out.push(["Recall Trigger Days", cfg.recallDays]);
   out.push(["Period Start", data.startDate]);
   out.push(["Period End", data.endDate]);
-  out.push(["Based On", "Latest available sales date"]);
+
+  if (scope) out.push(["Brand Scope", scope]);
+
   out.push(["Total Styles", rows.length]);
   out.push(["Total Projection Qty", rows.reduce((s, r) => s + r.projectionQty, 0)]);
   out.push(["Total Shipment Qty", rows.reduce((s, r) => s + r.shipmentQty, 0)]);
@@ -142,7 +145,7 @@ function exportSJIT() {
   );
 
   const out = [];
-  buildMeta(out, "SJIT Planner Export", cfg, data, data.rows);
+  metaRows(out, "SJIT Planner Export", cfg, data, data.rows);
   addHeaders(out, "SJIT Stock");
   addRows(out, data.rows);
 
@@ -171,7 +174,15 @@ function exportSOR() {
   );
 
   const out = [];
-  buildMeta(out, "SOR Planner Export", cfg, data, data.rows);
+  metaRows(
+    out,
+    "SOR Planner Export",
+    cfg,
+    data,
+    data.rows,
+    "KALINI + Mitera"
+  );
+
   addHeaders(out, "SOR Stock");
   addRows(out, data.rows);
 
