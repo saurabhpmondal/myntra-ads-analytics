@@ -12,6 +12,10 @@ let STOCK = [];
 let MASTER = [];
 let SOR = [];
 
+let QUERY = "";
+let LIMIT = 50;
+let TIMER = null;
+
 async function ensureData() {
   if (READY) return;
 
@@ -65,22 +69,36 @@ export function initSJITTab() {
       sorRows: SOR
     });
 
-    const preview = data.rows
-      .slice(0, 50)
-      .map(r => `
-        <tr>
-          <td>${r.style_id}</td>
-          <td>${r.erp_sku}</td>
-          <td>${r.status}</td>
-          <td>${r.brand}</td>
-          <td>${fmt(r.rating)}</td>
-          <td>${fmt(r.gross)}</td>
-          <td>${fmt(r.returns)}</td>
-          <td>${fmt(r.net)}</td>
-          <td>${fmt(r.stock)}</td>
-        </tr>
-      `)
-      .join("");
+    let rows = [...data.rows];
+
+    if (QUERY) {
+      const q = QUERY.toLowerCase();
+
+      rows = rows.filter(r =>
+        String(r.style_id).toLowerCase().includes(q) ||
+        String(r.erp_sku).toLowerCase().includes(q) ||
+        String(r.brand).toLowerCase().includes(q)
+      );
+    }
+
+    const show = rows.slice(0, LIMIT);
+
+    const preview = show.map(r => `
+      <tr>
+        <td>${r.style_id}</td>
+        <td>${r.erp_sku}</td>
+        <td>${r.status}</td>
+        <td>${r.brand}</td>
+        <td>${fmt(r.rating)}</td>
+        <td>${fmt(r.gross)}</td>
+        <td>${fmt(r.returns)}</td>
+        <td>${fmt(r.net)}</td>
+        <td>${fmt(r.returnPct)}%</td>
+        <td>${fmt(r.drr)}</td>
+        <td>${fmt(r.stock)}</td>
+        <td>${r.sc >= 999999 ? "∞" : fmt(r.sc)}</td>
+      </tr>
+    `).join("");
 
     root.innerHTML = `
       <section class="kpi-grid">
@@ -88,13 +106,14 @@ export function initSJITTab() {
         <div class="kpi-card"><span>30D Start</span><strong>${data.startDate}</strong></div>
         <div class="kpi-card"><span>30D Sales Rows</span><strong>${fmt(data.salesRows30)}</strong></div>
         <div class="kpi-card"><span>30D Return Rows</span><strong>${fmt(data.returnRows30)}</strong></div>
-        <div class="kpi-card"><span>Total Styles</span><strong>${fmt(data.rows.length)}</strong></div>
-        <div class="kpi-card"><span>Preview Rows</span><strong>${Math.min(50, data.rows.length)}</strong></div>
+        <div class="kpi-card"><span>Total Styles</span><strong>${fmt(rows.length)}</strong></div>
+        <div class="kpi-card"><span>Shown Rows</span><strong>${fmt(show.length)}</strong></div>
       </section>
 
       <section class="panel">
-        <div class="panel-head">
-          <h3>SJIT Joined Debug Preview</h3>
+        <div style="padding:16px;">
+          <label style="font-size:12px;color:#666;">Search Style / ERP SKU / Brand</label>
+          <input id="sjitSearch" value="${QUERY}" placeholder="Type to search...">
         </div>
 
         <div class="table-wrap">
@@ -109,15 +128,43 @@ export function initSJITTab() {
                 <th>Gross</th>
                 <th>Returns</th>
                 <th>Net</th>
+                <th>Return%</th>
+                <th>DRR</th>
                 <th>Stock</th>
+                <th>SC</th>
               </tr>
             </thead>
             <tbody>
-              ${preview || `<tr><td colspan="9">No data</td></tr>`}
+              ${preview || `<tr><td colspan="12">No data</td></tr>`}
             </tbody>
           </table>
         </div>
+
+        ${
+          rows.length > LIMIT
+            ? `<button id="sjitMore" class="load-more">Load More</button>`
+            : ""
+        }
       </section>
     `;
+
+    document.getElementById("sjitSearch").oninput = e => {
+      clearTimeout(TIMER);
+
+      TIMER = setTimeout(() => {
+        QUERY = e.target.value.trim();
+        LIMIT = 50;
+        window.renderSJITTab();
+      }, 300);
+    };
+
+    const more = document.getElementById("sjitMore");
+
+    if (more) {
+      more.onclick = () => {
+        LIMIT += 50;
+        window.renderSJITTab();
+      };
+    }
   };
 }
