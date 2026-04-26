@@ -9,6 +9,7 @@ let SALES = [];
 let RETURNS = [];
 let MASTER = [];
 let SJIT = [];
+let CPR = [];
 
 async function ensureData() {
   if (READY) return;
@@ -17,13 +18,15 @@ async function ensureData() {
     fetchCSV(SHEETS.SALES),
     fetchCSV(SHEETS.RETURNS),
     fetchCSV(SHEETS.PRODUCT_MASTER),
-    fetchCSV(SHEETS.SJIT_STOCK)
+    fetchCSV(SHEETS.SJIT_STOCK),
+    fetchCSV(SHEETS.CPR)
   ]);
 
   SALES = parseCSV(files[0]);
   RETURNS = parseCSV(files[1]);
   MASTER = parseCSV(files[2]);
   SJIT = parseCSV(files[3]);
+  CPR = parseCSV(files[4]);
 
   READY = true;
 }
@@ -32,6 +35,10 @@ function fmt(n) {
   return Number(n || 0).toLocaleString("en-IN", {
     maximumFractionDigits: 2
   });
+}
+
+function pct(n) {
+  return `${fmt(n)}%`;
 }
 
 function card(label, value) {
@@ -55,8 +62,8 @@ function renderSingle(root, d) {
         </div>
 
         <a class="load-more"
-           style="text-decoration:none;text-align:center;"
            target="_blank"
+           style="text-decoration:none;text-align:center;"
            href="https://www.myntra.com/${d.style_id}">
           Go
         </a>
@@ -77,7 +84,9 @@ function renderSingle(root, d) {
         ${card("Net Units", fmt(d.sales.net))}
         ${card("ASP", "₹" + fmt(d.sales.asp))}
         ${card("DRR", fmt(d.sales.drr))}
-        ${card("Return %", fmt(d.sales.returnPct) + "%")}
+        ${card("Return %", pct(d.sales.returnPct))}
+        ${card("Growth %", pct(d.sales.growthPct))}
+        ${card("Prev Units", fmt(d.sales.prevUnits))}
         ${card("Gross", fmt(d.sales.gross))}
       </section>
     </section>
@@ -86,6 +95,19 @@ function renderSingle(root, d) {
       <div class="panel-head"><h3>Inventory Pulse</h3></div>
       <section class="kpi-grid">
         ${card("SJIT Stock", fmt(d.inventory.stock))}
+      </section>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h3>Ads Pulse</h3></div>
+      <section class="kpi-grid">
+        ${card("Spend", "₹" + fmt(d.ads.spend))}
+        ${card("Revenue", "₹" + fmt(d.ads.revenue))}
+        ${card("ROI", fmt(d.ads.roi) + "x")}
+        ${card("Impressions", fmt(d.ads.impressions))}
+        ${card("Clicks", fmt(d.ads.clicks))}
+        ${card("CTR", pct(d.ads.ctr))}
+        ${card("CVR", pct(d.ads.cvr))}
       </section>
     </section>
   `;
@@ -119,7 +141,7 @@ function renderMulti(root, d) {
                 <td>${fmt(r.units)}</td>
                 <td>
                   <button class="load-more eyePick"
-                    data-style="${r.style_id}">
+                          data-style="${r.style_id}">
                     Open
                   </button>
                 </td>
@@ -176,7 +198,8 @@ export function initStyleEyeTab() {
           salesRows: SALES,
           returnRows: RETURNS,
           stockRows: SJIT,
-          masterRows: MASTER
+          masterRows: MASTER,
+          cprRows: CPR
         },
         q
       );
