@@ -157,6 +157,9 @@ export function buildSJITDebug(data) {
     const g = gross[style] || 0;
     const rr = ret[style] || 0;
     const net = Math.max(0, g - rr);
+    const drr = net / 30;
+    const stock = stockMap[style] || 0;
+    const sc = drr > 0 ? stock / drr : 999999;
 
     return {
       style_id: style,
@@ -169,7 +172,10 @@ export function buildSJITDebug(data) {
       gross: g,
       returns: rr,
       net,
-      stock: stockMap[style] || 0
+      returnPct: g ? (rr / g) * 100 : 0,
+      drr,
+      stock,
+      sc
     };
   });
 
