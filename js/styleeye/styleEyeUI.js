@@ -44,7 +44,7 @@ function fmt(n) {
 }
 
 function pct(n) {
-  return `${fmt(n)}%`;
+  return fmt(n) + "%";
 }
 
 function card(label, value) {
@@ -56,95 +56,114 @@ function card(label, value) {
   `;
 }
 
+function rowGrid(items) {
+  return `
+    <section class="kpi-grid">
+      ${items.join("")}
+    </section>
+  `;
+}
+
 function renderSingle(root, d) {
   const sorNA = d.inventory.sor.na;
 
   root.innerHTML = `
     <section class="panel" style="padding:16px;">
-      <div style="display:grid;gap:12px;grid-template-columns:1fr auto;">
+      <div style="display:grid;grid-template-columns:1fr auto;gap:12px;align-items:start;">
         <div>
-          <h3 style="margin:0;">Style ${d.style_id}</h3>
-          <div style="font-size:13px;color:#666;margin-top:6px;">
-            ${d.brand} | ${d.erp_sku} | ${d.status}
+          <div style="font-size:28px;font-weight:800;line-height:1;">
+            ${d.style_id}
+          </div>
+
+          <div style="margin-top:8px;font-size:13px;color:#666;">
+            ${d.brand} | ${d.erp_sku} | ${d.status} | Rating ${fmt(d.rating)}
           </div>
         </div>
 
-        <a class="load-more"
-           target="_blank"
-           style="text-decoration:none;text-align:center;"
-           href="https://www.myntra.com/${d.style_id}">
+        <a
+          href="https://www.myntra.com/${d.style_id}"
+          target="_blank"
+          class="load-more"
+          style="text-decoration:none;text-align:center;"
+        >
           Go
         </a>
       </div>
     </section>
 
-    <section class="kpi-grid">
-      ${card("Overall Rank", "#" + d.ranking.overall)}
-      ${card("Brand Rank", "#" + d.ranking.brand)}
-      ${card("Launch", d.launch_date || "-")}
-      ${card("Live", d.live_date || "-")}
-    </section>
-
     <section class="panel">
       <div class="panel-head"><h3>Sales Pulse</h3></div>
-      <section class="kpi-grid">
-        ${card("GMV", "₹" + fmt(d.sales.gmv))}
-        ${card("Net Units", fmt(d.sales.net))}
-        ${card("ASP", "₹" + fmt(d.sales.asp))}
-        ${card("DRR", fmt(d.sales.drr))}
-        ${card("Return %", pct(d.sales.returnPct))}
-        ${card("Growth %", pct(d.sales.growthPct))}
-        ${card("Prev Units", fmt(d.sales.prevUnits))}
-        ${card("Gross", fmt(d.sales.gross))}
-      </section>
+
+      ${rowGrid([
+        card("GMV","₹"+fmt(d.sales.gmv)),
+        card("Gross Units",fmt(d.sales.gross)),
+        card("Net Units",fmt(d.sales.net)),
+        card("ASP","₹"+fmt(d.sales.asp)),
+        card("Return %",pct(d.sales.returnPct))
+      ])}
+
+      ${rowGrid([
+        card("DRR",fmt(d.sales.drr)),
+        card("Growth %",pct(d.sales.growthPct))
+      ])}
     </section>
 
     <section class="panel">
       <div class="panel-head"><h3>Inventory Pulse</h3></div>
-      <section class="kpi-grid">
-        ${card("SJIT Stock", fmt(d.inventory.sjit.stock))}
-        ${card("SJIT SC", Number(d.inventory.sjit.sc) >= 999999 ? "∞" : fmt(d.inventory.sjit.sc))}
-        ${card("SJIT Projection", fmt(d.inventory.sjit.projection))}
-        ${card("SJIT Recall", fmt(d.inventory.sjit.recall))}
 
-        ${card("SOR Stock", sorNA ? "N/A" : fmt(d.inventory.sor.stock))}
-        ${card("SOR SC", sorNA ? "N/A" : (Number(d.inventory.sor.sc) >= 999999 ? "∞" : fmt(d.inventory.sor.sc)))}
-        ${card("SOR Projection", sorNA ? "N/A" : fmt(d.inventory.sor.projection))}
-        ${card("SOR Recall", sorNA ? "N/A" : fmt(d.inventory.sor.recall))}
-      </section>
+      ${rowGrid([
+        card("SJIT Stock",fmt(d.inventory.sjit.stock)),
+        card("SJIT SC",Number(d.inventory.sjit.sc)>=999999?"∞":fmt(d.inventory.sjit.sc)),
+        card("SJIT Projection",fmt(d.inventory.sjit.projection)),
+        card("SJIT Recall",fmt(d.inventory.sjit.recall))
+      ])}
+
+      ${rowGrid([
+        card("SOR Stock",sorNA?"N/A":fmt(d.inventory.sor.stock)),
+        card("SOR SC",sorNA?"N/A":(Number(d.inventory.sor.sc)>=999999?"∞":fmt(d.inventory.sor.sc))),
+        card("SOR Projection",sorNA?"N/A":fmt(d.inventory.sor.projection)),
+        card("SOR Recall",sorNA?"N/A":fmt(d.inventory.sor.recall))
+      ])}
     </section>
 
     <section class="panel">
       <div class="panel-head"><h3>Ads Pulse</h3></div>
-      <section class="kpi-grid">
-        ${card("Spend", "₹" + fmt(d.ads.spend))}
-        ${card("Revenue", "₹" + fmt(d.ads.revenue))}
-        ${card("ROI", fmt(d.ads.roi) + "x")}
-        ${card("Impressions", fmt(d.ads.impressions))}
-        ${card("Clicks", fmt(d.ads.clicks))}
-        ${card("CTR", pct(d.ads.ctr))}
-        ${card("CVR", pct(d.ads.cvr))}
-      </section>
+
+      ${rowGrid([
+        card("Spend","₹"+fmt(d.ads.spend)),
+        card("Ads Units",fmt(d.ads.units)),
+        card("Revenue","₹"+fmt(d.ads.revenue)),
+        card("ROI",fmt(d.ads.roi)+"x")
+      ])}
+
+      ${rowGrid([
+        card("Impressions",fmt(d.ads.impressions)),
+        card("Clicks",fmt(d.ads.clicks)),
+        card("CTR",pct(d.ads.ctr)),
+        card("CVR",pct(d.ads.cvr))
+      ])}
     </section>
 
     <section class="panel">
       <div class="panel-head"><h3>Quality Pulse</h3></div>
-      <section class="kpi-grid">
-        ${card("Rating", fmt(d.quality.rating))}
-        ${card("Top Return Reason", d.quality.topReason)}
-        ${card("Return Risk", d.quality.returnRisk)}
-      </section>
+
+      ${rowGrid([
+        card("Top Return Reason",d.quality.topReason),
+        card("Risk",d.quality.risk)
+      ])}
     </section>
 
     <section class="panel">
       <div class="panel-head"><h3>Action Engine</h3></div>
 
       <div style="padding:16px;display:grid;gap:10px;">
-        ${d.actions.map(a => `
-          <div style="padding:12px;border:1px solid #eee;border-radius:12px;">
-            ${a}
-          </div>
-        `).join("")}
+        ${d.actions.map(function(a){
+          return `
+            <div style="padding:12px;border:1px solid #eee;border-radius:12px;">
+              ${a}
+            </div>
+          `;
+        }).join("")}
       </div>
     </section>
   `;
@@ -166,36 +185,35 @@ function renderMulti(root, d) {
               <th>Style ID</th>
               <th>Brand</th>
               <th>Status</th>
-              <th>Units</th>
               <th>Dive</th>
             </tr>
           </thead>
 
           <tbody>
-            ${d.options.map(r => `
-              <tr>
-                <td>${r.style_id}</td>
-                <td>${r.brand}</td>
-                <td>${r.status}</td>
-                <td>${fmt(r.units)}</td>
-                <td>
-                  <button class="load-more eyePick"
-                          data-style="${r.style_id}">
-                    Open
-                  </button>
-                </td>
-              </tr>
-            `).join("")}
+            ${d.options.map(function(r){
+              return `
+                <tr>
+                  <td>${r.style_id}</td>
+                  <td>${r.brand}</td>
+                  <td>${r.status}</td>
+                  <td>
+                    <button class="load-more eyePick" data-style="${r.style_id}">
+                      Open
+                    </button>
+                  </td>
+                </tr>
+              `;
+            }).join("")}
           </tbody>
         </table>
       </div>
     </section>
   `;
 
-  root.querySelectorAll(".eyePick").forEach(btn => {
-    btn.onclick = () => {
+  root.querySelectorAll(".eyePick").forEach(function(btn){
+    btn.onclick = function(){
       document.getElementById("eyeQuery").value = btn.dataset.style;
-      window.runStyleEye?.();
+      window.runStyleEye();
     };
   });
 }
@@ -208,7 +226,7 @@ export function initStyleEyeTab() {
       <section class="panel" style="padding:16px;">
         <h3 style="margin-top:0;">Style Eye</h3>
 
-        <div style="display:grid;gap:12px;grid-template-columns:1fr auto;">
+        <div style="display:grid;grid-template-columns:1fr auto;gap:12px;">
           <input id="eyeQuery" placeholder="Enter Style ID or ERP SKU">
           <button id="eyeDive" class="load-more">Dive</button>
         </div>
@@ -223,7 +241,7 @@ export function initStyleEyeTab() {
 
     await ensureData();
 
-    window.runStyleEye = () => {
+    window.runStyleEye = function () {
       const q = document.getElementById("eyeQuery").value.trim();
       const box = document.getElementById("eyeResult");
 
@@ -262,7 +280,7 @@ export function initStyleEyeTab() {
       renderSingle(box, data);
     };
 
-    document.getElementById("eyeDive").onclick = () => {
+    document.getElementById("eyeDive").onclick = function () {
       window.runStyleEye();
     };
   };
