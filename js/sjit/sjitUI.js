@@ -68,227 +68,129 @@ export function initSJITTab() {
     root.innerHTML =
       '<section class="panel"><div class="loading">Loading SJIT Planner...</div></section>';
 
-    try {
-      await ensureData();
+    await ensureData();
 
-      const data = buildSJITDebug(
-        {
-          salesRows: SALES,
-          returnRows: RETURNS,
-          trafficRows: TRAFFIC,
-          stockRows: STOCK,
-          masterRows: MASTER,
-          sorRows: SOR
-        },
-        {
-          salesDays: SALES_DAYS,
-          coverDays: COVER_DAYS,
-          recallDays: RECALL_DAYS
-        }
+    const data = buildSJITDebug(
+      {
+        salesRows: SALES,
+        returnRows: RETURNS,
+        trafficRows: TRAFFIC,
+        stockRows: STOCK,
+        masterRows: MASTER,
+        sorRows: SOR
+      },
+      {
+        salesDays: SALES_DAYS,
+        coverDays: COVER_DAYS,
+        recallDays: RECALL_DAYS
+      }
+    );
+
+    let rows = [...data.rows];
+
+    if (QUERY) {
+      const q = QUERY.toLowerCase();
+
+      rows = rows.filter(r =>
+        String(r.style_id || "").toLowerCase().includes(q) ||
+        String(r.erp_sku || "").toLowerCase().includes(q) ||
+        String(r.brand || "").toLowerCase().includes(q)
       );
+    }
 
-      let rows = [...data.rows];
+    rows = sortRows(rows);
 
-      if (QUERY) {
-        const q = QUERY.toLowerCase();
+    const show = rows.slice(0, LIMIT);
 
-        rows = rows.filter(r =>
-          String(r.style_id || "").toLowerCase().includes(q) ||
-          String(r.erp_sku || "").toLowerCase().includes(q) ||
-          String(r.brand || "").toLowerCase().includes(q)
-        );
-      }
+    root.innerHTML = `
+      <section class="panel">
 
-      rows = sortRows(rows);
+        <div style="padding:16px;display:grid;gap:12px;grid-template-columns:repeat(4,minmax(0,1fr));align-items:end;">
+          <div><label style="font-size:12px;color:#666;">Sales Days</label><select id="salesDays"><option value="30">30</option><option value="45">45</option><option value="60">60</option></select></div>
+          <div><label style="font-size:12px;color:#666;">Target Cover</label><select id="coverDays"><option value="45">45</option><option value="60">60</option><option value="90">90</option></select></div>
+          <div><label style="font-size:12px;color:#666;">Recall Trigger</label><select id="recallDays"><option value="60">60</option><option value="90">90</option><option value="120">120</option></select></div>
+          <div><label style="font-size:12px;color:#666;">Sort</label><select id="sjitSort"><option value="sales">Sales</option><option value="projection">Projection</option><option value="ship">Shipment</option><option value="recall">Recall</option></select></div>
+        </div>
 
-      const show = rows.slice(0, LIMIT);
+        <div style="padding:0 16px 16px 16px;">
+          <input id="sjitSearch" value="${QUERY}" placeholder="Style / ERP SKU / Brand">
+        </div>
 
-      const shipStyles = rows.filter(r => r.shipmentQty > 0).length;
-      const recallStyles = rows.filter(r => r.recallQty > 0).length;
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Style ID</th>
+                <th>ERP SKU</th>
+                <th>Status</th>
+                <th>Brand</th>
+                <th>Rating</th>
+                <th>Gross</th>
+                <th>Return %</th>
+                <th>Net</th>
+                <th>DRR</th>
+                <th>Stock</th>
+                <th>SC</th>
+                <th>Projection</th>
+                <th>Shipment</th>
+                <th>Recall</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${
+                show.map(r => `
+                  <tr>
+                    <td>${r.style_id}</td>
+                    <td>${r.erp_sku}</td>
+                    <td>${r.status}</td>
+                    <td>${r.brand}</td>
+                    <td>${fmt(r.rating)}</td>
+                    <td>${fmt(r.gross)}</td>
+                    <td>${fmt(r.returnPct)}%</td>
+                    <td>${fmt(r.net)}</td>
+                    <td>${fmt(r.drr)}</td>
+                    <td>${fmt(r.stock)}</td>
+                    <td>${Number(r.sc) >= 999999 ? "∞" : fmt(r.sc)}</td>
+                    <td>${fmt(r.projectionQty)}</td>
+                    <td>${fmt(r.shipmentQty)}</td>
+                    <td>${fmt(r.recallQty)}</td>
+                  </tr>
+                `).join("")
+              }
+            </tbody>
+          </table>
+        </div>
 
-      const projectionQty = rows.reduce((s, r) => s + r.projectionQty, 0);
-      const shipQty = rows.reduce((s, r) => s + r.shipmentQty, 0);
-      const recallQty = rows.reduce((s, r) => s + r.recallQty, 0);
-      const totalStock = rows.reduce((s, r) => s + r.stock, 0);
+        ${rows.length > LIMIT ? `<button id="sjitMore" class="load-more">Load More</button>` : ""}
 
-      let html = `
-        <section class="kpi-grid">
-          <div class="kpi-card"><span>Total Projection</span><strong>${fmt(projectionQty)}</strong></div>
-          <div class="kpi-card"><span>Styles To Ship</span><strong>${fmt(shipStyles)}</strong></div>
-          <div class="kpi-card"><span>Total Shipment Qty</span><strong>${fmt(shipQty)}</strong></div>
-          <div class="kpi-card"><span>Styles To Recall</span><strong>${fmt(recallStyles)}</strong></div>
-          <div class="kpi-card"><span>Total Recall Qty</span><strong>${fmt(recallQty)}</strong></div>
-          <div class="kpi-card"><span>Total Stock</span><strong>${fmt(totalStock)}</strong></div>
-        </section>
+      </section>
+    `;
 
-        <section class="panel">
+    document.getElementById("salesDays").value = SALES_DAYS;
+    document.getElementById("coverDays").value = COVER_DAYS;
+    document.getElementById("recallDays").value = RECALL_DAYS;
+    document.getElementById("sjitSort").value = SORT;
 
-          <div style="padding:16px;display:grid;gap:12px;grid-template-columns:repeat(4,minmax(0,1fr));align-items:end;">
-            <div>
-              <label style="font-size:12px;color:#666;">Sales Days</label>
-              <select id="salesDays">
-                <option value="30">30</option>
-                <option value="45">45</option>
-                <option value="60">60</option>
-              </select>
-            </div>
+    document.getElementById("salesDays").onchange = e => { SALES_DAYS = Number(e.target.value); LIMIT = 50; window.renderSJITTab(); };
+    document.getElementById("coverDays").onchange = e => { COVER_DAYS = Number(e.target.value); LIMIT = 50; window.renderSJITTab(); };
+    document.getElementById("recallDays").onchange = e => { RECALL_DAYS = Number(e.target.value); LIMIT = 50; window.renderSJITTab(); };
+    document.getElementById("sjitSort").onchange = e => { SORT = e.target.value; LIMIT = 50; window.renderSJITTab(); };
 
-            <div>
-              <label style="font-size:12px;color:#666;">Target Cover</label>
-              <select id="coverDays">
-                <option value="45">45</option>
-                <option value="60">60</option>
-                <option value="90">90</option>
-                <option value="120">120</option>
-              </select>
-            </div>
-
-            <div>
-              <label style="font-size:12px;color:#666;">Recall Trigger</label>
-              <select id="recallDays">
-                <option value="60">60</option>
-                <option value="90">90</option>
-                <option value="120">120</option>
-              </select>
-            </div>
-
-            <div>
-              <label style="font-size:12px;color:#666;">Sort</label>
-              <select id="sjitSort">
-                <option value="sales">Sales High to Low</option>
-                <option value="projection">Projection High to Low</option>
-                <option value="ship">Shipment High to Low</option>
-                <option value="recall">Recall High to Low</option>
-                <option value="stock">Stock High to Low</option>
-              </select>
-            </div>
-          </div>
-
-          <div style="margin:0 16px 16px 16px;padding:12px;border-radius:10px;background:#f6f7f9;font-size:13px;">
-            <strong>Period:</strong> ${data.startDate} to ${data.endDate}
-            &nbsp;|&nbsp;
-            <strong>Window:</strong> ${SALES_DAYS} Days
-            &nbsp;|&nbsp;
-            Based on latest sales date
-          </div>
-
-          <div style="padding:0 16px 16px 16px;">
-            <label style="font-size:12px;color:#666;">Search</label>
-            <input id="sjitSearch" value="${QUERY}" placeholder="Style / ERP SKU / Brand">
-          </div>
-
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Style ID</th>
-                  <th>ERP SKU</th>
-                  <th>Status</th>
-                  <th>Brand</th>
-                  <th>Rating</th>
-                  <th>Net</th>
-                  <th>DRR</th>
-                  <th>Stock</th>
-                  <th>SC</th>
-                  <th>Projection</th>
-                  <th>Shipment</th>
-                  <th>Recall</th>
-                </tr>
-              </thead>
-              <tbody>
-      `;
-
-      if (!show.length) {
-        html += `<tr><td colspan="12">No data</td></tr>`;
-      } else {
-        show.forEach(r => {
-          html += `
-            <tr>
-              <td>${r.style_id}</td>
-              <td>${r.erp_sku}</td>
-              <td>${r.status}</td>
-              <td>${r.brand}</td>
-              <td>${fmt(r.rating)}</td>
-              <td>${fmt(r.net)}</td>
-              <td>${fmt(r.drr)}</td>
-              <td>${fmt(r.stock)}</td>
-              <td>${Number(r.sc) >= 999999 ? "∞" : fmt(r.sc)}</td>
-              <td>${fmt(r.projectionQty)}</td>
-              <td>${fmt(r.shipmentQty)}</td>
-              <td>${fmt(r.recallQty)}</td>
-            </tr>
-          `;
-        });
-      }
-
-      html += `
-              </tbody>
-            </table>
-          </div>
-      `;
-
-      if (rows.length > LIMIT) {
-        html += `<button id="sjitMore" class="load-more">Load More</button>`;
-      }
-
-      html += `</section>`;
-
-      root.innerHTML = html;
-
-      document.getElementById("salesDays").value = SALES_DAYS;
-      document.getElementById("coverDays").value = COVER_DAYS;
-      document.getElementById("recallDays").value = RECALL_DAYS;
-      document.getElementById("sjitSort").value = SORT;
-
-      document.getElementById("salesDays").onchange = e => {
-        SALES_DAYS = Number(e.target.value);
+    document.getElementById("sjitSearch").oninput = e => {
+      clearTimeout(TIMER);
+      TIMER = setTimeout(() => {
+        QUERY = e.target.value.trim();
         LIMIT = 50;
         window.renderSJITTab();
-      };
+      }, 300);
+    };
 
-      document.getElementById("coverDays").onchange = e => {
-        COVER_DAYS = Number(e.target.value);
-        LIMIT = 50;
+    const more = document.getElementById("sjitMore");
+    if (more) {
+      more.onclick = () => {
+        LIMIT += 50;
         window.renderSJITTab();
       };
-
-      document.getElementById("recallDays").onchange = e => {
-        RECALL_DAYS = Number(e.target.value);
-        LIMIT = 50;
-        window.renderSJITTab();
-      };
-
-      document.getElementById("sjitSort").onchange = e => {
-        SORT = e.target.value;
-        LIMIT = 50;
-        window.renderSJITTab();
-      };
-
-      document.getElementById("sjitSearch").oninput = e => {
-        clearTimeout(TIMER);
-
-        TIMER = setTimeout(() => {
-          QUERY = e.target.value.trim();
-          LIMIT = 50;
-          window.renderSJITTab();
-        }, 300);
-      };
-
-      const more = document.getElementById("sjitMore");
-
-      if (more) {
-        more.onclick = () => {
-          LIMIT += 50;
-          window.renderSJITTab();
-        };
-      }
-    } catch (err) {
-      root.innerHTML = `
-        <section class="panel" style="padding:16px;color:red;">
-          <h3>SJIT Error</h3>
-          <pre>${err.message}</pre>
-        </section>
-      `;
     }
   };
 }
