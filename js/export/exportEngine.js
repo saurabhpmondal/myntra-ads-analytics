@@ -45,12 +45,8 @@ export function exportReport(type) {
     return download(`datewise_${ym()}.csv`, [
       ["Date","Spend","Impr","Clicks","Units","Revenue","ROI"],
       ...out.map(r => [
-        r.date,
-        fmt(r.spend),
-        fmt(r.impressions),
-        fmt(r.clicks),
-        fmt(r.units),
-        fmt(r.revenue),
+        r.date, fmt(r.spend), fmt(r.impressions), fmt(r.clicks),
+        fmt(r.units), fmt(r.revenue),
         fmt(r.spend ? r.revenue / r.spend : 0)
       ])
     ]);
@@ -62,12 +58,8 @@ export function exportReport(type) {
     return download(`campaign_${ym()}.csv`, [
       ["Campaign","Spend","Impr","Clicks","Units","Revenue","ROI"],
       ...out.map(r => [
-        r.name,
-        fmt(r.spend),
-        fmt(r.impressions),
-        fmt(r.clicks),
-        fmt(r.units),
-        fmt(r.revenue),
+        r.name, fmt(r.spend), fmt(r.impressions), fmt(r.clicks),
+        fmt(r.units), fmt(r.revenue),
         fmt(r.spend ? r.revenue / r.spend : 0)
       ])
     ]);
@@ -79,60 +71,34 @@ export function exportReport(type) {
     return download(`adgroup_${ym()}.csv`, [
       ["Adgroup","Spend","Impr","Clicks","Units","Revenue","ROI"],
       ...out.map(r => [
-        r.name,
-        fmt(r.spend),
-        fmt(r.impressions),
-        fmt(r.clicks),
-        fmt(r.units),
-        fmt(r.revenue),
+        r.name, fmt(r.spend), fmt(r.impressions), fmt(r.clicks),
+        fmt(r.units), fmt(r.revenue),
         fmt(r.spend ? r.revenue / r.spend : 0)
       ])
     ]);
   }
 
   if (type === "placement") {
-    const f = window.ACTIVE_FILTER || {};
-
-    const pr = ppr.filter(r =>
-      Number(r.year) === Number(f.year) &&
-      Number(r.month) === Number(f.month)
-    );
-
-    const out = buildPlacementRows(pr);
+    const out = buildPlacementRows(ppr);
 
     return download(`placement_${ym()}.csv`, [
       ["Placement","Spend","Impr","Clicks","Units","Revenue","ROI"],
       ...out.map(r => [
-        r.name,
-        fmt(r.spend),
-        fmt(r.impressions),
-        fmt(r.clicks),
-        fmt(r.units),
-        fmt(r.revenue),
+        r.name, fmt(r.spend), fmt(r.impressions), fmt(r.clicks),
+        fmt(r.units), fmt(r.revenue),
         fmt(r.spend ? r.revenue / r.spend : 0)
       ])
     ]);
   }
 
   if (type === "style") {
-    const f = window.ACTIVE_FILTER || {};
-
-    const sr = cpr.filter(r =>
-      Number(r.year) === Number(f.year) &&
-      Number(r.month) === Number(f.month)
-    );
-
-    const out = buildStyleReport(sr);
+    const out = buildStyleReport(cpr);
 
     return download(`style_${ym()}.csv`, [
       ["Style","Spend","Impr","Clicks","Units","Revenue","ROI"],
       ...out.map(r => [
-        r.id,
-        fmt(r.spend),
-        fmt(r.impressions),
-        fmt(r.clicks),
-        fmt(r.units),
-        fmt(r.revenue),
+        r.id, fmt(r.spend), fmt(r.impressions), fmt(r.clicks),
+        fmt(r.units), fmt(r.revenue),
         fmt(r.spend ? r.revenue / r.spend : 0)
       ])
     ]);
@@ -144,12 +110,10 @@ export function exportReport(type) {
     const rowsOut = [
       ...a.data.leaks.map(x => ["Leak",x.name,x.spend,x.clicks,x.units,x.revenue,x.roi]),
       ...a.data.winners.map(x => ["Winner",x.name,x.spend,x.clicks,x.units,x.revenue,x.roi]),
-      ...a.data.nosale.map(x => ["NoSale",x.name,x.spend,x.clicks,x.units,x.revenue,x.roi]),
-      ...a.data.ctrIssues.map(x => ["CTR",x.name,x.spend,x.clicks,x.units,x.revenue,x.roi]),
-      ...a.data.cpcRisk.map(x => ["CPC",x.name,x.spend,x.clicks,x.units,x.revenue,x.roi])
+      ...a.data.nosale.map(x => ["NoSale",x.name,x.spend,x.clicks,x.units,x.revenue,x.roi])
     ];
 
-    return download(`analysis_${a.latest.year}_${a.latest.month}.csv`, [
+    return download(`analysis_${ym()}.csv`, [
       ["Type","Name","Spend","Clicks","Units","Revenue","ROI"],
       ...rowsOut.map(r => [
         r[0], r[1], fmt(r[2]), fmt(r[3]), fmt(r[4]), fmt(r[5]), fmt(r[6])
