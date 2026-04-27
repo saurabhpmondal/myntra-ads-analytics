@@ -5,6 +5,7 @@ import { buildSalesData } from "./salesEngine.js";
 
 let SALES = [];
 let RETURNS = [];
+let MASTER = [];
 let READY = false;
 
 let LIMIT = 50;
@@ -21,15 +22,33 @@ function fmt(n) {
 async function ensureData() {
   if (READY) return;
 
-  const [salesCsv, returnCsv] = await Promise.all([
+  const files = await Promise.all([
     fetchCSV(SHEETS.SALES),
-    fetchCSV(SHEETS.RETURNS)
+    fetchCSV(SHEETS.RETURNS),
+    fetchCSV(SHEETS.PRODUCT_MASTER)
   ]);
 
-  SALES = parseCSV(salesCsv);
-  RETURNS = parseCSV(returnCsv);
+  SALES = parseCSV(files[0]);
+  RETURNS = parseCSV(files[1]);
+  MASTER = parseCSV(files[2]);
 
   READY = true;
+}
+
+function buildMasterMap() {
+  const map = {};
+
+  MASTER.forEach(r => {
+    const id = String(r.style_id || "").trim();
+    if (!id) return;
+
+    map[id] = {
+      erp_sku: String(r.erp_sku || "").trim(),
+      status: String(r.status || "").trim()
+    };
+  });
+
+  return map;
 }
 
 function sortRows(rows) {
@@ -54,12 +73,19 @@ export function initSalesTab() {
 
     const filter = window.ACTIVE_FILTER || {};
     const data = buildSalesData(SALES, RETURNS, filter);
+    const masterMap = buildMasterMap();
 
-    let rows = sortRows(data.rows);
+    let rows = sortRows(data.rows).map(r => ({
+      ...r,
+      erp_sku: masterMap[r.id]?.erp_sku || "",
+      status: masterMap[r.id]?.status || "",
+      drr: r.netUnits / 30
+    }));
 
     if (QUERY) {
       rows = rows.filter(r =>
-        String(r.id).toLowerCase().includes(QUERY.toLowerCase())
+        String(r.id).toLowerCase().includes(QUERY.toLowerCase()) ||
+        String(r.erp_sku).toLowerCase().includes(QUERY.toLowerCase())
       );
     }
 
@@ -79,7 +105,7 @@ export function initSalesTab() {
         <div style="padding:16px;display:grid;gap:12px;grid-template-columns:1fr 180px;align-items:end;">
 
           <div>
-            <label style="font-size:12px;color:#666;">Search Style ID</label>
+            <label style="font-size:12px;color:#666;">Search Style ID / ERP SKU</label>
             <input id="salesSearch" value="${QUERY}" placeholder="Type style id...">
           </div>
 
@@ -100,11 +126,14 @@ export function initSalesTab() {
             <thead>
               <tr>
                 <th>Style ID</th>
+                <th>ERP SKU</th>
+                <th>ERP Status</th>
                 <th>Sold Units</th>
                 <th>Sales Value</th>
                 <th>Returns</th>
                 <th>Return %</th>
                 <th>Net Units</th>
+                <th>DRR</th>
               </tr>
             </thead>
             <tbody>
@@ -112,14 +141,17 @@ export function initSalesTab() {
                 show.map(r => `
                   <tr>
                     <td>${r.id}</td>
+                    <td>${r.erp_sku}</td>
+                    <td>${r.status}</td>
                     <td>${fmt(r.sold)}</td>
                     <td>₹${fmt(r.value)}</td>
                     <td>${fmt(r.returns)}</td>
                     <td>${fmt(r.returnPct)}%</td>
                     <td>${fmt(r.netUnits)}</td>
+                    <td>${fmt(r.drr)}</td>
                   </tr>
                 `).join("")
-                || `<tr><td colspan="6">No data</td></tr>`
+                || `<tr><td colspan="9">No data</td></tr>`
               }
             </tbody>
           </table>
