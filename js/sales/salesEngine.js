@@ -19,7 +19,7 @@ function cleanId(v) {
   return txt(v).replace(/\.0$/, "");
 }
 
-export function buildSalesReport(rows) {
+function core(rows) {
   var map = {};
 
   rows.forEach(function (r) {
@@ -61,4 +61,12 @@ export function buildSalesReport(rows) {
   });
 
   return out;
+}
+
+export function buildSalesReport(rows) {
+  return core(rows);
+}
+
+export function buildSalesData(rows) {
+  return core(rows);
 }
