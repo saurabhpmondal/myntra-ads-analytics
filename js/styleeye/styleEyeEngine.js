@@ -5,11 +5,12 @@ function num(v){return Number(String(v==null?"":v).replace(/,/g,"").trim())||0;}
 
 function monthNum(v){
   var s=txt(v).toUpperCase();
-  var m={
-    JAN:1,FEB:2,MAR:3,APR:4,MAY:5,JUN:6,JUNE:6,
-    JUL:7,JULY:7,AUG:8,SEP:9,SEPT:9,OCT:10,NOV:11,DEC:12
-  };
+  var m={JAN:1,FEB:2,MAR:3,APR:4,MAY:5,JUN:6,JUNE:6,JUL:7,JULY:7,AUG:8,SEP:9,SEPT:9,OCT:10,NOV:11,DEC:12};
   return m[s] || num(v);
+}
+
+function sameMonth(r,y,m){
+  return num(r.year)===y && monthNum(r.month)===m;
 }
 
 function validSale(r){
@@ -19,10 +20,6 @@ function validSale(r){
 
 function validReturn(r){
   return txt(r.type).toUpperCase()==="RETURN";
-}
-
-function sameMonth(r,y,m){
-  return num(r.year)===y && monthNum(r.month)===m;
 }
 
 function latestMonth(rows){
@@ -79,12 +76,6 @@ function isSORBrand(brand){
   return b==="KALINI" || b==="MITERA";
 }
 
-function riskLabel(returnPct,rating){
-  if(returnPct>=25 || rating<3.5) return "High";
-  if(returnPct>=15 || rating<3.8) return "Medium";
-  return "Low";
-}
-
 function buildActions(x){
   var out=[];
 
@@ -101,8 +92,7 @@ function buildActions(x){
 
   if(x.ads.roi>=4 && x.sales.net>0) out.push("Scale ads budget");
   if(x.ads.spend>0 && x.ads.roi<1.5) out.push("Review ads efficiency");
-  if(x.quality.rating && x.quality.rating<3.8) out.push("Rating risk - improve listing quality");
-  if(x.quality.returnRisk==="High") out.push("High return risk - inspect fit/quality");
+  if(x.quality.risk==="Risk") out.push("High return risk - inspect quality");
   if(x.ranking.brand>0 && x.ranking.brand<=5) out.push("Top brand performer");
 
   if(!out.length) out.push("Stable style - maintain current plan");
@@ -125,50 +115,27 @@ export function buildStyleEyeData(data,query){
   var prev=prevMonth(latest.year,latest.month);
 
   var master=masterRows.filter(function(r){
-    var sid=txt(r.style_id).toLowerCase();
-    var sku=txt(r.erp_sku).toLowerCase();
-    return sid===q || sku===q;
+    return txt(r.style_id).toLowerCase()===q ||
+           txt(r.erp_sku).toLowerCase()===q;
   });
 
-  if(!master.length){
-    return {type:"not_found"};
-  }
+  if(!master.length) return {type:"not_found"};
 
   if(master.length>1){
-    var exact=false;
-
-    master.forEach(function(r){
-      if(txt(r.style_id)===txt(query)) exact=true;
+    var options=master.map(function(r){
+      return {
+        style_id:txt(r.style_id),
+        brand:txt(r.brand),
+        status:txt(r.status),
+        units:0
+      };
     });
 
-    if(!exact){
-      var options=master.map(function(r){
-        var sid=txt(r.style_id);
-
-        var units=sumQty(
-          salesRows.filter(function(x){
-            return txt(x.style_id)===sid &&
-              validSale(x) &&
-              sameMonth(x,latest.year,latest.month);
-          })
-        );
-
-        return {
-          style_id:sid,
-          brand:txt(r.brand),
-          status:txt(r.status),
-          units:units
-        };
-      });
-
-      options.sort(function(a,b){return b.units-a.units;});
-
-      return {
-        type:"multi",
-        erp_sku:txt(master[0].erp_sku),
-        options:options
-      };
-    }
+    return {
+      type:"multi",
+      erp_sku:txt(master[0].erp_sku),
+      options:options
+    };
   }
 
   var row=master[0];
@@ -189,32 +156,26 @@ export function buildStyleEyeData(data,query){
 
   var gross=sumQty(curSales);
   var gmv=sumAmt(curSales);
-  var prevUnits=sumQty(prevSales);
-
-  var styleReturns=returnRows.filter(function(r){
+  var returns=returnRows.filter(function(r){
     return txt(r.style_id)===styleId &&
       validReturn(r) &&
       sameMonth(r,latest.year,latest.month);
-  });
+  }).length;
 
-  var returns=styleReturns.length;
+  var prevUnits=sumQty(prevSales);
   var net=Math.max(0,gross-returns);
-  var asp=net?gmv/net:0;
+  var asp=gross?gmv/gross:0;
   var drr=net/30;
   var returnPct=gross?(returns/gross)*100:0;
   var growthPct=prevUnits?((net-prevUnits)/prevUnits)*100:0;
 
   var sjitStock=stockRows
-    .filter(function(r){ return txt(r.style_id)===styleId; })
-    .reduce(function(s,r){
-      return s+num(r.sellable_inventory_count||r.units);
-    },0);
+    .filter(function(r){return txt(r.style_id)===styleId;})
+    .reduce(function(s,r){return s+num(r.sellable_inventory_count||r.units);},0);
 
   var sorStock=sorRows
-    .filter(function(r){ return txt(r.style_id)===styleId; })
-    .reduce(function(s,r){
-      return s+num(r.units);
-    },0);
+    .filter(function(r){return txt(r.style_id)===styleId;})
+    .reduce(function(s,r){return s+num(r.units);},0);
 
   var sjit=planner(sjitStock,drr,45,60);
 
@@ -222,126 +183,71 @@ export function buildStyleEyeData(data,query){
     ? planner(sorStock,drr,45,60)
     : {stock:0,sc:0,projection:0,recall:0,na:true};
 
-  var allUnits={};
-
-  salesRows.forEach(function(r){
-    if(!validSale(r) || !sameMonth(r,latest.year,latest.month)) return;
-
-    var sid=txt(r.style_id);
-    allUnits[sid]=(allUnits[sid]||0)+num(r.qty||1);
-  });
-
-  var overallArr=Object.keys(allUnits).map(function(k){
-    return [k,allUnits[k]];
-  });
-
-  overallArr.sort(function(a,b){ return b[1]-a[1]; });
-
-  var overall=0;
-  var i;
-
-  for(i=0;i<overallArr.length;i++){
-    if(overallArr[i][0]===styleId){
-      overall=i+1;
-      break;
-    }
-  }
-
-  var brandUnits={};
-
-  masterRows.forEach(function(m){
-    if(txt(m.brand).toUpperCase()!==brand.toUpperCase()) return;
-
-    var sid=txt(m.style_id);
-    brandUnits[sid]=allUnits[sid]||0;
-  });
-
-  var brandArr=Object.keys(brandUnits).map(function(k){
-    return [k,brandUnits[k]];
-  });
-
-  brandArr.sort(function(a,b){ return b[1]-a[1]; });
-
-  var brandRank=0;
-
-  for(i=0;i<brandArr.length;i++){
-    if(brandArr[i][0]===styleId){
-      brandRank=i+1;
-      break;
-    }
-  }
-
-  /* REUSE TRUSTED STYLE ENGINE */
   var cprMonthRows=cprRows.filter(function(r){
     return sameMonth(r,latest.year,latest.month);
   });
 
   var styleReport=buildStyleReport(cprMonthRows);
 
-  var adsMatch=null;
+  var ads=null;
+  styleReport.forEach(function(r){
+    if(txt(r.id)===styleId) ads=r;
+  });
 
-  for(i=0;i<styleReport.length;i++){
-    if(txt(styleReport[i].id)===styleId){
-      adsMatch=styleReport[i];
-      break;
-    }
-  }
-
-  var spend=adsMatch ? num(adsMatch.spend) : 0;
-  var revenue=adsMatch ? num(adsMatch.revenue) : 0;
-  var impressions=adsMatch ? num(adsMatch.impressions) : 0;
-  var clicks=adsMatch ? num(adsMatch.clicks) : 0;
+  var spend=ads?num(ads.spend):0;
+  var adUnits=ads?num(ads.units):0;
+  var revenue=ads?num(ads.revenue):0;
+  var impressions=ads?num(ads.impressions):0;
+  var clicks=ads?num(ads.clicks):0;
 
   var traffic=null;
+  trafficRows.forEach(function(r){
+    if(txt(r.style_id)===styleId) traffic=r;
+  });
 
-  for(i=0;i<trafficRows.length;i++){
-    if(txt(trafficRows[i].style_id)===styleId){
-      traffic=trafficRows[i];
-      break;
-    }
-  }
-
-  var rating=traffic ? num(traffic.rating) : 0;
+  var rating=traffic?num(traffic.rating):0;
 
   var reasonMap={};
 
-  styleReturns.forEach(function(r){
-    var reason=txt(r.return_reason || r.reason || r.reason_name || "Unknown");
+  returnRows.forEach(function(r){
+    if(txt(r.style_id)!==styleId) return;
+    if(!validReturn(r)) return;
+    if(!sameMonth(r,latest.year,latest.month)) return;
+
+    var reason=txt(r.return_reason||r.reason||r.reason_name||"Unknown");
     reasonMap[reason]=(reasonMap[reason]||0)+1;
   });
 
-  var reasonArr=Object.keys(reasonMap).map(function(k){
-    return [k,reasonMap[k]];
+  var topReason="-";
+  var topCount=0;
+
+  Object.keys(reasonMap).forEach(function(k){
+    if(reasonMap[k]>topCount){
+      topCount=reasonMap[k];
+      topReason=k;
+    }
   });
-
-  reasonArr.sort(function(a,b){ return b[1]-a[1]; });
-
-  var topReason=reasonArr.length ? reasonArr[0][0] : "-";
 
   var result={
     type:"single",
     style_id:styleId,
+    brand:brand,
     erp_sku:txt(row.erp_sku),
     status:txt(row.status),
-    brand:brand,
     launch_date:txt(row.launch_date),
     live_date:txt(row.live_date),
+    rating:rating,
 
-    ranking:{
-      overall:overall,
-      brand:brandRank
-    },
+    ranking:{overall:0,brand:0},
 
     sales:{
       gmv:gmv,
       gross:gross,
-      returns:returns,
       net:net,
       asp:asp,
       drr:drr,
       returnPct:returnPct,
-      growthPct:growthPct,
-      prevUnits:prevUnits
+      growthPct:growthPct
     },
 
     inventory:{
@@ -351,18 +257,18 @@ export function buildStyleEyeData(data,query){
 
     ads:{
       spend:spend,
+      units:adUnits,
       revenue:revenue,
       impressions:impressions,
       clicks:clicks,
       roi:spend?revenue/spend:0,
       ctr:impressions?(clicks/impressions)*100:0,
-      cvr:clicks?(net/clicks)*100:0
+      cvr:clicks?(adUnits/clicks)*100:0
     },
 
     quality:{
-      rating:rating,
       topReason:topReason,
-      returnRisk:riskLabel(returnPct,rating)
+      risk:returnPct>35 ? "Risk" : "No Risk"
     }
   };
 
