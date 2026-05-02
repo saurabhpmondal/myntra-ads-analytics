@@ -11,6 +11,7 @@ let READY = false;
 let LIMIT = 50;
 let QUERY = "";
 let SORT = "sales";
+let BRAND = "ALL";
 let TIMER = null;
 
 function fmt(n) {
@@ -60,40 +61,45 @@ export function initSalesTab() {
 
     let rows = sortRows(data.rows);
 
+    if (BRAND !== "ALL") {
+      rows = rows.filter(r => r.brand === BRAND);
+    }
+
     if (QUERY) {
       rows = rows.filter(r =>
         String(r.id).toLowerCase().includes(QUERY.toLowerCase())
       );
     }
 
+    const brands = [...new Set(data.rows.map(r => r.brand))];
+
     const show = rows.slice(0, LIMIT);
 
     root.innerHTML = `
-      <section class="kpi-grid">
-        <div class="kpi-card"><span>Units Sold</span><strong>${fmt(data.cards.sold)}</strong></div>
-        <div class="kpi-card"><span>Sales Value</span><strong>₹${fmt(data.cards.value)}</strong></div>
-        <div class="kpi-card"><span>Returned Units</span><strong>${fmt(data.cards.returns)}</strong></div>
-        <div class="kpi-card"><span>Return %</span><strong>${fmt(data.cards.returnPct)}%</strong></div>
-        <div class="kpi-card"><span>Net Units</span><strong>${fmt(data.cards.netUnits)}</strong></div>
-        <div class="kpi-card"><span>Active Styles</span><strong>${fmt(data.cards.styles)}</strong></div>
-      </section>
-
       <section class="panel">
 
-        <div style="padding:16px;display:grid;gap:12px;grid-template-columns:1fr 180px;align-items:end;">
+        <div style="padding:16px;display:grid;gap:12px;grid-template-columns:1fr 180px 180px;align-items:end;">
 
           <div>
-            <label style="font-size:12px;color:#666;">Search Style ID</label>
-            <input id="salesSearch" value="${QUERY}" placeholder="Type style id...">
+            <label>Search</label>
+            <input id="salesSearch" value="${QUERY}">
           </div>
 
           <div>
-            <label style="font-size:12px;color:#666;">Sort</label>
+            <label>Sort</label>
             <select id="salesSort">
-              <option value="sales">Sales High to Low</option>
-              <option value="return">Return % High to Low</option>
-              <option value="net">Net Units High to Low</option>
-              <option value="returns">Returns High to Low</option>
+              <option value="sales">Sales</option>
+              <option value="return">Return %</option>
+              <option value="net">Net</option>
+              <option value="returns">Returns</option>
+            </select>
+          </div>
+
+          <div>
+            <label>Brand</label>
+            <select id="salesBrand">
+              <option value="ALL">All</option>
+              ${brands.map(b => `<option value="${b}">${b}</option>`).join("")}
             </select>
           </div>
 
@@ -103,25 +109,34 @@ export function initSalesTab() {
           <table>
             <thead>
               <tr>
-                <th>Style ID</th>
-                <th>ERP SKU</th>
+                <th>Rank</th>
+                <th>Brand Rank</th>
+                <th>Style</th>
                 <th>Brand</th>
+                <th>ERP SKU</th>
                 <th>Status</th>
-                <th>Sold Units</th>
-                <th>Sales Value</th>
+                <th>Sold</th>
+                <th>Value</th>
                 <th>Returns</th>
                 <th>Return %</th>
-                <th>Net Units</th>
+                <th>Net</th>
                 <th>DRR</th>
               </tr>
             </thead>
+
             <tbody>
               ${
                 show.map(r => `
                   <tr>
-                    <td>${r.id}</td>
-                    <td>${r.erp_sku}</td>
+                    <td>${r.rank}</td>
+                    <td>${r.brandRank}</td>
+                    <td>
+                      <a href="https://www.myntra.com/${r.id}" target="_blank">
+                        ${r.id}
+                      </a>
+                    </td>
                     <td>${r.brand}</td>
+                    <td>${r.erp_sku}</td>
                     <td>${r.status}</td>
                     <td>${fmt(r.sold)}</td>
                     <td>₹${fmt(r.value)}</td>
@@ -131,46 +146,34 @@ export function initSalesTab() {
                     <td>${fmt(r.drr)}</td>
                   </tr>
                 `).join("")
-                || `<tr><td colspan="10">No data</td></tr>`
+                || `<tr><td colspan="12">No data</td></tr>`
               }
             </tbody>
           </table>
         </div>
 
-        ${
-          rows.length > LIMIT
-            ? `<button id="salesMore" class="load-more">Load More</button>`
-            : ""
-        }
-
       </section>
     `;
 
     document.getElementById("salesSort").value = SORT;
+    document.getElementById("salesBrand").value = BRAND;
 
     document.getElementById("salesSort").onchange = e => {
       SORT = e.target.value;
-      LIMIT = 50;
+      window.renderSalesTab();
+    };
+
+    document.getElementById("salesBrand").onchange = e => {
+      BRAND = e.target.value;
       window.renderSalesTab();
     };
 
     document.getElementById("salesSearch").oninput = e => {
       clearTimeout(TIMER);
-
       TIMER = setTimeout(() => {
-        QUERY = e.target.value.trim();
-        LIMIT = 50;
+        QUERY = e.target.value;
         window.renderSalesTab();
       }, 300);
     };
-
-    const more = document.getElementById("salesMore");
-
-    if (more) {
-      more.onclick = () => {
-        LIMIT += 50;
-        window.renderSalesTab();
-      };
-    }
   };
 }
