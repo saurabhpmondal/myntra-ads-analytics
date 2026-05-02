@@ -214,6 +214,7 @@ export function initExportTab() {
             <option value="placement">Placement</option>
             <option value="style">Product ID</option>
             <option value="analysis">Analysis</option>
+            <option value="growth">Growth (Current Month Day-wise)</option>
             <option value="sjit">SJIT Planner</option>
             <option value="sor_kalini">SOR Planner - KALINI</option>
             <option value="sor_mitera">SOR Planner - Mitera</option>
