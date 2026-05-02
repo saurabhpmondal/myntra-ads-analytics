@@ -22,33 +22,17 @@ function fmt(n) {
 async function ensureData() {
   if (READY) return;
 
-  const files = await Promise.all([
+  const [salesCsv, returnCsv, masterCsv] = await Promise.all([
     fetchCSV(SHEETS.SALES),
     fetchCSV(SHEETS.RETURNS),
     fetchCSV(SHEETS.PRODUCT_MASTER)
   ]);
 
-  SALES = parseCSV(files[0]);
-  RETURNS = parseCSV(files[1]);
-  MASTER = parseCSV(files[2]);
+  SALES = parseCSV(salesCsv);
+  RETURNS = parseCSV(returnCsv);
+  MASTER = parseCSV(masterCsv);
 
   READY = true;
-}
-
-function buildMasterMap() {
-  const map = {};
-
-  MASTER.forEach(r => {
-    const id = String(r.style_id || "").trim();
-    if (!id) return;
-
-    map[id] = {
-      erp_sku: String(r.erp_sku || "").trim(),
-      status: String(r.status || "").trim()
-    };
-  });
-
-  return map;
 }
 
 function sortRows(rows) {
@@ -72,20 +56,13 @@ export function initSalesTab() {
     await ensureData();
 
     const filter = window.ACTIVE_FILTER || {};
-    const data = buildSalesData(SALES, RETURNS, filter);
-    const masterMap = buildMasterMap();
+    const data = buildSalesData(SALES, RETURNS, MASTER, filter);
 
-    let rows = sortRows(data.rows).map(r => ({
-      ...r,
-      erp_sku: masterMap[r.id]?.erp_sku || "",
-      status: masterMap[r.id]?.status || "",
-      drr: r.netUnits / 30
-    }));
+    let rows = sortRows(data.rows);
 
     if (QUERY) {
       rows = rows.filter(r =>
-        String(r.id).toLowerCase().includes(QUERY.toLowerCase()) ||
-        String(r.erp_sku).toLowerCase().includes(QUERY.toLowerCase())
+        String(r.id).toLowerCase().includes(QUERY.toLowerCase())
       );
     }
 
@@ -102,24 +79,6 @@ export function initSalesTab() {
       </section>
 
       <section class="panel">
-        <div style="padding:16px;display:grid;gap:12px;grid-template-columns:1fr 180px;align-items:end;">
-
-          <div>
-            <label style="font-size:12px;color:#666;">Search Style ID / ERP SKU</label>
-            <input id="salesSearch" value="${QUERY}" placeholder="Type style id...">
-          </div>
-
-          <div>
-            <label style="font-size:12px;color:#666;">Sort</label>
-            <select id="salesSort">
-              <option value="sales">Sales High to Low</option>
-              <option value="return">Return % High to Low</option>
-              <option value="net">Net Units High to Low</option>
-              <option value="returns">Returns High to Low</option>
-            </select>
-          </div>
-
-        </div>
 
         <div class="table-wrap">
           <table>
@@ -127,12 +86,13 @@ export function initSalesTab() {
               <tr>
                 <th>Style ID</th>
                 <th>ERP SKU</th>
-                <th>ERP Status</th>
-                <th>Sold Units</th>
-                <th>Sales Value</th>
+                <th>Brand</th>
+                <th>Status</th>
+                <th>Sold</th>
+                <th>Value</th>
                 <th>Returns</th>
                 <th>Return %</th>
-                <th>Net Units</th>
+                <th>Net</th>
                 <th>DRR</th>
               </tr>
             </thead>
@@ -142,6 +102,7 @@ export function initSalesTab() {
                   <tr>
                     <td>${r.id}</td>
                     <td>${r.erp_sku}</td>
+                    <td>${r.brand}</td>
                     <td>${r.status}</td>
                     <td>${fmt(r.sold)}</td>
                     <td>₹${fmt(r.value)}</td>
@@ -151,46 +112,13 @@ export function initSalesTab() {
                     <td>${fmt(r.drr)}</td>
                   </tr>
                 `).join("")
-                || `<tr><td colspan="9">No data</td></tr>`
+                || `<tr><td colspan="10">No data</td></tr>`
               }
             </tbody>
           </table>
         </div>
 
-        ${
-          rows.length > LIMIT
-            ? `<button id="salesMore" class="load-more">Load More</button>`
-            : ""
-        }
-
       </section>
     `;
-
-    document.getElementById("salesSort").value = SORT;
-
-    document.getElementById("salesSort").onchange = e => {
-      SORT = e.target.value;
-      LIMIT = 50;
-      window.renderSalesTab();
-    };
-
-    document.getElementById("salesSearch").oninput = e => {
-      clearTimeout(TIMER);
-
-      TIMER = setTimeout(() => {
-        QUERY = e.target.value.trim();
-        LIMIT = 50;
-        window.renderSalesTab();
-      }, 300);
-    };
-
-    const more = document.getElementById("salesMore");
-
-    if (more) {
-      more.onclick = () => {
-        LIMIT += 50;
-        window.renderSalesTab();
-      };
-    }
   };
 }
