@@ -49,9 +49,11 @@ function passFilter(row, filter) {
 }
 
 export function buildSalesData(salesRows, returnRows, masterRows, filter) {
+
   const map = {};
   const orders = new Map();
 
+  /* MASTER MAP */
   const masterMap = {};
   masterRows.forEach(r => {
     const style = txt(r.style_id);
