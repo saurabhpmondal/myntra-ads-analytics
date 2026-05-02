@@ -37,10 +37,7 @@ export async function buildGrowthData(){
   const m2 = months[2];
 
   function split(m){
-    return {
-      year: Math.floor(m/100),
-      month: m%100
-    };
+    return { year: Math.floor(m/100), month: m%100 };
   }
 
   const m0s = split(m0);
@@ -54,7 +51,6 @@ export async function buildGrowthData(){
   const map = {};
 
   sales.forEach(r=>{
-
     const style = txt(r.style_id);
     if(!style) return;
 
@@ -81,16 +77,30 @@ export async function buildGrowthData(){
 
   const rows = Object.values(map).map(r=>{
     const m = masterMap[r.style_id] || {};
+
+    const growth = r.m1 ? ((r.m0 - r.m1)/r.m1)*100 : 0;
+
     return {
       ...r,
       erp_sku: txt(m.erp_sku),
       brand: txt(m.brand),
-      status: txt(m.status)
+      status: txt(m.status),
+      growth
     };
   });
 
-  rows.sort((a,b)=>b.m0-a.m0);
+  /* -------- Sort: Continue first, then by current sales -------- */
+  rows.sort((a,b)=>{
+    if(a.status === "Continue" && b.status !== "Continue") return -1;
+    if(b.status === "Continue" && a.status !== "Continue") return 1;
+    return b.m0 - a.m0;
+  });
 
+  /* -------- Top Movers / Decliners -------- */
+  const movers = [...rows].sort((a,b)=>b.growth - a.growth).slice(0,10);
+  const decliners = [...rows].sort((a,b)=>a.growth - b.growth).slice(0,10);
+
+  /* -------- Day range -------- */
   let maxDay = 0;
   rows.forEach(r=>{
     Object.keys(r.days).forEach(d=>{
@@ -104,7 +114,9 @@ export async function buildGrowthData(){
   return {
     rows,
     days,
-    months: {
+    movers,
+    decliners,
+    months:{
       current: monthName(m0s.month),
       prev1: monthName(m1s.month),
       prev2: monthName(m2s.month),
