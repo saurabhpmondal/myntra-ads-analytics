@@ -10,21 +10,9 @@ function monthNum(v) {
   const s = txt(v).toUpperCase();
 
   const map = {
-    JAN: 1,
-    FEB: 2,
-    MAR: 3,
-    APR: 4,
-    MAY: 5,
-    JUNE: 6,
-    JUN: 6,
-    JULY: 7,
-    JUL: 7,
-    AUG: 8,
-    SEP: 9,
-    SEPT: 9,
-    OCT: 10,
-    NOV: 11,
-    DEC: 12
+    JAN:1,FEB:2,MAR:3,APR:4,MAY:5,
+    JUN:6,JUNE:6,JUL:7,JULY:7,
+    AUG:8,SEP:9,SEPT:9,OCT:10,NOV:11,DEC:12
   };
 
   return map[s] || num(v);
@@ -60,33 +48,31 @@ function passFilter(row, filter) {
   return true;
 }
 
-export function buildSalesData(salesRows, returnRows, filter) {
-  const debug = {
-    totalSales: salesRows.length,
-    afterValidSale: 0,
-    afterFilter: 0,
-    afterStyle: 0,
-    afterOrder: 0,
-    matchedReturns: 0
-  };
-
+export function buildSalesData(salesRows, returnRows, masterRows, filter) {
   const map = {};
   const orders = new Map();
 
+  const masterMap = {};
+  masterRows.forEach(r => {
+    const style = txt(r.style_id);
+    if (!style) return;
+
+    masterMap[style] = {
+      brand: txt(r.brand),
+      erp_sku: txt(r.erp_sku),
+      status: txt(r.status)
+    };
+  });
+
+  /* SALES */
   salesRows.forEach(row => {
     if (!validSale(row)) return;
-    debug.afterValidSale++;
-
-    if (!passFilter(row, filter || {})) return;
-    debug.afterFilter++;
+    if (!passFilter(row, filter)) return;
 
     const style = txt(row.style_id);
-    if (!style) return;
-    debug.afterStyle++;
-
     const order = txt(row.order_line_id);
-    if (!order) return;
-    debug.afterOrder++;
+
+    if (!style || !order) return;
 
     orders.set(order, style);
 
@@ -97,16 +83,18 @@ export function buildSalesData(salesRows, returnRows, filter) {
         value: 0,
         returns: 0,
         netUnits: 0,
-        returnPct: 0
+        returnPct: 0,
+        brand: masterMap[style]?.brand || "",
+        erp_sku: masterMap[style]?.erp_sku || "",
+        status: masterMap[style]?.status || ""
       };
     }
 
-    const qty = num(row.qty || 1);
-
-    map[style].sold += qty;
+    map[style].sold += num(row.qty || 1);
     map[style].value += num(row.final_amount);
   });
 
+  /* RETURNS */
   returnRows.forEach(row => {
     if (!validReturn(row)) return;
 
@@ -116,17 +104,12 @@ export function buildSalesData(salesRows, returnRows, filter) {
     if (!style || !map[style]) return;
 
     map[style].returns += 1;
-    debug.matchedReturns++;
   });
 
   const rows = Object.values(map).map(r => {
     r.netUnits = r.sold - r.returns;
-    if (r.netUnits < 0) r.netUnits = 0;
-
-    r.returnPct = r.sold
-      ? (r.returns / r.sold) * 100
-      : 0;
-
+    r.returnPct = r.sold ? (r.returns / r.sold) * 100 : 0;
+    r.drr = r.netUnits / 30;
     return r;
   });
 
@@ -144,10 +127,5 @@ export function buildSalesData(salesRows, returnRows, filter) {
     ? (cards.returns / cards.sold) * 100
     : 0;
 
-  cards.debug = debug;
-
-  return {
-    cards,
-    rows
-  };
+  return { cards, rows };
 }
