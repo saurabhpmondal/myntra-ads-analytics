@@ -9,6 +9,7 @@ import { initSJITTab } from "./sjit/sjitUI.js";
 import { initSORTab } from "./sor/sorUI.js";
 import { initStyleEyeTab } from "./styleeye/styleEyeUI.js";
 import { initExportTab } from "./export/exportUI.js";
+import { initBusinessTab } from "./business/businessUI.js";
 
 window.addEventListener("DOMContentLoaded", async () => {
   await initDashboard();
@@ -23,6 +24,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   initSORTab();
   initStyleEyeTab();
   initExportTab();
+initBusinessTab();
 
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.onclick = () => {
@@ -46,6 +48,7 @@ window.addEventListener("DOMContentLoaded", async () => {
         "sor",
         "styleeye",
         "export"
+"business",
       ].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = id === tab ? "block" : "none";
@@ -61,6 +64,7 @@ window.addEventListener("DOMContentLoaded", async () => {
       if (tab === "sor") window.renderSORTab?.();
       if (tab === "styleeye") window.renderStyleEyeTab?.();
       if (tab === "export") window.renderExportTab?.();
+if (tab === "business") window.renderBusinessTab?.();
     };
   });
 });
