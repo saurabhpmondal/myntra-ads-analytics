@@ -1,9 +1,23 @@
-function txt(v) {
-  return String(v ?? "").trim();
-}
+/* ============================= */
+/* Grow / Degrow Engine (FINAL) */
+/* ============================= */
+
+/*
+  STRICT RULES (as per your system):
+  - DO NOT use created_on
+  - DO NOT assume any field
+  - date = day (column name is "date")
+  - month = text (APR, MAY, etc.)
+  - year = number
+  - USE existing loaded data (no re-fetch)
+*/
 
 function num(v) {
   return Number(String(v ?? "").replace(/,/g, "").trim()) || 0;
+}
+
+function txt(v) {
+  return String(v ?? "").trim();
 }
 
 function monthNum(v) {
@@ -11,24 +25,23 @@ function monthNum(v) {
 
   const map = {
     JAN:1,FEB:2,MAR:3,APR:4,MAY:5,
-    JUN:6,JUL:7,AUG:8,SEP:9,OCT:10,NOV:11,DEC:12
+    JUN:6,JUNE:6,JUL:7,JULY:7,
+    AUG:8,SEP:9,SEPT:9,OCT:10,NOV:11,DEC:12
   };
 
   return map[s] || num(v);
 }
 
-export function buildGrowDegrow(salesRows, masterRows) {
+/* ============================= */
+/* MAIN BUILDER */
+/* ============================= */
 
-  /* ---------- FILTER (SOURCE OF TRUTH) ---------- */
-  const f = window.ACTIVE_FILTER || {};
-  const year = Number(f.year);
-  const month = Number(f.month);
+export function buildGrowDegrowData({ salesRows, masterRows, filter }) {
 
-  if (!year || !month) {
-    return { rows: [], days: [] };
-  }
+  const map = {};
+  let maxDay = 0;
 
-  /* ---------- MASTER MAP ---------- */
+  /* MASTER MAP */
   const masterMap = {};
   masterRows.forEach(r => {
     const style = txt(r.style_id);
@@ -40,18 +53,19 @@ export function buildGrowDegrow(salesRows, masterRows) {
     };
   });
 
-  /* ---------- PIVOT ---------- */
-  const map = {};
-  let maxDay = 0;
-
+  /* SALES LOOP */
   salesRows.forEach(r => {
-    const y = num(r.year);
-    const m = monthNum(r.month);
-    const d = num(r.day);
-    const style = txt(r.style_id);
 
+    /* FILTER */
+    if (filter.year && num(r.year) !== num(filter.year)) return;
+    if (filter.month && monthNum(r.month) !== num(filter.month)) return;
+
+    /* CORE KEYS */
+    const style = txt(r.style_id);
     if (!style) return;
-    if (y !== year || m !== month) return;
+
+    const d = num(r.date);   // 🔥 FIXED: DATE = DAY
+    if (!d) return;
 
     const qty = num(r.qty || 1);
 
@@ -69,27 +83,14 @@ export function buildGrowDegrow(salesRows, masterRows) {
     if (d > maxDay) maxDay = d;
   });
 
+  /* BUILD DAY ARRAY */
+  const days = [];
+  for (let i = 1; i <= maxDay; i++) {
+    days.push(i);
+  }
+
+  /* FINAL ROWS */
   const rows = Object.values(map);
 
-  /* ---------- FILL MISSING DAYS ---------- */
-  rows.forEach(r => {
-    for (let i = 1; i <= maxDay; i++) {
-      if (!r.daily[i]) r.daily[i] = 0;
-    }
-  });
-
-  /* ---------- SORT ---------- */
-  rows.sort((a, b) => {
-    const sumA = Object.values(a.daily).reduce((s, v) => s + v, 0);
-    const sumB = Object.values(b.daily).reduce((s, v) => s + v, 0);
-    return sumB - sumA;
-  });
-
-  const days = [];
-  for (let i = 1; i <= maxDay; i++) days.push(i);
-
-  return {
-    rows,
-    days
-  };
+  return { rows, days };
 }
