@@ -57,8 +57,8 @@ export async function buildGrowthData(){
     return (r.year*100 + monthNum(r.month)) === m;
   }
 
-  /* ---------- AGGREGATION ---------- */
   const map = {};
+  let maxCurrentDay = 0;
 
   sales.forEach(r=>{
     const style = txt(r.style_id);
@@ -79,7 +79,12 @@ export async function buildGrowthData(){
 
     if(match(r,m0)){
       map[style].m0 += qty;
-      if(d) map[style].days[d] = (map[style].days[d]||0)+qty;
+
+      if(d){
+        map[style].days[d] = (map[style].days[d]||0)+qty;
+
+        if(d > maxCurrentDay) maxCurrentDay = d; // 🔥 KEY FIX
+      }
     }
 
     if(match(r,m1)){
@@ -100,9 +105,12 @@ export async function buildGrowthData(){
   });
 
   /* ---------- DAY ARRAYS ---------- */
-  const currentDays = [];
-  for(let i=1;i<=daysInMonth(m0y, m0m);i++) currentDays.push(i);
 
+  // ✅ Current → ONLY till max date
+  const currentDays = [];
+  for(let i=1;i<=maxCurrentDay;i++) currentDays.push(i);
+
+  // ✅ Previous → FULL month
   const prev1DaysArr = [];
   for(let i=1;i<=daysInMonth(m1y, m1m);i++) prev1DaysArr.push(i);
 
@@ -110,12 +118,13 @@ export async function buildGrowthData(){
   for(let i=1;i<=daysInMonth(m2y, m2m);i++) prev2DaysArr.push(i);
 
   /* ---------- FINAL ROWS ---------- */
+
   const rows = Object.values(map).map(r=>{
 
-    const today = currentDays.length || 1;
+    const today = maxCurrentDay || 1;
 
     const drr = r.m0 / today;
-    const projection = drr * currentDays.length;
+    const projection = drr * daysInMonth(m0y, m0m);
 
     const growth = r.m1
       ? ((projection - r.m1) / r.m1) * 100
@@ -139,14 +148,14 @@ export async function buildGrowthData(){
 
   return {
     rows,
-    days: currentDays,
+    days: currentDays, // 🔥 FIXED
     prev1DaysArr,
     prev2DaysArr,
     months:{
       current: monthName(m0m),
       prev1: monthName(m1m),
       prev2: monthName(m2m),
-      currentMonthDays: currentDays.length
+      currentMonthDays: daysInMonth(m0y, m0m)
     }
   };
 }
