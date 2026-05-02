@@ -9,7 +9,7 @@ export function initGrowDegrowTab() {
     root.innerHTML =
       `<section class="panel"><div class="loading">Loading Growth Report...</div></section>`;
 
-    const salesRows = window.SJIT_SALES || [];   // 🔥 GUARANTEED SAFE
+    const salesRows = window.SALES_ROWS || []; // 🔥 GUARANTEED SAFE
     const filter = window.ACTIVE_FILTER || {};
 
     const { rows, days } = buildGrowDegrow({
