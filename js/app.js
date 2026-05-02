@@ -12,7 +12,7 @@ import { initExportTab } from "./export/exportUI.js";
 import { initBusinessTab } from "./business/businessUI.js";
 
 /* NEW */
-import { initGrowDegrowTab } from "./growdegrow/growdegrowUI.js";
+import { initGrowDegrowTab } from "./growdegrow/growthUI.js";
 
 window.addEventListener("DOMContentLoaded", async () => {
   await initDashboard();
