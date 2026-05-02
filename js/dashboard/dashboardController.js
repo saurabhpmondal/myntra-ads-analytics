@@ -87,6 +87,7 @@ function refreshAllTabs() {
   window.renderSalesTab?.();
   window.renderSJITTab?.();
   window.renderExportTab?.();
+  window.renderBusinessTab?.();
 }
 
 function card(label, value, sub = "") {
