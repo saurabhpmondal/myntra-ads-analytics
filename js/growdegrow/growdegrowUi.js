@@ -40,11 +40,6 @@ export function initGrowDegrowTab() {
 
     const show = data.rows.slice(0, LIMIT);
 
-    const monthNames = {
-      1:"Jan",2:"Feb",3:"Mar",4:"Apr",5:"May",6:"Jun",
-      7:"Jul",8:"Aug",9:"Sep",10:"Oct",11:"Nov",12:"Dec"
-    };
-
     let html = `
       <section class="panel">
         <div class="table-wrap" style="overflow:auto;">
@@ -54,7 +49,6 @@ export function initGrowDegrowTab() {
                 <th>Style ID</th>
                 <th>ERP SKU</th>
                 <th>Status</th>
-                ${data.months.map(m => `<th>${monthNames[m]}</th>`).join("")}
                 ${data.days.map(d => `<th>${d}</th>`).join("")}
               </tr>
             </thead>
@@ -69,7 +63,6 @@ export function initGrowDegrowTab() {
           <td>${r.style_id}</td>
           <td>${r.erp_sku}</td>
           <td>${r.status}</td>
-          ${data.months.map(m => `<td>${fmt(r.monthly[m] || 0)}</td>`).join("")}
         `;
 
         data.days.forEach(d => {
