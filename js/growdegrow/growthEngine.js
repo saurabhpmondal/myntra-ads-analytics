@@ -21,6 +21,17 @@ export async function buildGrowthData(){
 
   const sales = parseCSV(await fetchCSV(SHEETS.SALES));
   const master = parseCSV(await fetchCSV(SHEETS.PRODUCT_MASTER));
+  const traffic = parseCSV(await fetchCSV(SHEETS.TRAFFIC));
+
+  /* ---------- TRAFFIC MAP (STYLE_ID ONLY) ---------- */
+
+  const ratingMap = {};
+  traffic.forEach(r=>{
+    const key = txt(r.style_id);
+    if(key) ratingMap[key] = Number(r.rating || 0);
+  });
+
+  /* ---------- MONTH DETECTION ---------- */
 
   const monthSet = new Set();
 
@@ -104,6 +115,7 @@ export async function buildGrowthData(){
       erp_sku: txt(m.erp_sku),
       brand: txt(m.brand),
       status: txt(m.status),
+      rating: ratingMap[r.style_id] || 0,
       growth,
       projection,
       drr
