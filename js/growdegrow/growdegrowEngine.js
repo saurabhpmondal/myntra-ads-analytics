@@ -18,33 +18,21 @@ function monthNum(v) {
   return map[s] || num(v);
 }
 
-/* ✅ STRONG DATE PARSER */
+/* ✅ STRICT DATE USING year + month + day */
 function getDate(row) {
-  // PRIMARY → created (dd-mm-yyyy)
-  if (row.created) {
-    const parts = String(row.created).split("-");
-    if (parts.length === 3) {
-      const d = Number(parts[0]);
-      const m = Number(parts[1]);
-      const y = Number(parts[2]);
-      if (y && m && d) return new Date(y, m - 1, d);
-    }
-  }
-
-  // FALLBACK → year/month/day
   const y = num(row.year);
   const m = monthNum(row.month);
   const d = num(row.day);
 
-  if (y && m && d) return new Date(y, m - 1, d);
+  if (!y || !m || !d) return null;
 
-  return null;
+  return new Date(y, m - 1, d);
 }
 
 export function buildGrowDegrow(salesRows, masterRows) {
+
   /* ---------- MASTER MAP ---------- */
   const masterMap = {};
-
   masterRows.forEach(r => {
     const style = txt(r.style_id);
     if (!style) return;
@@ -55,32 +43,8 @@ export function buildGrowDegrow(salesRows, masterRows) {
     };
   });
 
-  /* ---------- FIND LATEST DATE ---------- */
-  let latest = null;
-
-  salesRows.forEach(r => {
-    const dt = getDate(r);
-    if (!dt) return;
-
-    if (!latest || dt > latest) latest = dt;
-  });
-
-  if (!latest) {
-    return { rows: [], days: [], months: [] };
-  }
-
-  const currentMonth = latest.getMonth() + 1;
-  const currentYear = latest.getFullYear();
-
-  const prev1 = currentMonth === 1 ? 12 : currentMonth - 1;
-  const prev2 = currentMonth <= 2 ? 12 - (2 - currentMonth) : currentMonth - 2;
-
-  const months = [prev2, prev1, currentMonth];
-
-  const lastDay = latest.getDate();
-
-  /* ---------- BUILD DATA ---------- */
-  const map = {};
+  /* ---------- NORMALIZE SALES ---------- */
+  const clean = [];
 
   salesRows.forEach(r => {
     const style = txt(r.style_id);
@@ -89,32 +53,64 @@ export function buildGrowDegrow(salesRows, masterRows) {
     const dt = getDate(r);
     if (!dt) return;
 
-    const y = dt.getFullYear();
-    const m = dt.getMonth() + 1;
-    const d = dt.getDate();
+    clean.push({
+      style,
+      qty: num(r.qty || 1),
+      y: dt.getFullYear(),
+      m: dt.getMonth() + 1,
+      d: dt.getDate()
+    });
+  });
 
-    // ONLY current year + last 3 months
-    if (y !== currentYear) return;
-    if (!months.includes(m)) return;
+  if (!clean.length) {
+    return { rows: [], days: [], months: [] };
+  }
 
-    if (!map[style]) {
-      map[style] = {
-        style_id: style,
-        erp_sku: masterMap[style]?.erp_sku || "",
-        status: masterMap[style]?.status || "",
+  /* ---------- FIND LATEST DATE ---------- */
+  let latest = clean[0];
+
+  clean.forEach(v => {
+    if (
+      v.y > latest.y ||
+      (v.y === latest.y && v.m > latest.m) ||
+      (v.y === latest.y && v.m === latest.m && v.d > latest.d)
+    ) {
+      latest = v;
+    }
+  });
+
+  const currentMonth = latest.m;
+  const currentYear = latest.y;
+
+  const prev1 = currentMonth === 1 ? 12 : currentMonth - 1;
+  const prev2 = currentMonth <= 2 ? 12 - (2 - currentMonth) : currentMonth - 2;
+
+  const months = [prev2, prev1, currentMonth];
+  const lastDay = latest.d;
+
+  /* ---------- BUILD STYLE MAP ---------- */
+  const map = {};
+
+  clean.forEach(v => {
+    if (v.y !== currentYear) return;
+    if (!months.includes(v.m)) return;
+
+    if (!map[v.style]) {
+      map[v.style] = {
+        style_id: v.style,
+        erp_sku: masterMap[v.style]?.erp_sku || "",
+        status: masterMap[v.style]?.status || "",
         monthly: {},
         daily: {}
       };
     }
 
-    const qty = num(r.qty || 1);
+    map[v.style].monthly[v.m] =
+      (map[v.style].monthly[v.m] || 0) + v.qty;
 
-    // monthly
-    map[style].monthly[m] = (map[style].monthly[m] || 0) + qty;
-
-    // daily (only current month)
-    if (m === currentMonth) {
-      map[style].daily[d] = (map[style].daily[d] || 0) + qty;
+    if (v.m === currentMonth) {
+      map[v.style].daily[v.d] =
+        (map[v.style].daily[v.d] || 0) + v.qty;
     }
   });
 
