@@ -1,8 +1,7 @@
 import { buildGrowthData } from "./growthEngine.js";
 
 let DATA = null;
-let showPrev1 = false;
-let showPrev2 = false;
+let viewMode = "none"; // none | prev1 | prev2
 
 function fmtPct(v){
   return `${v.toFixed(1)}%`;
@@ -23,12 +22,14 @@ export function initGrowDegrowTab(){
 
     let html = `
       <section class="panel">
-        <div class="panel-head">
+        <div class="panel-head" style="display:flex;justify-content:space-between;align-items:center;">
           <h3>Growth Report</h3>
-          <div style="display:flex; gap:8px;">
-            <button id="togglePrev2">${months.prev2}</button>
-            <button id="togglePrev1">${months.prev1}</button>
-          </div>
+
+          <select id="viewMode">
+            <option value="none">No Previous Detail</option>
+            <option value="prev1">${months.prev1} Day-wise</option>
+            <option value="prev2">${months.prev2} Day-wise</option>
+          </select>
         </div>
 
         <div class="table-wrap" style="overflow:auto;">
@@ -36,16 +37,16 @@ export function initGrowDegrowTab(){
             <thead>
               <tr>
                 <th>Style</th>
-                <th>SKU</th>
+                <th>ERP SKU</th>
                 <th>Brand</th>
                 <th>Rating</th>
                 <th>Status</th>
 
                 <th>${months.prev2}</th>
-                ${showPrev2 ? days.map(d=>`<th>${months.prev2}-${d}</th>`).join("") : ""}
+                ${viewMode==="prev2" ? days.map(d=>`<th>${months.prev2}-${d}</th>`).join("") : ""}
 
                 <th>${months.prev1}</th>
-                ${showPrev1 ? days.map(d=>`<th>${months.prev1}-${d}</th>`).join("") : ""}
+                ${viewMode==="prev1" ? days.map(d=>`<th>${months.prev1}-${d}</th>`).join("") : ""}
 
                 <th>${months.current}</th>
                 <th>% Growth</th>
@@ -73,10 +74,10 @@ export function initGrowDegrowTab(){
         <td>${r.status}</td>
 
         <td>${r.m2}</td>
-        ${showPrev2 ? days.map(d=>`<td>${r.prev2Days[d]||0}</td>`).join("") : ""}
+        ${viewMode==="prev2" ? days.map(d=>`<td>${r.prev2Days[d]||0}</td>`).join("") : ""}
 
         <td>${r.m1}</td>
-        ${showPrev1 ? days.map(d=>`<td>${r.prev1Days[d]||0}</td>`).join("") : ""}
+        ${viewMode==="prev1" ? days.map(d=>`<td>${r.prev1Days[d]||0}</td>`).join("") : ""}
 
         <td>${r.m0}</td>
 
@@ -92,13 +93,11 @@ export function initGrowDegrowTab(){
 
     root.innerHTML = html;
 
-    document.getElementById("togglePrev1").onclick = ()=>{
-      showPrev1 = !showPrev1;
-      window.renderGrowDegrowTab();
-    };
+    const select = document.getElementById("viewMode");
+    select.value = viewMode;
 
-    document.getElementById("togglePrev2").onclick = ()=>{
-      showPrev2 = !showPrev2;
+    select.onchange = (e)=>{
+      viewMode = e.target.value;
       window.renderGrowDegrowTab();
     };
   };
