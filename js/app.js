@@ -24,7 +24,7 @@ window.addEventListener("DOMContentLoaded", async () => {
   initSORTab();
   initStyleEyeTab();
   initExportTab();
-initBusinessTab();
+  initBusinessTab();
 
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.onclick = () => {
@@ -47,8 +47,8 @@ initBusinessTab();
         "sjit",
         "sor",
         "styleeye",
-        "export"
-"business",
+        "export",
+        "business"
       ].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = id === tab ? "block" : "none";
@@ -64,7 +64,7 @@ initBusinessTab();
       if (tab === "sor") window.renderSORTab?.();
       if (tab === "styleeye") window.renderStyleEyeTab?.();
       if (tab === "export") window.renderExportTab?.();
-if (tab === "business") window.renderBusinessTab?.();
+      if (tab === "business") window.renderBusinessTab?.();
     };
   });
 });
