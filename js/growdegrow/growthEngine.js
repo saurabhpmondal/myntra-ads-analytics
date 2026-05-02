@@ -1,139 +1,23 @@
-import { fetchCSV } from "../core/fetcher.js";
-import { parseCSV } from "../core/parser.js";
-import { SHEETS } from "../config/sheets.js";
+// ADD THESE BEFORE return
 
-function txt(v){ return String(v || "").trim(); }
-
-function monthNum(v){
-  const map = {
-    JAN:1,FEB:2,MAR:3,APR:4,MAY:5,
-    JUN:6,JUL:7,AUG:8,SEP:9,OCT:10,NOV:11,DEC:12
-  };
-  return map[String(v).toUpperCase()] || Number(v);
+function getDaysInMonth(year, month){
+  return new Date(year, month, 0).getDate();
 }
 
-function monthName(n){
-  const map = ["","Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  return map[n] || "";
-}
+const m0Year = Math.floor(m0/100);
+const m0Month = m0%100;
 
-export async function buildGrowthData(){
+const m1Year = Math.floor(m1/100);
+const m1Month = m1%100;
 
-  const sales = parseCSV(await fetchCSV(SHEETS.SALES));
-  const master = parseCSV(await fetchCSV(SHEETS.PRODUCT_MASTER));
-  const traffic = parseCSV(await fetchCSV(SHEETS.TRAFFIC));
+const m2Year = Math.floor(m2/100);
+const m2Month = m2%100;
 
-  const ratingMap = {};
-  traffic.forEach(r=>{
-    const key = txt(r.style_id);
-    if(key) ratingMap[key] = Number(r.rating || 0);
-  });
+const currentDays = [];
+for(let i=1;i<=getDaysInMonth(m0Year, m0Month);i++) currentDays.push(i);
 
-  const monthSet = new Set();
+const prev1DaysArr = [];
+for(let i=1;i<=getDaysInMonth(m1Year, m1Month);i++) prev1DaysArr.push(i);
 
-  sales.forEach(r=>{
-    const y = r.year;
-    const m = monthNum(r.month);
-    if(y && m) monthSet.add(y*100 + m);
-  });
-
-  const months = Array.from(monthSet).sort((a,b)=>b-a);
-
-  const m0 = months[0];
-  const m1 = months[1];
-  const m2 = months[2];
-
-  function match(r,m){
-    return (r.year*100 + monthNum(r.month)) === m;
-  }
-
-  const map = {};
-
-  sales.forEach(r=>{
-    const style = txt(r.style_id);
-    if(!style) return;
-
-    if(!map[style]){
-      map[style] = {
-        style_id:style,
-        m0:0,m1:0,m2:0,
-        days:{},
-        prev1Days:{},
-        prev2Days:{}
-      };
-    }
-
-    const qty = Number(r.qty||0);
-    const d = Number(r.date||0);
-
-    if(match(r,m0)){
-      map[style].m0 += qty;
-      if(d) map[style].days[d] = (map[style].days[d]||0)+qty;
-    }
-
-    if(match(r,m1)){
-      map[style].m1 += qty;
-      if(d) map[style].prev1Days[d] = (map[style].prev1Days[d]||0)+qty;
-    }
-
-    if(match(r,m2)){
-      map[style].m2 += qty;
-      if(d) map[style].prev2Days[d] = (map[style].prev2Days[d]||0)+qty;
-    }
-  });
-
-  const masterMap = {};
-  master.forEach(r=>{
-    masterMap[txt(r.style_id)] = r;
-  });
-
-  let maxDay = 0;
-  Object.values(map).forEach(r=>{
-    Object.keys(r.days).forEach(d=>{
-      if(+d > maxDay) maxDay = +d;
-    });
-  });
-
-  const currentMonthDays =
-    new Date(Math.floor(m0/100), m0%100, 0).getDate();
-
-  const rows = Object.values(map).map(r=>{
-
-    const today = maxDay || 1;
-    const drr = r.m0 / today;
-    const projection = drr * currentMonthDays;
-
-    const growth = r.m1
-      ? ((projection - r.m1) / r.m1) * 100
-      : 0;
-
-    const m = masterMap[r.style_id] || {};
-
-    return {
-      ...r,
-      erp_sku: txt(m.erp_sku),
-      brand: txt(m.brand),
-      status: txt(m.status),
-      rating: ratingMap[r.style_id] || 0,
-      growth,
-      projection,
-      drr
-    };
-  });
-
-  rows.sort((a,b)=>b.projection - a.projection);
-
-  const days = [];
-  for(let i=1;i<=maxDay;i++) days.push(i);
-
-  return {
-    rows,
-    days,
-    months:{
-      current: monthName(m0%100),
-      prev1: monthName(m1%100),
-      prev2: monthName(m2%100),
-      currentMonthDays
-    }
-  };
-}
+const prev2DaysArr = [];
+for(let i=1;i<=getDaysInMonth(m2Year, m2Month);i++) prev2DaysArr.push(i);
