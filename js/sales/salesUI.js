@@ -73,7 +73,7 @@ export function initSalesTab() {
 
     const brands = [...new Set(data.rows.map(r => r.brand))];
 
-    const show = rows.slice(0, LIMIT);
+    const visible = rows.slice(0, LIMIT);
 
     root.innerHTML = `
       <section class="panel">
@@ -105,6 +105,10 @@ export function initSalesTab() {
 
         </div>
 
+        <div style="padding:0 16px 8px 16px;font-size:12px;color:#666;">
+          Showing ${visible.length} of ${rows.length}
+        </div>
+
         <div class="table-wrap">
           <table>
             <thead>
@@ -126,7 +130,7 @@ export function initSalesTab() {
 
             <tbody>
               ${
-                show.map(r => `
+                visible.map(r => `
                   <tr>
                     <td>${r.rank}</td>
                     <td>${r.brandRank}</td>
@@ -152,6 +156,12 @@ export function initSalesTab() {
           </table>
         </div>
 
+        ${
+          rows.length > LIMIT
+            ? `<button id="salesMore" class="load-more">Load More</button>`
+            : ""
+        }
+
       </section>
     `;
 
@@ -160,20 +170,33 @@ export function initSalesTab() {
 
     document.getElementById("salesSort").onchange = e => {
       SORT = e.target.value;
+      LIMIT = 50;
       window.renderSalesTab();
     };
 
     document.getElementById("salesBrand").onchange = e => {
       BRAND = e.target.value;
+      LIMIT = 50;
       window.renderSalesTab();
     };
 
     document.getElementById("salesSearch").oninput = e => {
       clearTimeout(TIMER);
+
       TIMER = setTimeout(() => {
         QUERY = e.target.value;
+        LIMIT = 50;
         window.renderSalesTab();
       }, 300);
     };
+
+    const more = document.getElementById("salesMore");
+
+    if (more) {
+      more.onclick = () => {
+        LIMIT += 50;
+        window.renderSalesTab();
+      };
+    }
   };
 }
