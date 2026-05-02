@@ -5,6 +5,9 @@ import { buildPlacementRows } from "../dashboard/placementTableEngine.js";
 import { buildStyleReport } from "../style/styleEngine.js";
 import { buildAnalysis } from "../analysis/analysisEngine.js";
 
+/* NEW */
+import { buildGrowthData } from "../growdegrow/growthEngine.js";
+
 function fmt(n) {
   return Number(n || 0).toFixed(2);
 }
@@ -33,11 +36,13 @@ function ym() {
   return `${f.year}_${f.month}`;
 }
 
-export function exportReport(type) {
+export async function exportReport(type) {
   const rows = window.FILTERED_ROWS || [];
   const ppr = window.PPR_ROWS || [];
   const cpr = window.CPR_ROWS || [];
   const cdr = window.ALL || [];
+
+  /* ---------------- EXISTING ---------------- */
 
   if (type === "datewise") {
     const out = buildDateRows(rows);
@@ -119,5 +124,41 @@ export function exportReport(type) {
         r[0], r[1], fmt(r[2]), fmt(r[3]), fmt(r[4]), fmt(r[5]), fmt(r[6])
       ])
     ]);
+  }
+
+  /* ---------------- NEW: GROWTH EXPORT ---------------- */
+
+  if (type === "growth") {
+
+    const DATA = await buildGrowthData();
+
+    const { rows, days, months } = DATA;
+
+    const year = new Date().getFullYear();
+
+    const out = [
+      ["style_id","erp_sku","brand","rating","status","date","month","year","qty"]
+    ];
+
+    rows.forEach(r=>{
+      days.forEach(d=>{
+        const qty = r.days[d] || 0;
+        if (!qty) return;
+
+        out.push([
+          r.style_id,
+          r.erp_sku,
+          r.brand,
+          r.rating,
+          r.status,
+          d,
+          months.current,
+          year,
+          qty
+        ]);
+      });
+    });
+
+    return download(`growth_${months.current}.csv`, out);
   }
 }
