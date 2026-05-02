@@ -23,15 +23,11 @@ export async function buildGrowthData(){
   const master = parseCSV(await fetchCSV(SHEETS.PRODUCT_MASTER));
   const traffic = parseCSV(await fetchCSV(SHEETS.TRAFFIC));
 
-  /* ---------- TRAFFIC MAP (STYLE_ID ONLY) ---------- */
-
   const ratingMap = {};
   traffic.forEach(r=>{
     const key = txt(r.style_id);
     if(key) ratingMap[key] = Number(r.rating || 0);
   });
-
-  /* ---------- MONTH DETECTION ---------- */
 
   const monthSet = new Set();
 
@@ -62,7 +58,8 @@ export async function buildGrowthData(){
         style_id:style,
         m0:0,m1:0,m2:0,
         days:{},
-        prevDays:{}
+        prev1Days:{},
+        prev2Days:{}
       };
     }
 
@@ -76,10 +73,13 @@ export async function buildGrowthData(){
 
     if(match(r,m1)){
       map[style].m1 += qty;
-      if(d) map[style].prevDays[d] = (map[style].prevDays[d]||0)+qty;
+      if(d) map[style].prev1Days[d] = (map[style].prev1Days[d]||0)+qty;
     }
 
-    if(match(r,m2)) map[style].m2 += qty;
+    if(match(r,m2)){
+      map[style].m2 += qty;
+      if(d) map[style].prev2Days[d] = (map[style].prev2Days[d]||0)+qty;
+    }
   });
 
   const masterMap = {};
@@ -100,7 +100,6 @@ export async function buildGrowthData(){
   const rows = Object.values(map).map(r=>{
 
     const today = maxDay || 1;
-
     const drr = r.m0 / today;
     const projection = drr * currentMonthDays;
 
