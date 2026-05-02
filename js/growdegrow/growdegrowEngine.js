@@ -1,5 +1,5 @@
 /* ============================= */
-/* Grow / Degrow Engine FINAL */
+/* Grow / Degrow Engine (FINAL) */
 /* ============================= */
 
 function num(v) {
@@ -15,42 +15,31 @@ function monthNum(v) {
 
   const map = {
     JAN:1,FEB:2,MAR:3,APR:4,MAY:5,
-    JUN:6,JUNE:6,JUL:7,JULY:7,
-    AUG:8,SEP:9,SEPT:9,OCT:10,NOV:11,DEC:12
+    JUN:6,JUL:7,AUG:8,SEP:9,OCT:10,NOV:11,DEC:12
   };
 
   return map[s] || num(v);
 }
 
 /* ============================= */
-/* MAIN EXPORT (MATCH UI NAME) */
+/* MAIN */
 /* ============================= */
 
-export function buildGrowDegrow({ salesRows, masterRows, filter }) {
+export function buildGrowDegrow({ salesRows = [], filter = {} }) {
 
   const map = {};
   let maxDay = 0;
 
-  const masterMap = {};
-  masterRows.forEach(r => {
-    const style = txt(r.style_id);
-    if (!style) return;
-
-    masterMap[style] = {
-      erp_sku: txt(r.erp_sku),
-      status: txt(r.status)
-    };
-  });
-
   salesRows.forEach(r => {
 
+    /* FILTER */
     if (filter.year && num(r.year) !== num(filter.year)) return;
     if (filter.month && monthNum(r.month) !== num(filter.month)) return;
 
     const style = txt(r.style_id);
     if (!style) return;
 
-    const d = num(r.date); // ✅ FINAL FIX (date = day)
+    const d = num(r.date);   // 🔥 YOUR CONFIRMED COLUMN
     if (!d) return;
 
     const qty = num(r.qty || 1);
@@ -58,8 +47,6 @@ export function buildGrowDegrow({ salesRows, masterRows, filter }) {
     if (!map[style]) {
       map[style] = {
         style_id: style,
-        erp_sku: masterMap[style]?.erp_sku || "",
-        status: masterMap[style]?.status || "",
         daily: {}
       };
     }
@@ -70,9 +57,7 @@ export function buildGrowDegrow({ salesRows, masterRows, filter }) {
   });
 
   const days = [];
-  for (let i = 1; i <= maxDay; i++) {
-    days.push(i);
-  }
+  for (let i = 1; i <= maxDay; i++) days.push(i);
 
   const rows = Object.values(map);
 
