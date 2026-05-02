@@ -80,6 +80,25 @@ export function initSalesTab() {
 
       <section class="panel">
 
+        <div style="padding:16px;display:grid;gap:12px;grid-template-columns:1fr 180px;align-items:end;">
+
+          <div>
+            <label style="font-size:12px;color:#666;">Search Style ID</label>
+            <input id="salesSearch" value="${QUERY}" placeholder="Type style id...">
+          </div>
+
+          <div>
+            <label style="font-size:12px;color:#666;">Sort</label>
+            <select id="salesSort">
+              <option value="sales">Sales High to Low</option>
+              <option value="return">Return % High to Low</option>
+              <option value="net">Net Units High to Low</option>
+              <option value="returns">Returns High to Low</option>
+            </select>
+          </div>
+
+        </div>
+
         <div class="table-wrap">
           <table>
             <thead>
@@ -88,11 +107,11 @@ export function initSalesTab() {
                 <th>ERP SKU</th>
                 <th>Brand</th>
                 <th>Status</th>
-                <th>Sold</th>
-                <th>Value</th>
+                <th>Sold Units</th>
+                <th>Sales Value</th>
                 <th>Returns</th>
                 <th>Return %</th>
-                <th>Net</th>
+                <th>Net Units</th>
                 <th>DRR</th>
               </tr>
             </thead>
@@ -118,7 +137,40 @@ export function initSalesTab() {
           </table>
         </div>
 
+        ${
+          rows.length > LIMIT
+            ? `<button id="salesMore" class="load-more">Load More</button>`
+            : ""
+        }
+
       </section>
     `;
+
+    document.getElementById("salesSort").value = SORT;
+
+    document.getElementById("salesSort").onchange = e => {
+      SORT = e.target.value;
+      LIMIT = 50;
+      window.renderSalesTab();
+    };
+
+    document.getElementById("salesSearch").oninput = e => {
+      clearTimeout(TIMER);
+
+      TIMER = setTimeout(() => {
+        QUERY = e.target.value.trim();
+        LIMIT = 50;
+        window.renderSalesTab();
+      }, 300);
+    };
+
+    const more = document.getElementById("salesMore");
+
+    if (more) {
+      more.onclick = () => {
+        LIMIT += 50;
+        window.renderSalesTab();
+      };
+    }
   };
 }
