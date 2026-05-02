@@ -72,10 +72,19 @@ export function initSalesTab() {
     }
 
     const brands = [...new Set(data.rows.map(r => r.brand))];
-
     const visible = rows.slice(0, LIMIT);
 
     root.innerHTML = `
+      <!-- KPI CARDS RESTORED -->
+      <section class="kpi-grid">
+        <div class="kpi-card"><span>Units Sold</span><strong>${fmt(data.cards.sold)}</strong></div>
+        <div class="kpi-card"><span>Sales Value</span><strong>₹${fmt(data.cards.value)}</strong></div>
+        <div class="kpi-card"><span>Returned Units</span><strong>${fmt(data.cards.returns)}</strong></div>
+        <div class="kpi-card"><span>Return %</span><strong>${fmt(data.cards.returnPct)}%</strong></div>
+        <div class="kpi-card"><span>Net Units</span><strong>${fmt(data.cards.netUnits)}</strong></div>
+        <div class="kpi-card"><span>Active Styles</span><strong>${fmt(data.cards.styles)}</strong></div>
+      </section>
+
       <section class="panel">
 
         <div style="padding:16px;display:grid;gap:12px;grid-template-columns:1fr 180px 180px;align-items:end;">
