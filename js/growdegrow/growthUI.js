@@ -2,7 +2,7 @@ import { buildGrowthData } from "./growthEngine.js";
 
 let DATA = null;
 
-export function initGrowDegrowTab() {
+export function initGrowDegrowTab(){
 
   window.renderGrowDegrowTab = async () => {
 
@@ -11,11 +11,11 @@ export function initGrowDegrowTab() {
     root.innerHTML =
       `<section class="panel"><div class="loading">Loading Growth...</div></section>`;
 
-    if (!DATA) {
-      DATA = await buildGrowthData();
-    }
+    if(!DATA) DATA = await buildGrowthData();
 
-    const { rows, days } = DATA;
+    const { rows, days, months } = DATA;
+
+    const today = days.length;
 
     let html = `
       <section class="panel">
@@ -27,13 +27,15 @@ export function initGrowDegrowTab() {
           <table>
             <thead>
               <tr>
-                <th>Style ID</th>
-                <th>ERP SKU</th>
+                <th>Style</th>
+                <th>SKU</th>
                 <th>Brand</th>
                 <th>Status</th>
-                <th>M-2</th>
-                <th>M-1</th>
-                <th>Current</th>
+                <th>${months.prev2}</th>
+                <th>${months.prev1}</th>
+                <th>${months.current}</th>
+                <th>DRR</th>
+                <th>Projection</th>
                 ${days.map(d=>`<th>${d}</th>`).join("")}
               </tr>
             </thead>
@@ -41,6 +43,11 @@ export function initGrowDegrowTab() {
     `;
 
     rows.slice(0,100).forEach(r=>{
+
+      const drr = today ? (r.m0 / today) : 0;
+      const proj = drr * months.currentMonthDays;
+
+      const projColor = proj > r.m1 ? "green" : "red";
 
       html += `<tr>
         <td>${r.style_id}</td>
@@ -50,6 +57,8 @@ export function initGrowDegrowTab() {
         <td>${r.m2}</td>
         <td>${r.m1}</td>
         <td>${r.m0}</td>
+        <td>${drr.toFixed(1)}</td>
+        <td style="color:${projColor}">${proj.toFixed(0)}</td>
       `;
 
       days.forEach((d,i)=>{
@@ -59,8 +68,10 @@ export function initGrowDegrowTab() {
 
         let color = "";
 
-        if (i > 0) {
-          color = v > prev ? "green" : "red";
+        if(i > 0){
+          if(v > prev) color = "green";
+          else if(v < prev) color = "red";
+          else color = "gray";
         }
 
         html += `<td style="color:${color}">${v}</td>`;
