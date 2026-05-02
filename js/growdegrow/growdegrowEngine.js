@@ -1,16 +1,6 @@
 /* ============================= */
-/* Grow / Degrow Engine (FINAL) */
+/* Grow / Degrow Engine FINAL */
 /* ============================= */
-
-/*
-  STRICT RULES (as per your system):
-  - DO NOT use created_on
-  - DO NOT assume any field
-  - date = day (column name is "date")
-  - month = text (APR, MAY, etc.)
-  - year = number
-  - USE existing loaded data (no re-fetch)
-*/
 
 function num(v) {
   return Number(String(v ?? "").replace(/,/g, "").trim()) || 0;
@@ -33,15 +23,14 @@ function monthNum(v) {
 }
 
 /* ============================= */
-/* MAIN BUILDER */
+/* MAIN EXPORT (MATCH UI NAME) */
 /* ============================= */
 
-export function buildGrowDegrowData({ salesRows, masterRows, filter }) {
+export function buildGrowDegrow({ salesRows, masterRows, filter }) {
 
   const map = {};
   let maxDay = 0;
 
-  /* MASTER MAP */
   const masterMap = {};
   masterRows.forEach(r => {
     const style = txt(r.style_id);
@@ -53,18 +42,15 @@ export function buildGrowDegrowData({ salesRows, masterRows, filter }) {
     };
   });
 
-  /* SALES LOOP */
   salesRows.forEach(r => {
 
-    /* FILTER */
     if (filter.year && num(r.year) !== num(filter.year)) return;
     if (filter.month && monthNum(r.month) !== num(filter.month)) return;
 
-    /* CORE KEYS */
     const style = txt(r.style_id);
     if (!style) return;
 
-    const d = num(r.date);   // 🔥 FIXED: DATE = DAY
+    const d = num(r.date); // ✅ FINAL FIX (date = day)
     if (!d) return;
 
     const qty = num(r.qty || 1);
@@ -83,13 +69,11 @@ export function buildGrowDegrowData({ salesRows, masterRows, filter }) {
     if (d > maxDay) maxDay = d;
   });
 
-  /* BUILD DAY ARRAY */
   const days = [];
   for (let i = 1; i <= maxDay; i++) {
     days.push(i);
   }
 
-  /* FINAL ROWS */
   const rows = Object.values(map);
 
   return { rows, days };
