@@ -36,14 +36,6 @@ export async function buildGrowthData(){
   const m1 = months[1];
   const m2 = months[2];
 
-  function split(m){
-    return { year: Math.floor(m/100), month: m%100 };
-  }
-
-  const m0s = split(m0);
-  const m1s = split(m1);
-  const m2s = split(m2);
-
   function match(r,m){
     return (r.year*100 + monthNum(r.month)) === m;
   }
@@ -55,7 +47,12 @@ export async function buildGrowthData(){
     if(!style) return;
 
     if(!map[style]){
-      map[style] = { style_id:style, m0:0,m1:0,m2:0, days:{} };
+      map[style] = {
+        style_id:style,
+        m0:0,m1:0,m2:0,
+        days:{},
+        prevDays:{}
+      };
     }
 
     const qty = Number(r.qty||0);
@@ -66,7 +63,11 @@ export async function buildGrowthData(){
       if(d) map[style].days[d] = (map[style].days[d]||0)+qty;
     }
 
-    if(match(r,m1)) map[style].m1 += qty;
+    if(match(r,m1)){
+      map[style].m1 += qty;
+      if(d) map[style].prevDays[d] = (map[style].prevDays[d]||0)+qty;
+    }
+
     if(match(r,m2)) map[style].m2 += qty;
   });
 
@@ -77,8 +78,7 @@ export async function buildGrowthData(){
 
   const rows = Object.values(map).map(r=>{
     const m = masterMap[r.style_id] || {};
-
-    const growth = r.m1 ? ((r.m0 - r.m1)/r.m1)*100 : 0;
+    const growth = r.m1 ? ((r.m0-r.m1)/r.m1)*100 : 0;
 
     return {
       ...r,
@@ -89,18 +89,8 @@ export async function buildGrowthData(){
     };
   });
 
-  /* -------- Sort: Continue first, then by current sales -------- */
-  rows.sort((a,b)=>{
-    if(a.status === "Continue" && b.status !== "Continue") return -1;
-    if(b.status === "Continue" && a.status !== "Continue") return 1;
-    return b.m0 - a.m0;
-  });
+  rows.sort((a,b)=>b.m0-a.m0);
 
-  /* -------- Top Movers / Decliners -------- */
-  const movers = [...rows].sort((a,b)=>b.growth - a.growth).slice(0,10);
-  const decliners = [...rows].sort((a,b)=>a.growth - b.growth).slice(0,10);
-
-  /* -------- Day range -------- */
   let maxDay = 0;
   rows.forEach(r=>{
     Object.keys(r.days).forEach(d=>{
@@ -114,13 +104,11 @@ export async function buildGrowthData(){
   return {
     rows,
     days,
-    movers,
-    decliners,
     months:{
-      current: monthName(m0s.month),
-      prev1: monthName(m1s.month),
-      prev2: monthName(m2s.month),
-      currentMonthDays: new Date(m0s.year, m0s.month, 0).getDate()
+      current: monthName(m0%100),
+      prev1: monthName(m1%100),
+      prev2: monthName(m2%100),
+      currentMonthDays: new Date(Math.floor(m0/100), m0%100, 0).getDate()
     }
   };
 }
