@@ -53,7 +53,6 @@ export function buildSalesData(salesRows, returnRows, masterRows, filter) {
   const map = {};
   const orders = new Map();
 
-  /* MASTER MAP */
   const masterMap = {};
   masterRows.forEach(r => {
     const style = txt(r.style_id);
@@ -66,7 +65,6 @@ export function buildSalesData(salesRows, returnRows, masterRows, filter) {
     };
   });
 
-  /* SALES */
   salesRows.forEach(row => {
     if (!validSale(row)) return;
     if (!passFilter(row, filter)) return;
@@ -96,7 +94,6 @@ export function buildSalesData(salesRows, returnRows, masterRows, filter) {
     map[style].value += num(row.final_amount);
   });
 
-  /* RETURNS */
   returnRows.forEach(row => {
     if (!validReturn(row)) return;
 
@@ -108,14 +105,35 @@ export function buildSalesData(salesRows, returnRows, masterRows, filter) {
     map[style].returns += 1;
   });
 
-  const rows = Object.values(map).map(r => {
+  let rows = Object.values(map).map(r => {
     r.netUnits = r.sold - r.returns;
     r.returnPct = r.sold ? (r.returns / r.sold) * 100 : 0;
     r.drr = r.netUnits / 30;
     return r;
   });
 
+  /* ---------------- SORT ---------------- */
   rows.sort((a, b) => b.value - a.value);
+
+  /* ---------------- OVERALL RANK ---------------- */
+  rows.forEach((r, i) => {
+    r.rank = i + 1;
+  });
+
+  /* ---------------- BRAND RANK ---------------- */
+  const brandGroups = {};
+
+  rows.forEach(r => {
+    if (!brandGroups[r.brand]) brandGroups[r.brand] = [];
+    brandGroups[r.brand].push(r);
+  });
+
+  Object.values(brandGroups).forEach(group => {
+    group.sort((a, b) => b.value - a.value);
+    group.forEach((r, i) => {
+      r.brandRank = i + 1;
+    });
+  });
 
   const cards = {
     sold: rows.reduce((s, r) => s + r.sold, 0),
