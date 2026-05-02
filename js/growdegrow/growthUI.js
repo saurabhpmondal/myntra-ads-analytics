@@ -1,7 +1,7 @@
 import { buildGrowthData } from "./growthEngine.js";
 
 let DATA = null;
-let viewMode = "none"; // none | prev1 | prev2
+let viewMode = "none";
 
 function fmtPct(v){
   return `${v.toFixed(1)}%`;
@@ -13,20 +13,17 @@ export function initGrowDegrowTab(){
 
     const root = document.getElementById("growdegrow");
 
-    root.innerHTML =
-      `<section class="panel"><div class="loading">Loading Growth...</div></section>`;
-
     if(!DATA) DATA = await buildGrowthData();
 
-    const { rows, days, months } = DATA;
+    const { rows, days, prev1DaysArr, prev2DaysArr, months } = DATA;
 
     let html = `
       <section class="panel">
         <div class="panel-head" style="display:flex;justify-content:space-between;align-items:center;">
           <h3>Growth Report</h3>
 
-          <select id="viewMode">
-            <option value="none">No Previous Detail</option>
+          <select id="viewMode" style="padding:3px 6px;font-size:12px;width:150px;">
+            <option value="none">No Previous</option>
             <option value="prev1">${months.prev1} Day-wise</option>
             <option value="prev2">${months.prev2} Day-wise</option>
           </select>
@@ -43,10 +40,10 @@ export function initGrowDegrowTab(){
                 <th>Status</th>
 
                 <th>${months.prev2}</th>
-                ${viewMode==="prev2" ? days.map(d=>`<th>${months.prev2}-${d}</th>`).join("") : ""}
+                ${viewMode==="prev2" ? prev2DaysArr.map(d=>`<th>${months.prev2}-${d}</th>`).join("") : ""}
 
                 <th>${months.prev1}</th>
-                ${viewMode==="prev1" ? days.map(d=>`<th>${months.prev1}-${d}</th>`).join("") : ""}
+                ${viewMode==="prev1" ? prev1DaysArr.map(d=>`<th>${months.prev1}-${d}</th>`).join("") : ""}
 
                 <th>${months.current}</th>
                 <th>% Growth</th>
@@ -74,10 +71,10 @@ export function initGrowDegrowTab(){
         <td>${r.status}</td>
 
         <td>${r.m2}</td>
-        ${viewMode==="prev2" ? days.map(d=>`<td>${r.prev2Days[d]||0}</td>`).join("") : ""}
+        ${viewMode==="prev2" ? prev2DaysArr.map(d=>`<td>${r.prev2Days[d]||0}</td>`).join("") : ""}
 
         <td>${r.m1}</td>
-        ${viewMode==="prev1" ? days.map(d=>`<td>${r.prev1Days[d]||0}</td>`).join("") : ""}
+        ${viewMode==="prev1" ? prev1DaysArr.map(d=>`<td>${r.prev1Days[d]||0}</td>`).join("") : ""}
 
         <td>${r.m0}</td>
 
