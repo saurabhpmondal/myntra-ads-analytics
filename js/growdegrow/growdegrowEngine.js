@@ -11,25 +11,22 @@ function monthNum(v) {
 
   const map = {
     JAN:1,FEB:2,MAR:3,APR:4,MAY:5,
-    JUN:6,JUNE:6,JUL:7,JULY:7,
-    AUG:8,SEP:9,SEPT:9,OCT:10,NOV:11,DEC:12
+    JUN:6,JUL:7,AUG:8,SEP:9,OCT:10,NOV:11,DEC:12
   };
 
   return map[s] || num(v);
 }
 
-/* ✅ STRICT DATE USING year + month + day */
-function getDate(row) {
-  const y = num(row.year);
-  const m = monthNum(row.month);
-  const d = num(row.day);
-
-  if (!y || !m || !d) return null;
-
-  return new Date(y, m - 1, d);
-}
-
 export function buildGrowDegrow(salesRows, masterRows) {
+
+  /* ---------- FILTER (SOURCE OF TRUTH) ---------- */
+  const f = window.ACTIVE_FILTER || {};
+  const year = Number(f.year);
+  const month = Number(f.month);
+
+  if (!year || !month) {
+    return { rows: [], days: [] };
+  }
 
   /* ---------- MASTER MAP ---------- */
   const masterMap = {};
@@ -43,97 +40,56 @@ export function buildGrowDegrow(salesRows, masterRows) {
     };
   });
 
-  /* ---------- NORMALIZE SALES ---------- */
-  const clean = [];
+  /* ---------- PIVOT ---------- */
+  const map = {};
+  let maxDay = 0;
 
   salesRows.forEach(r => {
+    const y = num(r.year);
+    const m = monthNum(r.month);
+    const d = num(r.day);
     const style = txt(r.style_id);
+
     if (!style) return;
+    if (y !== year || m !== month) return;
 
-    const dt = getDate(r);
-    if (!dt) return;
+    const qty = num(r.qty || 1);
 
-    clean.push({
-      style,
-      qty: num(r.qty || 1),
-      y: dt.getFullYear(),
-      m: dt.getMonth() + 1,
-      d: dt.getDate()
-    });
-  });
-
-  if (!clean.length) {
-    return { rows: [], days: [], months: [] };
-  }
-
-  /* ---------- FIND LATEST DATE ---------- */
-  let latest = clean[0];
-
-  clean.forEach(v => {
-    if (
-      v.y > latest.y ||
-      (v.y === latest.y && v.m > latest.m) ||
-      (v.y === latest.y && v.m === latest.m && v.d > latest.d)
-    ) {
-      latest = v;
-    }
-  });
-
-  const currentMonth = latest.m;
-  const currentYear = latest.y;
-
-  const prev1 = currentMonth === 1 ? 12 : currentMonth - 1;
-  const prev2 = currentMonth <= 2 ? 12 - (2 - currentMonth) : currentMonth - 2;
-
-  const months = [prev2, prev1, currentMonth];
-  const lastDay = latest.d;
-
-  /* ---------- BUILD STYLE MAP ---------- */
-  const map = {};
-
-  clean.forEach(v => {
-    if (v.y !== currentYear) return;
-    if (!months.includes(v.m)) return;
-
-    if (!map[v.style]) {
-      map[v.style] = {
-        style_id: v.style,
-        erp_sku: masterMap[v.style]?.erp_sku || "",
-        status: masterMap[v.style]?.status || "",
-        monthly: {},
+    if (!map[style]) {
+      map[style] = {
+        style_id: style,
+        erp_sku: masterMap[style]?.erp_sku || "",
+        status: masterMap[style]?.status || "",
         daily: {}
       };
     }
 
-    map[v.style].monthly[v.m] =
-      (map[v.style].monthly[v.m] || 0) + v.qty;
+    map[style].daily[d] = (map[style].daily[d] || 0) + qty;
 
-    if (v.m === currentMonth) {
-      map[v.style].daily[v.d] =
-        (map[v.style].daily[v.d] || 0) + v.qty;
-    }
+    if (d > maxDay) maxDay = d;
   });
 
   const rows = Object.values(map);
 
   /* ---------- FILL MISSING DAYS ---------- */
   rows.forEach(r => {
-    for (let d = 1; d <= lastDay; d++) {
-      if (!r.daily[d]) r.daily[d] = 0;
+    for (let i = 1; i <= maxDay; i++) {
+      if (!r.daily[i]) r.daily[i] = 0;
     }
   });
 
   /* ---------- SORT ---------- */
-  rows.sort((a, b) =>
-    (b.monthly[currentMonth] || 0) - (a.monthly[currentMonth] || 0)
-  );
+  rows.sort((a, b) => {
+    const sumA = Object.values(a.daily).reduce((s, v) => s + v, 0);
+    const sumB = Object.values(b.daily).reduce((s, v) => s + v, 0);
+    return sumB - sumA;
+  });
 
   const days = [];
-  for (let i = 1; i <= lastDay; i++) days.push(i);
+  for (let i = 1; i <= maxDay; i++) days.push(i);
 
   return {
     rows,
-    days,
-    months
+    days
   };
 }
