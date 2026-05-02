@@ -17,35 +17,11 @@ export function initGrowDegrowTab(){
 
     if(!DATA) DATA = await buildGrowthData();
 
-    const { rows, days, months, movers, decliners } = DATA;
+    const { rows, days, months } = DATA;
 
     const today = days.length;
 
     let html = `
-      <section class="panel">
-        <div class="panel-head"><h3>Top Movers</h3></div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Style</th><th>Growth %</th></tr></thead>
-            <tbody>
-              ${movers.map(r=>`<tr><td>${r.style_id}</td><td style="color:green">${fmtPct(r.growth)}</td></tr>`).join("")}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="panel">
-        <div class="panel-head"><h3>Top Decliners</h3></div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Style</th><th>Growth %</th></tr></thead>
-            <tbody>
-              ${decliners.map(r=>`<tr><td>${r.style_id}</td><td style="color:red">${fmtPct(r.growth)}</td></tr>`).join("")}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
       <section class="panel">
         <div class="panel-head"><h3>Growth Report</h3></div>
         <div class="table-wrap" style="overflow:auto;">
