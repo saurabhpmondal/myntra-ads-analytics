@@ -95,7 +95,7 @@ export function buildBusinessData(data) {
     warehouseSales[wh] += qty;
   });
 
-  /* ---------------- STOCK (NO FILTER) ---------------- */
+  /* ---------------- STOCK (SOURCE OF TRUTH) ---------------- */
 
   stockRows.forEach(r => {
     const wh = txt(r.warehouse_id);
@@ -122,16 +122,11 @@ export function buildBusinessData(data) {
     share: totalUnits ? (r.units / totalUnits) * 100 : 0
   })).sort((a, b) => b.units - a.units);
 
-  /* ---------------- WAREHOUSE OUTPUT ---------------- */
+  /* ---------------- WAREHOUSE OUTPUT (FIXED) ---------------- */
 
-  const allWarehouses = new Set([
-    ...Object.keys(warehouseSales),
-    ...Object.keys(warehouseStock)
-  ]);
-
-  const warehouses = [...allWarehouses].map(wh => {
+  const warehouses = Object.keys(warehouseStock).map(wh => {
+    const stock = warehouseStock[wh];
     const sales = warehouseSales[wh] || 0;
-    const stock = warehouseStock[wh] || 0;
 
     return {
       warehouse: wh,
