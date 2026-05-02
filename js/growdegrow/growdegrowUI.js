@@ -24,39 +24,47 @@ function monthNum(v) {
 /* Build Report */
 /* ---------------------------- */
 
-function buildReport() {
+function buildGrowthReport() {
 
-  const salesRows = window.SJIT_SALES || [];
-  const returnRows = window.SJIT_RETURNS || [];
-  const masterRows = window.SJIT_MASTER || [];
+  // SAME SOURCE AS SALES TAB (NO NEW DATA)
+  const salesRows = window.SALES_ROWS || [];
+  const returnRows = window.RETURN_ROWS || [];
+  const masterRows = window.MASTER_ROWS || [];
 
-  // no filter
-  const { rows } = buildSalesData(salesRows, returnRows, masterRows, {});
+  const { rows } = buildSalesData(
+    salesRows,
+    returnRows,
+    masterRows,
+    {} // no filters
+  );
 
-  /* detect months */
+  /* -------- detect months -------- */
+
   const monthSet = new Set();
 
   salesRows.forEach(r => {
-    monthSet.add(
-      Number(r.year) * 100 + monthNum(r.month)
-    );
+    const y = Number(r.year);
+    const m = monthNum(r.month);
+    if (y && m) monthSet.add(y * 100 + m);
   });
 
   const months = Array.from(monthSet).sort((a,b)=>b-a);
 
-  const m0 = months[0];
-  const m1 = months[1];
-  const m2 = months[2];
+  const m0 = months[0]; // current
+  const m1 = months[1]; // prev
+  const m2 = months[2]; // prev-2
 
   function matchMonth(r, m) {
+    if (!m) return false;
     const y = Number(r.year);
     const mo = monthNum(r.month);
     return (y * 100 + mo) === m;
   }
 
+  /* -------- aggregation -------- */
+
   const map = {};
 
-  /* aggregate raw sales for month/day */
   salesRows.forEach(r => {
 
     const style = txt(r.style_id);
@@ -65,7 +73,9 @@ function buildReport() {
     if (!map[style]) {
       map[style] = {
         style_id: style,
-        m0:0, m1:0, m2:0,
+        m0:0,
+        m1:0,
+        m2:0,
         days:{}
       };
     }
@@ -75,13 +85,17 @@ function buildReport() {
 
     if (matchMonth(r, m0)) {
       map[style].m0 += qty;
-      map[style].days[day] = (map[style].days[day] || 0) + qty;
+      if (day) {
+        map[style].days[day] = (map[style].days[day] || 0) + qty;
+      }
     }
+
     if (matchMonth(r, m1)) map[style].m1 += qty;
     if (matchMonth(r, m2)) map[style].m2 += qty;
   });
 
-  /* merge master data */
+  /* -------- master mapping -------- */
+
   const masterMap = {};
   masterRows.forEach(r=>{
     masterMap[txt(r.style_id)] = r;
@@ -96,11 +110,14 @@ function buildReport() {
     };
   });
 
-  /* sort */
+  /* -------- sorting -------- */
+
   out.sort((a,b)=>b.m0 - a.m0);
 
-  /* detect max day */
+  /* -------- detect max day -------- */
+
   let maxDay = 0;
+
   out.forEach(r=>{
     Object.keys(r.days).forEach(d=>{
       if (+d > maxDay) maxDay = +d;
@@ -108,7 +125,7 @@ function buildReport() {
   });
 
   const days = [];
-  for(let i=1;i<=maxDay;i++) days.push(i);
+  for (let i=1;i<=maxDay;i++) days.push(i);
 
   return { rows: out, days };
 }
@@ -123,7 +140,7 @@ export function initGrowDegrowTab() {
 
     const root = document.getElementById("growdegrow");
 
-    const { rows, days } = buildReport();
+    const { rows, days } = buildGrowthReport();
 
     let html = `
       <section class="panel">
@@ -135,7 +152,7 @@ export function initGrowDegrowTab() {
           <table>
             <thead>
               <tr>
-                <th>Style</th>
+                <th>Style ID</th>
                 <th>ERP SKU</th>
                 <th>Status</th>
                 <th>M-2</th>
@@ -147,31 +164,40 @@ export function initGrowDegrowTab() {
             <tbody>
     `;
 
-    rows.slice(0,100).forEach(r=>{
+    const show = rows.slice(0, 50);
 
-      html += `<tr>
-        <td>${r.style_id}</td>
-        <td>${r.erp_sku}</td>
-        <td>${r.status}</td>
-        <td>${r.m2}</td>
-        <td>${r.m1}</td>
-        <td>${r.m0}</td>
-      `;
+    if (!show.length) {
+      html += `<tr><td colspan="100%">No data</td></tr>`;
+    } else {
 
-      days.forEach((d,i)=>{
-        const v = r.days[d] || 0;
-        const prev = r.days[d-1] || 0;
+      show.forEach(r=>{
 
-        let color = "";
-        if (i > 0) {
-          color = v > prev ? "green" : "red";
-        }
+        html += `<tr>
+          <td>${r.style_id}</td>
+          <td>${r.erp_sku}</td>
+          <td>${r.status}</td>
+          <td>${r.m2}</td>
+          <td>${r.m1}</td>
+          <td>${r.m0}</td>
+        `;
 
-        html += `<td style="color:${color}">${v}</td>`;
+        days.forEach((d,i)=>{
+
+          const v = r.days[d] || 0;
+          const prev = r.days[d-1] || 0;
+
+          let color = "";
+
+          if (i > 0) {
+            color = v > prev ? "green" : "red";
+          }
+
+          html += `<td style="color:${color}">${v}</td>`;
+        });
+
+        html += `</tr>`;
       });
-
-      html += `</tr>`;
-    });
+    }
 
     html += `
             </tbody>
