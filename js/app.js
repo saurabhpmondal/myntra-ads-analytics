@@ -11,6 +11,9 @@ import { initStyleEyeTab } from "./styleeye/styleEyeUI.js";
 import { initExportTab } from "./export/exportUI.js";
 import { initBusinessTab } from "./business/businessUI.js";
 
+/* NEW */
+import { initGrowDegrowTab } from "./growdegrow/growdegrowUI.js";
+
 window.addEventListener("DOMContentLoaded", async () => {
   await initDashboard();
 
@@ -25,6 +28,9 @@ window.addEventListener("DOMContentLoaded", async () => {
   initStyleEyeTab();
   initExportTab();
   initBusinessTab();
+
+  /* NEW */
+  initGrowDegrowTab();
 
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.onclick = () => {
@@ -44,6 +50,7 @@ window.addEventListener("DOMContentLoaded", async () => {
         "ppr",
         "analysis",
         "sales",
+        "growdegrow",  // NEW
         "sjit",
         "sor",
         "styleeye",
@@ -60,6 +67,10 @@ window.addEventListener("DOMContentLoaded", async () => {
       if (tab === "ppr") window.renderPPRTab?.();
       if (tab === "analysis") window.renderAnalysisTab?.();
       if (tab === "sales") window.renderSalesTab?.();
+
+      /* NEW */
+      if (tab === "growdegrow") window.renderGrowDegrowTab?.();
+
       if (tab === "sjit") window.renderSJITTab?.();
       if (tab === "sor") window.renderSORTab?.();
       if (tab === "styleeye") window.renderStyleEyeTab?.();
