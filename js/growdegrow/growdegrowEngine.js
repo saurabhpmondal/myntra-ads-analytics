@@ -18,25 +18,31 @@ function monthNum(v) {
   return map[s] || num(v);
 }
 
-function pad(n) {
-  return String(n).padStart(2, "0");
-}
-
+/* ✅ STRONG DATE PARSER */
 function getDate(row) {
+  // PRIMARY → created (dd-mm-yyyy)
+  if (row.created) {
+    const parts = String(row.created).split("-");
+    if (parts.length === 3) {
+      const d = Number(parts[0]);
+      const m = Number(parts[1]);
+      const y = Number(parts[2]);
+      if (y && m && d) return new Date(y, m - 1, d);
+    }
+  }
+
+  // FALLBACK → year/month/day
   const y = num(row.year);
   const m = monthNum(row.month);
-  const d = num(row.date || row.day);
+  const d = num(row.day);
 
-  if (!y || !m || !d) return null;
+  if (y && m && d) return new Date(y, m - 1, d);
 
-  return new Date(y, m - 1, d);
-}
-
-function key(dt) {
-  return `${dt.getFullYear()}-${pad(dt.getMonth()+1)}-${pad(dt.getDate())}`;
+  return null;
 }
 
 export function buildGrowDegrow(salesRows, masterRows) {
+  /* ---------- MASTER MAP ---------- */
   const masterMap = {};
 
   masterRows.forEach(r => {
@@ -49,12 +55,13 @@ export function buildGrowDegrow(salesRows, masterRows) {
     };
   });
 
-  // detect latest date
+  /* ---------- FIND LATEST DATE ---------- */
   let latest = null;
 
   salesRows.forEach(r => {
     const dt = getDate(r);
     if (!dt) return;
+
     if (!latest || dt > latest) latest = dt;
   });
 
@@ -72,6 +79,7 @@ export function buildGrowDegrow(salesRows, masterRows) {
 
   const lastDay = latest.getDate();
 
+  /* ---------- BUILD DATA ---------- */
   const map = {};
 
   salesRows.forEach(r => {
@@ -85,6 +93,7 @@ export function buildGrowDegrow(salesRows, masterRows) {
     const m = dt.getMonth() + 1;
     const d = dt.getDate();
 
+    // ONLY current year + last 3 months
     if (y !== currentYear) return;
     if (!months.includes(m)) return;
 
@@ -100,8 +109,10 @@ export function buildGrowDegrow(salesRows, masterRows) {
 
     const qty = num(r.qty || 1);
 
+    // monthly
     map[style].monthly[m] = (map[style].monthly[m] || 0) + qty;
 
+    // daily (only current month)
     if (m === currentMonth) {
       map[style].daily[d] = (map[style].daily[d] || 0) + qty;
     }
@@ -109,12 +120,14 @@ export function buildGrowDegrow(salesRows, masterRows) {
 
   const rows = Object.values(map);
 
+  /* ---------- FILL MISSING DAYS ---------- */
   rows.forEach(r => {
     for (let d = 1; d <= lastDay; d++) {
       if (!r.daily[d]) r.daily[d] = 0;
     }
   });
 
+  /* ---------- SORT ---------- */
   rows.sort((a, b) =>
     (b.monthly[currentMonth] || 0) - (a.monthly[currentMonth] || 0)
   );
