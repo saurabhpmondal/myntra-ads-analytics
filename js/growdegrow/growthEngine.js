@@ -76,27 +76,41 @@ export async function buildGrowthData(){
     masterMap[txt(r.style_id)] = r;
   });
 
+  let maxDay = 0;
+  Object.values(map).forEach(r=>{
+    Object.keys(r.days).forEach(d=>{
+      if(+d > maxDay) maxDay = +d;
+    });
+  });
+
+  const currentMonthDays =
+    new Date(Math.floor(m0/100), m0%100, 0).getDate();
+
   const rows = Object.values(map).map(r=>{
+
+    const today = maxDay || 1;
+
+    const drr = r.m0 / today;
+    const projection = drr * currentMonthDays;
+
+    const growth = r.m1
+      ? ((projection - r.m1) / r.m1) * 100
+      : 0;
+
     const m = masterMap[r.style_id] || {};
-    const growth = r.m1 ? ((r.m0-r.m1)/r.m1)*100 : 0;
 
     return {
       ...r,
       erp_sku: txt(m.erp_sku),
       brand: txt(m.brand),
       status: txt(m.status),
-      growth
+      growth,
+      projection,
+      drr
     };
   });
 
-  rows.sort((a,b)=>b.m0-a.m0);
-
-  let maxDay = 0;
-  rows.forEach(r=>{
-    Object.keys(r.days).forEach(d=>{
-      if(+d>maxDay) maxDay = +d;
-    });
-  });
+  rows.sort((a,b)=>b.projection - a.projection);
 
   const days = [];
   for(let i=1;i<=maxDay;i++) days.push(i);
@@ -108,7 +122,7 @@ export async function buildGrowthData(){
       current: monthName(m0%100),
       prev1: monthName(m1%100),
       prev2: monthName(m2%100),
-      currentMonthDays: new Date(Math.floor(m0/100), m0%100, 0).getDate()
+      currentMonthDays
     }
   };
 }
