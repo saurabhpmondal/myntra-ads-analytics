@@ -10,9 +10,9 @@ function monthNum(v) {
   const s = txt(v).toUpperCase();
 
   const map = {
-    JAN:1,FEB:2,MAR:3,APR:4,MAY:5,
-    JUN:6,JUNE:6,JUL:7,JULY:7,
-    AUG:8,SEP:9,SEPT:9,OCT:10,NOV:11,DEC:12
+    JAN: 1, FEB: 2, MAR: 3, APR: 4, MAY: 5,
+    JUN: 6, JUNE: 6, JUL: 7, JULY: 7,
+    AUG: 8, SEP: 9, SEPT: 9, OCT: 10, NOV: 11, DEC: 12
   };
 
   return map[s] || num(v);
@@ -23,6 +23,7 @@ function validSale(row) {
   return s !== "RTO" && s !== "F";
 }
 
+/* EXACT SAME FILTER LOGIC AS SALES ENGINE */
 function passFilter(row, filter) {
   const y = num(row.year);
   const m = monthNum(row.month);
@@ -62,7 +63,7 @@ export function buildBusinessData(data) {
     validSale(r) && passFilter(r, filter)
   );
 
-  /* ---------------- SALES ---------------- */
+  /* ---------------- SALES AGG ---------------- */
 
   filteredSales.forEach(r => {
     const qty = num(r.qty || 1);
@@ -110,33 +111,37 @@ export function buildBusinessData(data) {
 
   /* ---------------- BRAND OUTPUT ---------------- */
 
-  const brands = Object.values(brandMap).map(r => ({
-    ...r,
-    share: totalUnits ? (r.units / totalUnits) * 100 : 0
-  })).sort((a, b) => b.units - a.units);
+  const brands = Object.values(brandMap)
+    .map(r => ({
+      ...r,
+      share: totalUnits ? (r.units / totalUnits) * 100 : 0
+    }))
+    .sort((a, b) => b.units - a.units);
 
   /* ---------------- PO OUTPUT ---------------- */
 
-  const pos = Object.values(poMap).map(r => ({
-    ...r,
-    share: totalUnits ? (r.units / totalUnits) * 100 : 0
-  })).sort((a, b) => b.units - a.units);
+  const pos = Object.values(poMap)
+    .map(r => ({
+      ...r,
+      share: totalUnits ? (r.units / totalUnits) * 100 : 0
+    }))
+    .sort((a, b) => b.units - a.units);
 
-  /* ---------------- WAREHOUSE OUTPUT (FIXED) ---------------- */
+  /* ---------------- WAREHOUSE OUTPUT ---------------- */
 
-  const warehouses = Object.keys(warehouseStock).map(wh => {
-    const stock = warehouseStock[wh];
-    const sales = warehouseSales[wh] || 0;
+  const warehouses = Object.keys(warehouseStock)
+    .map(wh => {
+      const stock = warehouseStock[wh];
+      const sales = warehouseSales[wh] || 0;
 
-    return {
-      warehouse: wh,
-      stock,
-      sales,
-      sellThrough: (sales + stock)
-        ? (sales / (sales + stock)) * 100
-        : 0
-    };
-  }).sort((a, b) => b.sales - a.sales);
+      return {
+        warehouse: wh,
+        stock,
+        sales,
+        sellThrough: stock ? (sales / stock) * 100 : 0
+      };
+    })
+    .sort((a, b) => b.sales - a.sales);
 
   return {
     brands,
