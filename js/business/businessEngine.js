@@ -6,8 +6,48 @@ function txt(v) {
   return String(v ?? "").trim();
 }
 
+function monthNum(v) {
+  const s = txt(v).toUpperCase();
+
+  const map = {
+    JAN:1,FEB:2,MAR:3,APR:4,MAY:5,
+    JUN:6,JUNE:6,JUL:7,JULY:7,
+    AUG:8,SEP:9,SEPT:9,OCT:10,NOV:11,DEC:12
+  };
+
+  return map[s] || num(v);
+}
+
+function validSale(row) {
+  const s = txt(row.order_status).toUpperCase();
+  return s !== "RTO" && s !== "F";
+}
+
+function passFilter(row, filter) {
+  const y = num(row.year);
+  const m = monthNum(row.month);
+  const d = num(row.date || row.day);
+
+  if (filter.year && y !== num(filter.year)) return false;
+  if (filter.month && m !== num(filter.month)) return false;
+
+  if (filter.start) {
+    const sd = Number(String(filter.start).slice(-2));
+    if (d < sd) return false;
+  }
+
+  if (filter.end) {
+    const ed = Number(String(filter.end).slice(-2));
+    if (d > ed) return false;
+  }
+
+  return true;
+}
+
 export function buildBusinessData(data) {
   const { salesRows, stockRows } = data;
+
+  const filter = window.ACTIVE_FILTER || {};
 
   const brandMap = {};
   const poMap = {};
@@ -16,9 +56,15 @@ export function buildBusinessData(data) {
 
   let totalUnits = 0;
 
+  /* ---------------- FILTERED SALES ---------------- */
+
+  const filteredSales = salesRows.filter(r =>
+    validSale(r) && passFilter(r, filter)
+  );
+
   /* ---------------- SALES ---------------- */
 
-  salesRows.forEach(r => {
+  filteredSales.forEach(r => {
     const qty = num(r.qty || 1);
     const revenue = num(r.final_amount);
 
@@ -49,7 +95,7 @@ export function buildBusinessData(data) {
     warehouseSales[wh] += qty;
   });
 
-  /* ---------------- STOCK ---------------- */
+  /* ---------------- STOCK (NO FILTER) ---------------- */
 
   stockRows.forEach(r => {
     const wh = txt(r.warehouse_id);
@@ -91,7 +137,9 @@ export function buildBusinessData(data) {
       warehouse: wh,
       stock,
       sales,
-      sellThrough: (sales + stock) ? (sales / (sales + stock)) * 100 : 0
+      sellThrough: (sales + stock)
+        ? (sales / (sales + stock)) * 100
+        : 0
     };
   }).sort((a, b) => b.sales - a.sales);
 
