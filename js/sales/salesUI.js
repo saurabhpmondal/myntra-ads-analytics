@@ -144,6 +144,26 @@ export function initSalesTab() {
     root.innerHTML = `
       <section class="panel">
 
+        <!-- NEW CLEAN KPI (ADDED) -->
+        <div style="padding:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+          
+          <div class="card">
+            <div class="label">Revenue</div>
+            <div class="value">₹${fmt(totalRevenue)}</div>
+          </div>
+
+          <div class="card">
+            <div class="label">Units</div>
+            <div class="value">${fmt(totalUnits)}</div>
+          </div>
+
+          <div class="card">
+            <div class="label">ASP</div>
+            <div class="value">₹${fmt(asp)}</div>
+          </div>
+
+        </div>
+
         <!-- CLEAN KPI -->
         <div style="padding:16px;display:grid;grid-template-columns:repeat(6,1fr);gap:10px;">
           
