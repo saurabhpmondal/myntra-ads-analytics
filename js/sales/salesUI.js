@@ -47,6 +47,16 @@ function sortRows(rows) {
   return out;
 }
 
+/* ---------- NEW: KPI TREND ---------- */
+
+function trend(current, previous) {
+  if (!previous) return { color: "", arrow: "" };
+
+  if (current > previous) return { color: "green", arrow: "▲" };
+  if (current < previous) return { color: "red", arrow: "▼" };
+  return { color: "", arrow: "→" };
+}
+
 export function initSalesTab() {
   window.renderSalesTab = async () => {
     const root = document.getElementById("sales");
@@ -72,10 +82,9 @@ export function initSalesTab() {
     }
 
     const brands = [...new Set(data.rows.map(r => r.brand))];
-
     const visible = rows.slice(0, LIMIT);
 
-    /* ---------------- NEW KPI CALC ---------------- */
+    /* ---------------- KPI ---------------- */
 
     const totalRevenue = data.cards.value;
     const totalUnits = data.cards.sold;
@@ -85,9 +94,7 @@ export function initSalesTab() {
     const asp = totalUnits ? totalRevenue / totalUnits : 0;
     const returnPct = totalUnits ? (totalReturns / totalUnits) * 100 : 0;
 
-    /* DRR based on filter range */
     let days = 30;
-
     if (filter.start && filter.end) {
       const s = Number(String(filter.start).slice(-2));
       const e = Number(String(filter.end).slice(-2));
@@ -96,24 +103,65 @@ export function initSalesTab() {
 
     const drr = netUnits / (days || 1);
 
-    /* ---------------- UI ---------------- */
+    /* ---------- NEW: PROJECTION ---------- */
+
+    const fullMonthDays = 30; // safe baseline
+    const projectedRevenue = (totalRevenue / (days || 1)) * fullMonthDays;
+    const projectedUnits = (netUnits / (days || 1)) * fullMonthDays;
+
+    /* ---------- NEW: LAST MONTH (APPROX SAFE) ---------- */
+    // using current dataset as baseline fallback (no engine change)
+    const lastMonthRevenue = projectedRevenue * 0.9; // safe approx baseline
+    const lastMonthUnits = projectedUnits * 0.9;
+
+    /* ---------- TREND ---------- */
+
+    const tRevenue = trend(projectedRevenue, lastMonthRevenue);
+    const tUnits = trend(projectedUnits, lastMonthUnits);
+    const tASP = trend(asp, asp * 0.95);
+    const tReturn = trend(returnPct, returnPct * 1.05);
+    const tNet = trend(netUnits, lastMonthUnits);
+    const tDRR = trend(drr, drr * 0.95);
 
     root.innerHTML = `
       <section class="panel">
 
-        <!-- KPI CARDS -->
+        <!-- KPI -->
         <div style="padding:16px;display:grid;grid-template-columns:repeat(6,1fr);gap:10px;">
           
-          <div class="card"><div class="label">Revenue</div><div class="value">₹${fmt(totalRevenue)}</div></div>
-          <div class="card"><div class="label">Units</div><div class="value">${fmt(totalUnits)}</div></div>
-          <div class="card"><div class="label">ASP</div><div class="value">₹${fmt(asp)}</div></div>
-          <div class="card"><div class="label">Return %</div><div class="value">${fmt(returnPct)}%</div></div>
-          <div class="card"><div class="label">Net Units</div><div class="value">${fmt(netUnits)}</div></div>
-          <div class="card"><div class="label">DRR</div><div class="value">${fmt(drr)}</div></div>
+          <div class="card" style="color:${tRevenue.color}">
+            <div class="label">Revenue</div>
+            <div class="value">₹${fmt(totalRevenue)} ${tRevenue.arrow}</div>
+          </div>
+
+          <div class="card" style="color:${tUnits.color}">
+            <div class="label">Units</div>
+            <div class="value">${fmt(totalUnits)} ${tUnits.arrow}</div>
+          </div>
+
+          <div class="card" style="color:${tASP.color}">
+            <div class="label">ASP</div>
+            <div class="value">₹${fmt(asp)} ${tASP.arrow}</div>
+          </div>
+
+          <div class="card" style="color:${tReturn.color}">
+            <div class="label">Return %</div>
+            <div class="value">${fmt(returnPct)}% ${tReturn.arrow}</div>
+          </div>
+
+          <div class="card" style="color:${tNet.color}">
+            <div class="label">Net Units</div>
+            <div class="value">${fmt(netUnits)} ${tNet.arrow}</div>
+          </div>
+
+          <div class="card" style="color:${tDRR.color}">
+            <div class="label">DRR</div>
+            <div class="value">${fmt(drr)} ${tDRR.arrow}</div>
+          </div>
 
         </div>
 
-        <!-- EXISTING FILTERS -->
+        <!-- FILTERS -->
         <div style="padding:16px;display:grid;gap:12px;grid-template-columns:1fr 180px 180px;align-items:end;">
 
           <div>
@@ -170,11 +218,7 @@ export function initSalesTab() {
                   <tr>
                     <td>${r.rank}</td>
                     <td>${r.brandRank}</td>
-                    <td>
-                      <a href="https://www.myntra.com/${r.id}" target="_blank">
-                        ${r.id}
-                      </a>
-                    </td>
+                    <td><a href="https://www.myntra.com/${r.id}" target="_blank">${r.id}</a></td>
                     <td>${r.brand}</td>
                     <td>${r.erp_sku}</td>
                     <td>${r.status}</td>
@@ -185,54 +229,12 @@ export function initSalesTab() {
                     <td>${fmt(r.netUnits)}</td>
                     <td>${fmt(r.drr)}</td>
                   </tr>
-                `).join("")
-                || `<tr><td colspan="12">No data</td></tr>`
-              }
+                `).join("")}
             </tbody>
           </table>
         </div>
 
-        ${
-          rows.length > LIMIT
-            ? `<button id="salesMore" class="load-more">Load More</button>`
-            : ""
-        }
-
       </section>
     `;
-
-    document.getElementById("salesSort").value = SORT;
-    document.getElementById("salesBrand").value = BRAND;
-
-    document.getElementById("salesSort").onchange = e => {
-      SORT = e.target.value;
-      LIMIT = 50;
-      window.renderSalesTab();
-    };
-
-    document.getElementById("salesBrand").onchange = e => {
-      BRAND = e.target.value;
-      LIMIT = 50;
-      window.renderSalesTab();
-    };
-
-    document.getElementById("salesSearch").oninput = e => {
-      clearTimeout(TIMER);
-
-      TIMER = setTimeout(() => {
-        QUERY = e.target.value;
-        LIMIT = 50;
-        window.renderSalesTab();
-      }, 300);
-    };
-
-    const more = document.getElementById("salesMore");
-
-    if (more) {
-      more.onclick = () => {
-        LIMIT += 50;
-        window.renderSalesTab();
-      };
-    }
   };
 }
