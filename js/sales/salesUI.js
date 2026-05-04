@@ -47,35 +47,6 @@ function sortRows(rows) {
   return out;
 }
 
-/* ---------- CLEAN TREND (NO COLOR) ---------- */
-function trend(current, previous) {
-  if (!previous) return "";
-
-  if (current > previous) return "▲";
-  if (current < previous) return "▼";
-  return "→";
-}
-
-function getPrevMonthFilter(filter) {
-  const f = { ...filter };
-
-  let m = Number(filter.month);
-  let y = Number(filter.year);
-
-  if (!m || !y) return f;
-
-  m = m - 1;
-  if (m === 0) {
-    m = 12;
-    y = y - 1;
-  }
-
-  f.month = m;
-  f.year = y;
-
-  return f;
-}
-
 export function initSalesTab() {
   window.renderSalesTab = async () => {
     const root = document.getElementById("sales");
@@ -88,8 +59,6 @@ export function initSalesTab() {
     const filter = window.ACTIVE_FILTER || {};
 
     const current = buildSalesData(SALES, RETURNS, MASTER, filter);
-    const prevFilter = getPrevMonthFilter(filter);
-    const previous = buildSalesData(SALES, RETURNS, MASTER, prevFilter);
 
     let rows = sortRows(current.rows);
 
@@ -110,41 +79,14 @@ export function initSalesTab() {
 
     const totalRevenue = current.cards.value;
     const totalUnits = current.cards.sold;
-    const totalReturns = current.cards.returns;
-    const netUnits = current.cards.netUnits;
-
-    const prevRevenue = previous.cards.value;
-    const prevUnits = previous.cards.sold;
-    const prevReturns = previous.cards.returns;
-    const prevNet = previous.cards.netUnits;
-
     const asp = totalUnits ? totalRevenue / totalUnits : 0;
-    const prevAsp = prevUnits ? prevRevenue / prevUnits : 0;
-
-    const returnPct = totalUnits ? (totalReturns / totalUnits) * 100 : 0;
-    const prevReturnPct = prevUnits ? (prevReturns / prevUnits) * 100 : 0;
-
-    let days = 30;
-    if (filter.start && filter.end) {
-      const s = Number(String(filter.start).slice(-2));
-      const e = Number(String(filter.end).slice(-2));
-      if (s && e && e >= s) days = (e - s + 1);
-    }
-
-    const drr = netUnits / (days || 1);
-    const prevDRR = prevNet / 30;
-
-    const fullMonthDays = 30;
-
-    const projectedRevenue = (totalRevenue / (days || 1)) * fullMonthDays;
-    const projectedUnits = (netUnits / (days || 1)) * fullMonthDays;
 
     /* ---------- UI ---------- */
 
     root.innerHTML = `
       <section class="panel">
 
-        <!-- NEW CLEAN KPI (ADDED) -->
+        <!-- CLEAN KPI -->
         <div style="padding:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
           
           <div class="card">
@@ -164,42 +106,7 @@ export function initSalesTab() {
 
         </div>
 
-        <!-- CLEAN KPI -->
-        <div style="padding:16px;display:grid;grid-template-columns:repeat(6,1fr);gap:10px;">
-          
-          <div class="card">
-            <div class="label">Revenue</div>
-            <div class="value">₹${fmt(totalRevenue)} ${trend(projectedRevenue, prevRevenue)}</div>
-          </div>
-
-          <div class="card">
-            <div class="label">Units</div>
-            <div class="value">${fmt(totalUnits)} ${trend(projectedUnits, prevUnits)}</div>
-          </div>
-
-          <div class="card">
-            <div class="label">ASP</div>
-            <div class="value">₹${fmt(asp)} ${trend(asp, prevAsp)}</div>
-          </div>
-
-          <div class="card">
-            <div class="label">Return %</div>
-            <div class="value">${fmt(returnPct)}% ${trend(returnPct, prevReturnPct)}</div>
-          </div>
-
-          <div class="card">
-            <div class="label">Net Units</div>
-            <div class="value">${fmt(netUnits)} ${trend(netUnits, prevNet)}</div>
-          </div>
-
-          <div class="card">
-            <div class="label">DRR</div>
-            <div class="value">${fmt(drr)} ${trend(drr, prevDRR)}</div>
-          </div>
-
-        </div>
-
-        <!-- ORIGINAL FILTERS (UNCHANGED) -->
+        <!-- ORIGINAL FILTERS -->
         <div style="padding:16px;display:grid;gap:12px;grid-template-columns:1fr 180px 180px;align-items:end;">
 
           <div>
