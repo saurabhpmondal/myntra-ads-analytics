@@ -55,6 +55,7 @@ export function buildBusinessData(data) {
   const warehouseStock = {};
 
   let totalUnits = 0;
+  let totalRevenue = 0;
 
   const filteredSales = salesRows.filter(r =>
     validSale(r) && passFilter(r, filter)
@@ -69,6 +70,7 @@ export function buildBusinessData(data) {
     const wh = txt(r.warehouse_id);
 
     totalUnits += qty;
+    totalRevenue += revenue;
 
     if (!brandMap[brand]) {
       brandMap[brand] = { brand, units: 0, revenue: 0 };
@@ -130,11 +132,15 @@ export function buildBusinessData(data) {
   return {
     brands,
     pos,
-    warehouses
+    warehouses,
+    totals: {
+      units: totalUnits,
+      revenue: totalRevenue
+    }
   };
 }
 
-/* ---------------- NEW: BRAND DAILY MATRIX ---------------- */
+/* ---------- BRAND DAILY MATRIX ---------- */
 
 export function buildBrandDailyMatrix(salesRows) {
   const filter = window.ACTIVE_FILTER || {};
