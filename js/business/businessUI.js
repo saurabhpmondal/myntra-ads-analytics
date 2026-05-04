@@ -27,25 +27,6 @@ async function ensureData() {
   READY = true;
 }
 
-function table(title, heads, rows) {
-  return `
-    <section class="panel">
-      <div class="panel-head"><h3>${title}</h3></div>
-
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>${heads.map(h => `<th>${h}</th>`).join("")}</tr>
-          </thead>
-          <tbody>
-            ${rows || `<tr><td colspan="${heads.length}">No data</td></tr>`}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  `;
-}
-
 export function initBusinessTab() {
   window.renderBusinessTab = async function () {
     const root = document.getElementById("business");
@@ -62,56 +43,160 @@ export function initBusinessTab() {
 
     const matrix = buildBrandDailyMatrix(SALES);
 
-    root.innerHTML = `
-      ${table(
-        "Brand Wise",
-        ["Brand","Units","Revenue","Share %"],
-        data.brands.map(r => `
-          <tr>
-            <td>${r.brand}</td>
-            <td>${fmt(r.units)}</td>
-            <td>₹${fmt(r.revenue)}</td>
-            <td>${fmt(r.share)}%</td>
-          </tr>
-        `).join("")
-      )}
+    /* ---------- BUILD TABLES ---------- */
 
-      ${table(
-        "PO Type Wise",
-        ["PO Type","Units","Revenue","Share %"],
-        data.pos.map(r => `
+    function brandRows() {
+      let html = data.brands.map(r => `
+        <tr>
+          <td>${r.brand}</td>
+          <td>${fmt(r.units)}</td>
+          <td>₹${fmt(r.revenue)}</td>
+          <td>${fmt(r.share)}%</td>
+        </tr>
+      `).join("");
+
+      html += `
+        <tr style="font-weight:bold;background:#f5f5f5;">
+          <td>Total</td>
+          <td>${fmt(data.totals.units)}</td>
+          <td>₹${fmt(data.totals.revenue)}</td>
+          <td>100%</td>
+        </tr>
+      `;
+
+      return html;
+    }
+
+    function poRows() {
+      let totalUnits = 0;
+      let totalRevenue = 0;
+
+      let html = data.pos.map(r => {
+        totalUnits += r.units;
+        totalRevenue += r.revenue;
+
+        return `
           <tr>
             <td>${r.po}</td>
             <td>${fmt(r.units)}</td>
             <td>₹${fmt(r.revenue)}</td>
             <td>${fmt(r.share)}%</td>
           </tr>
-        `).join("")
-      )}
+        `;
+      }).join("");
 
-      ${table(
-        "Warehouse Performance",
-        ["Warehouse","Stock","Sales","Sell Through %"],
-        data.warehouses.map(r => `
-          <tr>
-            <td>${r.warehouse}</td>
-            <td>${fmt(r.stock)}</td>
-            <td>${fmt(r.sales)}</td>
-            <td>${fmt(r.sellThrough)}%</td>
-          </tr>
-        `).join("")
-      )}
+      html += `
+        <tr style="font-weight:bold;background:#f5f5f5;">
+          <td>Total</td>
+          <td>${fmt(totalUnits)}</td>
+          <td>₹${fmt(totalRevenue)}</td>
+          <td>100%</td>
+        </tr>
+      `;
 
-      ${table(
-        "Brand Daily Performance",
-        ["Date", ...matrix.brands],
-        matrix.rows.map(r => `
-          <tr>
-            <td>${r.date}</td>
-            ${r.brands.map(v=>`<td>${v}</td>`).join("")}
-          </tr>
-        `).join("")
-      )}
+      return html;
+    }
+
+    function matrixTable() {
+      const heads = ["Date", ...matrix.brands];
+
+      let body = "";
+
+      matrix.rows.forEach((r, i) => {
+        body += `<tr>
+          <td>${r.date}</td>
+          ${r.brands.map((v, idx) => {
+
+            let color = "";
+
+            if (i > 0) {
+              const prev = matrix.rows[i-1].brands[idx];
+
+              if (v > prev) color = "green";
+              else if (v < prev) color = "red";
+            }
+
+            return `<td style="color:${color}">${v}</td>`;
+          }).join("")}
+        </tr>`;
+      });
+
+      /* TOTAL ROW */
+      const totals = new Array(matrix.brands.length).fill(0);
+
+      matrix.rows.forEach(r=>{
+        r.brands.forEach((v,i)=>{
+          totals[i] += v;
+        });
+      });
+
+      body += `<tr style="font-weight:bold;background:#f5f5f5;">
+        <td>Total</td>
+        ${totals.map(v=>`<td>${v}</td>`).join("")}
+      </tr>`;
+
+      return `
+        <section class="panel">
+          <div class="panel-head"><h3>Brand Daily Performance</h3></div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>${heads.map(h=>`<th>${h}</th>`).join("")}</tr>
+              </thead>
+              <tbody>${body}</tbody>
+            </table>
+          </div>
+        </section>
+      `;
+    }
+
+    root.innerHTML = `
+      <section class="panel">
+        <div class="panel-head"><h3>Brand Wise</h3></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Brand</th><th>Units</th><th>Revenue</th><th>Share %</th></tr>
+            </thead>
+            <tbody>${brandRows()}</tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h3>PO Type Wise</h3></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>PO Type</th><th>Units</th><th>Revenue</th><th>Share %</th></tr>
+            </thead>
+            <tbody>${poRows()}</tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h3>Warehouse Performance</h3></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Warehouse</th><th>Stock</th><th>Sales</th><th>Sell Through %</th></tr>
+            </thead>
+            <tbody>
+              ${data.warehouses.map(r => `
+                <tr>
+                  <td>${r.warehouse}</td>
+                  <td>${fmt(r.stock)}</td>
+                  <td>${fmt(r.sales)}</td>
+                  <td>${fmt(r.sellThrough)}%</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      ${matrixTable()}
     `;
   };
 }
