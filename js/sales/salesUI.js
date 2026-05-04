@@ -47,6 +47,16 @@ function sortRows(rows) {
   return out;
 }
 
+/* SAME KPI STRUCTURE AS DASHBOARD */
+function card(label, value) {
+  return `
+    <div class="kpi-card">
+      <span>${label}</span>
+      <strong>${value}</strong>
+    </div>
+  `;
+}
+
 export function initSalesTab() {
   window.renderSalesTab = async () => {
     const root = document.getElementById("sales");
@@ -75,38 +85,23 @@ export function initSalesTab() {
     const brands = [...new Set(current.rows.map(r => r.brand))];
     const visible = rows.slice(0, LIMIT);
 
-    /* ---------- KPI ---------- */
-
+    /* KPI DATA */
     const totalRevenue = current.cards.value;
     const totalUnits = current.cards.sold;
     const asp = totalUnits ? totalRevenue / totalUnits : 0;
 
-    /* ---------- UI ---------- */
-
+    /* UI */
     root.innerHTML = `
       <section class="panel">
 
-        <!-- CLEAN KPI -->
-        <div style="padding:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
-          
-          <div class="card">
-            <div class="label">Revenue</div>
-            <div class="value">₹${fmt(totalRevenue)}</div>
-          </div>
+        <!-- DASHBOARD STYLE KPI -->
+        <section class="kpi-grid">
+          ${card("Revenue", "₹" + fmt(totalRevenue))}
+          ${card("Units", fmt(totalUnits))}
+          ${card("ASP", "₹" + fmt(asp))}
+        </section>
 
-          <div class="card">
-            <div class="label">Units</div>
-            <div class="value">${fmt(totalUnits)}</div>
-          </div>
-
-          <div class="card">
-            <div class="label">ASP</div>
-            <div class="value">₹${fmt(asp)}</div>
-          </div>
-
-        </div>
-
-        <!-- ORIGINAL FILTERS -->
+        <!-- FILTERS (UNCHANGED) -->
         <div style="padding:16px;display:grid;gap:12px;grid-template-columns:1fr 180px 180px;align-items:end;">
 
           <div>
