@@ -12,7 +12,8 @@ let LIMIT = 50;
 let QUERY = "";
 let SORT = "sales";
 let BRAND = "ALL";
-let FLAG = "ALL"; // ✅ NEW
+let FLAG = "ALL";
+let RANK_MODE = "units"; // ✅ NEW
 let TIMER = null;
 
 function fmt(n) {
@@ -48,7 +49,6 @@ function sortRows(rows) {
   return out;
 }
 
-/* KPI */
 function card(label, value) {
   return `
     <div class="kpi-card">
@@ -72,17 +72,14 @@ export function initSalesTab() {
 
     let rows = sortRows(current.rows);
 
-    /* BRAND FILTER */
     if (BRAND !== "ALL") {
       rows = rows.filter(r => r.brand === BRAND);
     }
 
-    /* FLAG FILTER ✅ */
     if (FLAG !== "ALL") {
       rows = rows.filter(r => r.flag === FLAG);
     }
 
-    /* SEARCH */
     if (QUERY) {
       rows = rows.filter(r =>
         String(r.id).toLowerCase().includes(QUERY.toLowerCase())
@@ -91,7 +88,6 @@ export function initSalesTab() {
 
     const brands = [...new Set(current.rows.map(r => r.brand))];
 
-    /* FLAG OPTIONS ✅ */
     const flags = [
       "High Return Low Sale",
       "High Return",
@@ -104,12 +100,10 @@ export function initSalesTab() {
 
     const visible = rows.slice(0, LIMIT);
 
-    /* KPI */
     const totalRevenue = current.cards.value;
     const totalUnits = current.cards.sold;
     const asp = totalUnits ? totalRevenue / totalUnits : 0;
 
-    /* UI */
     root.innerHTML = `
       <section class="panel">
 
@@ -121,7 +115,7 @@ export function initSalesTab() {
         </section>
 
         <!-- FILTERS -->
-        <div style="padding:16px;display:grid;gap:12px;grid-template-columns:1fr 160px 160px 180px;align-items:end;">
+        <div style="padding:16px;display:grid;gap:12px;grid-template-columns:1fr 140px 140px 160px 140px;align-items:end;">
 
           <div>
             <label>Search</label>
@@ -146,12 +140,20 @@ export function initSalesTab() {
             </select>
           </div>
 
-          <!-- NEW FLAG FILTER -->
           <div>
             <label>Flag</label>
             <select id="salesFlag">
               <option value="ALL">All</option>
               ${flags.map(f => `<option value="${f}">${f}</option>`).join("")}
+            </select>
+          </div>
+
+          <!-- ✅ NEW RANK MODE -->
+          <div>
+            <label>Rank By</label>
+            <select id="salesRankMode">
+              <option value="units">Units</option>
+              <option value="gmv">GMV</option>
             </select>
           </div>
 
@@ -177,30 +179,35 @@ export function initSalesTab() {
                 <th>Return %</th>
                 <th>Net</th>
                 <th>DRR</th>
-                <th>Flag</th> <!-- ✅ NEW -->
+                <th>Flag</th>
               </tr>
             </thead>
 
             <tbody>
               ${
                 visible.length
-                  ? visible.map(r => `
-                      <tr>
-                        <td>${r.rank}</td>
-                        <td>${r.brandRank}</td>
-                        <td><a href="https://www.myntra.com/${r.id}" target="_blank">${r.id}</a></td>
-                        <td>${r.brand}</td>
-                        <td>${r.erp_sku}</td>
-                        <td>${r.status}</td>
-                        <td>${fmt(r.sold)}</td>
-                        <td>₹${fmt(r.value)}</td>
-                        <td>${fmt(r.returns)}</td>
-                        <td>${fmt(r.returnPct)}%</td>
-                        <td>${fmt(r.netUnits)}</td>
-                        <td>${fmt(r.drr)}</td>
-                        <td>${r.flag}</td> <!-- ✅ NEW -->
-                      </tr>
-                    `).join("")
+                  ? visible.map(r => {
+                      const rank = RANK_MODE === "units" ? r.rank_units : r.rank;
+                      const brandRank = RANK_MODE === "units" ? r.brandRank_units : r.brandRank;
+
+                      return `
+                        <tr>
+                          <td>${rank}</td>
+                          <td>${brandRank}</td>
+                          <td><a href="https://www.myntra.com/${r.id}" target="_blank">${r.id}</a></td>
+                          <td>${r.brand}</td>
+                          <td>${r.erp_sku}</td>
+                          <td>${r.status}</td>
+                          <td>${fmt(r.sold)}</td>
+                          <td>₹${fmt(r.value)}</td>
+                          <td>${fmt(r.returns)}</td>
+                          <td>${fmt(r.returnPct)}%</td>
+                          <td>${fmt(r.netUnits)}</td>
+                          <td>${fmt(r.drr)}</td>
+                          <td>${r.flag}</td>
+                        </tr>
+                      `;
+                    }).join("")
                   : `<tr><td colspan="13">No data</td></tr>`
               }
             </tbody>
@@ -218,7 +225,8 @@ export function initSalesTab() {
 
     document.getElementById("salesSort").value = SORT;
     document.getElementById("salesBrand").value = BRAND;
-    document.getElementById("salesFlag").value = FLAG; // ✅ NEW
+    document.getElementById("salesFlag").value = FLAG;
+    document.getElementById("salesRankMode").value = RANK_MODE;
 
     document.getElementById("salesSort").onchange = e => {
       SORT = e.target.value;
@@ -232,10 +240,14 @@ export function initSalesTab() {
       window.renderSalesTab();
     };
 
-    /* FLAG FILTER EVENT ✅ */
     document.getElementById("salesFlag").onchange = e => {
       FLAG = e.target.value;
       LIMIT = 50;
+      window.renderSalesTab();
+    };
+
+    document.getElementById("salesRankMode").onchange = e => {
+      RANK_MODE = e.target.value;
       window.renderSalesTab();
     };
 
