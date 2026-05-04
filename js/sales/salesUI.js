@@ -12,6 +12,7 @@ let LIMIT = 50;
 let QUERY = "";
 let SORT = "sales";
 let BRAND = "ALL";
+let FLAG = "ALL"; // ✅ NEW
 let TIMER = null;
 
 function fmt(n) {
@@ -47,7 +48,7 @@ function sortRows(rows) {
   return out;
 }
 
-/* SAME KPI STRUCTURE AS DASHBOARD */
+/* KPI */
 function card(label, value) {
   return `
     <div class="kpi-card">
@@ -67,15 +68,21 @@ export function initSalesTab() {
     await ensureData();
 
     const filter = window.ACTIVE_FILTER || {};
-
     const current = buildSalesData(SALES, RETURNS, MASTER, filter);
 
     let rows = sortRows(current.rows);
 
+    /* BRAND FILTER */
     if (BRAND !== "ALL") {
       rows = rows.filter(r => r.brand === BRAND);
     }
 
+    /* FLAG FILTER ✅ */
+    if (FLAG !== "ALL") {
+      rows = rows.filter(r => r.flag === FLAG);
+    }
+
+    /* SEARCH */
     if (QUERY) {
       rows = rows.filter(r =>
         String(r.id).toLowerCase().includes(QUERY.toLowerCase())
@@ -83,9 +90,21 @@ export function initSalesTab() {
     }
 
     const brands = [...new Set(current.rows.map(r => r.brand))];
+
+    /* FLAG OPTIONS ✅ */
+    const flags = [
+      "High Return Low Sale",
+      "High Return",
+      "Low Sale",
+      "Dead Inventory",
+      "Rising Returns",
+      "Best Pricing",
+      "Normal"
+    ];
+
     const visible = rows.slice(0, LIMIT);
 
-    /* KPI DATA */
+    /* KPI */
     const totalRevenue = current.cards.value;
     const totalUnits = current.cards.sold;
     const asp = totalUnits ? totalRevenue / totalUnits : 0;
@@ -94,15 +113,15 @@ export function initSalesTab() {
     root.innerHTML = `
       <section class="panel">
 
-        <!-- DASHBOARD STYLE KPI -->
+        <!-- KPI -->
         <section class="kpi-grid">
           ${card("Revenue", "₹" + fmt(totalRevenue))}
           ${card("Units", fmt(totalUnits))}
           ${card("ASP", "₹" + fmt(asp))}
         </section>
 
-        <!-- FILTERS (UNCHANGED) -->
-        <div style="padding:16px;display:grid;gap:12px;grid-template-columns:1fr 180px 180px;align-items:end;">
+        <!-- FILTERS -->
+        <div style="padding:16px;display:grid;gap:12px;grid-template-columns:1fr 160px 160px 180px;align-items:end;">
 
           <div>
             <label>Search</label>
@@ -124,6 +143,15 @@ export function initSalesTab() {
             <select id="salesBrand">
               <option value="ALL">All</option>
               ${brands.map(b => `<option value="${b}">${b}</option>`).join("")}
+            </select>
+          </div>
+
+          <!-- NEW FLAG FILTER -->
+          <div>
+            <label>Flag</label>
+            <select id="salesFlag">
+              <option value="ALL">All</option>
+              ${flags.map(f => `<option value="${f}">${f}</option>`).join("")}
             </select>
           </div>
 
@@ -149,6 +177,7 @@ export function initSalesTab() {
                 <th>Return %</th>
                 <th>Net</th>
                 <th>DRR</th>
+                <th>Flag</th> <!-- ✅ NEW -->
               </tr>
             </thead>
 
@@ -169,9 +198,10 @@ export function initSalesTab() {
                         <td>${fmt(r.returnPct)}%</td>
                         <td>${fmt(r.netUnits)}</td>
                         <td>${fmt(r.drr)}</td>
+                        <td>${r.flag}</td> <!-- ✅ NEW -->
                       </tr>
                     `).join("")
-                  : `<tr><td colspan="12">No data</td></tr>`
+                  : `<tr><td colspan="13">No data</td></tr>`
               }
             </tbody>
           </table>
@@ -188,6 +218,7 @@ export function initSalesTab() {
 
     document.getElementById("salesSort").value = SORT;
     document.getElementById("salesBrand").value = BRAND;
+    document.getElementById("salesFlag").value = FLAG; // ✅ NEW
 
     document.getElementById("salesSort").onchange = e => {
       SORT = e.target.value;
@@ -197,6 +228,13 @@ export function initSalesTab() {
 
     document.getElementById("salesBrand").onchange = e => {
       BRAND = e.target.value;
+      LIMIT = 50;
+      window.renderSalesTab();
+    };
+
+    /* FLAG FILTER EVENT ✅ */
+    document.getElementById("salesFlag").onchange = e => {
+      FLAG = e.target.value;
       LIMIT = 50;
       window.renderSalesTab();
     };
