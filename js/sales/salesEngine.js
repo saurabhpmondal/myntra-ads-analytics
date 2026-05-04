@@ -48,6 +48,21 @@ function passFilter(row, filter) {
   return true;
 }
 
+/* ---------- NEW FLAG ENGINE ---------- */
+function getFlag(r) {
+  const sold = r.sold;
+  const ret = r.returnPct;
+
+  if (sold < 30 && ret > 40) return "High Return Low Sale";
+  if (sold >= 30 && ret > 40) return "High Return";
+  if (sold < 10) return "Dead Inventory";
+  if (sold < 20) return "Low Sale";
+  if (ret >= 30 && ret <= 40 && sold > 20) return "Rising Returns";
+  if (sold >= 30 && ret < 25) return "Best Pricing";
+
+  return "Normal";
+}
+
 export function buildSalesData(salesRows, returnRows, masterRows, filter) {
 
   const map = {};
@@ -109,18 +124,19 @@ export function buildSalesData(salesRows, returnRows, masterRows, filter) {
     r.netUnits = r.sold - r.returns;
     r.returnPct = r.sold ? (r.returns / r.sold) * 100 : 0;
     r.drr = r.netUnits / 30;
+
+    /* ---------- ADD FLAG ---------- */
+    r.flag = getFlag(r);
+
     return r;
   });
 
-  /* ---------------- SORT ---------------- */
   rows.sort((a, b) => b.value - a.value);
 
-  /* ---------------- OVERALL RANK ---------------- */
   rows.forEach((r, i) => {
     r.rank = i + 1;
   });
 
-  /* ---------------- BRAND RANK ---------------- */
   const brandGroups = {};
 
   rows.forEach(r => {
