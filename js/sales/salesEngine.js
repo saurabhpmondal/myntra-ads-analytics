@@ -48,7 +48,6 @@ function passFilter(row, filter) {
   return true;
 }
 
-/* ---------- PREV MONTH FILTER ---------- */
 function getPrevMonth(filter) {
   let m = Number(filter.month);
   let y = Number(filter.year);
@@ -62,9 +61,7 @@ function getPrevMonth(filter) {
   return { ...filter, month: m, year: y, start: "", end: "" };
 }
 
-/* ---------- FLAG ENGINE V2 ---------- */
 function getFlag(r) {
-
   const {
     sold, returnPct, drr,
     prevSold, prevDRR,
@@ -74,17 +71,11 @@ function getFlag(r) {
 
   if (sold < 30 && returnPct > 40) return "High Return Low Sale";
   if (sold >= 30 && returnPct > 40) return "High Return";
-
   if (projection < prevSold) return "Low Sale";
-
   if (drr < prevDRR) return "Low DRR";
-
   if (asp > prevASP && drr < prevDRR) return "Price Too High";
-
   if (projection > prevSold && drr > prevDRR && returnPct < 25) return "Scale This";
-
   if (drr > prevDRR && projection > prevSold) return "Demand Spike";
-
   if (sold >= 30 && returnPct < 25) return "Best Pricing";
 
   return "Normal";
@@ -107,7 +98,6 @@ export function buildSalesData(salesRows, returnRows, masterRows, filter) {
     };
   });
 
-  /* ---------- CURRENT MONTH ---------- */
   salesRows.forEach(row => {
     if (!validSale(row)) return;
     if (!passFilter(row, filter)) return;
@@ -146,9 +136,7 @@ export function buildSalesData(salesRows, returnRows, masterRows, filter) {
     map[style].returns += 1;
   });
 
-  /* ---------- PREVIOUS MONTH ---------- */
   const prevFilter = getPrevMonth(filter);
-
   const prevMap = {};
 
   salesRows.forEach(row => {
@@ -173,27 +161,22 @@ export function buildSalesData(salesRows, returnRows, masterRows, filter) {
     r.netUnits = r.sold - r.returns;
     r.returnPct = r.sold ? (r.returns / r.sold) * 100 : 0;
 
-    /* CURRENT */
     r.drr = r.netUnits / 30;
     r.asp = r.sold ? r.value / r.sold : 0;
 
-    /* PREV */
     r.prevSold = prev.sold;
     r.prevRevenue = prev.value;
     r.prevDRR = prev.sold / 30;
     r.prevASP = prev.sold ? prev.value / prev.sold : 0;
 
-    /* PROJECTION */
-    const days = 30;
-    const currentDays = 30; // safe
-    r.projection = (r.netUnits / currentDays) * days;
+    r.projection = r.netUnits;
 
-    /* FLAG */
     r.flag = getFlag(r);
 
     return r;
   });
 
+  /* EXISTING GMV RANK (UNCHANGED) */
   rows.sort((a, b) => b.value - a.value);
 
   rows.forEach((r, i) => {
@@ -201,7 +184,6 @@ export function buildSalesData(salesRows, returnRows, masterRows, filter) {
   });
 
   const brandGroups = {};
-
   rows.forEach(r => {
     if (!brandGroups[r.brand]) brandGroups[r.brand] = [];
     brandGroups[r.brand].push(r);
@@ -211,6 +193,26 @@ export function buildSalesData(salesRows, returnRows, masterRows, filter) {
     group.sort((a, b) => b.value - a.value);
     group.forEach((r, i) => {
       r.brandRank = i + 1;
+    });
+  });
+
+  /* ✅ NEW: UNIT BASED RANK */
+  const rowsByUnits = [...rows].sort((a, b) => b.sold - a.sold);
+
+  rowsByUnits.forEach((r, i) => {
+    r.rank_units = i + 1;
+  });
+
+  const brandGroupsUnits = {};
+  rows.forEach(r => {
+    if (!brandGroupsUnits[r.brand]) brandGroupsUnits[r.brand] = [];
+    brandGroupsUnits[r.brand].push(r);
+  });
+
+  Object.values(brandGroupsUnits).forEach(group => {
+    group.sort((a, b) => b.sold - a.sold);
+    group.forEach((r, i) => {
+      r.brandRank_units = i + 1;
     });
   });
 
