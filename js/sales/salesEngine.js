@@ -48,17 +48,44 @@ function passFilter(row, filter) {
   return true;
 }
 
-/* ---------- NEW FLAG ENGINE ---------- */
-function getFlag(r) {
-  const sold = r.sold;
-  const ret = r.returnPct;
+/* ---------- PREV MONTH FILTER ---------- */
+function getPrevMonth(filter) {
+  let m = Number(filter.month);
+  let y = Number(filter.year);
 
-  if (sold < 30 && ret > 40) return "High Return Low Sale";
-  if (sold >= 30 && ret > 40) return "High Return";
-  if (sold < 10) return "Dead Inventory";
-  if (sold < 20) return "Low Sale";
-  if (ret >= 30 && ret <= 40 && sold > 20) return "Rising Returns";
-  if (sold >= 30 && ret < 25) return "Best Pricing";
+  m -= 1;
+  if (m === 0) {
+    m = 12;
+    y -= 1;
+  }
+
+  return { ...filter, month: m, year: y, start: "", end: "" };
+}
+
+/* ---------- FLAG ENGINE V2 ---------- */
+function getFlag(r) {
+
+  const {
+    sold, returnPct, drr,
+    prevSold, prevDRR,
+    asp, prevASP,
+    projection
+  } = r;
+
+  if (sold < 30 && returnPct > 40) return "High Return Low Sale";
+  if (sold >= 30 && returnPct > 40) return "High Return";
+
+  if (projection < prevSold) return "Low Sale";
+
+  if (drr < prevDRR) return "Low DRR";
+
+  if (asp > prevASP && drr < prevDRR) return "Price Too High";
+
+  if (projection > prevSold && drr > prevDRR && returnPct < 25) return "Scale This";
+
+  if (drr > prevDRR && projection > prevSold) return "Demand Spike";
+
+  if (sold >= 30 && returnPct < 25) return "Best Pricing";
 
   return "Normal";
 }
@@ -80,6 +107,7 @@ export function buildSalesData(salesRows, returnRows, masterRows, filter) {
     };
   });
 
+  /* ---------- CURRENT MONTH ---------- */
   salesRows.forEach(row => {
     if (!validSale(row)) return;
     if (!passFilter(row, filter)) return;
@@ -97,8 +125,6 @@ export function buildSalesData(salesRows, returnRows, masterRows, filter) {
         sold: 0,
         value: 0,
         returns: 0,
-        netUnits: 0,
-        returnPct: 0,
         brand: masterMap[style]?.brand || "",
         erp_sku: masterMap[style]?.erp_sku || "",
         status: masterMap[style]?.status || ""
@@ -120,12 +146,49 @@ export function buildSalesData(salesRows, returnRows, masterRows, filter) {
     map[style].returns += 1;
   });
 
+  /* ---------- PREVIOUS MONTH ---------- */
+  const prevFilter = getPrevMonth(filter);
+
+  const prevMap = {};
+
+  salesRows.forEach(row => {
+    if (!validSale(row)) return;
+    if (!passFilter(row, prevFilter)) return;
+
+    const style = txt(row.style_id);
+    if (!style) return;
+
+    if (!prevMap[style]) {
+      prevMap[style] = { sold: 0, value: 0 };
+    }
+
+    prevMap[style].sold += num(row.qty || 1);
+    prevMap[style].value += num(row.final_amount);
+  });
+
   let rows = Object.values(map).map(r => {
+
+    const prev = prevMap[r.id] || { sold: 0, value: 0 };
+
     r.netUnits = r.sold - r.returns;
     r.returnPct = r.sold ? (r.returns / r.sold) * 100 : 0;
-    r.drr = r.netUnits / 30;
 
-    /* ---------- ADD FLAG ---------- */
+    /* CURRENT */
+    r.drr = r.netUnits / 30;
+    r.asp = r.sold ? r.value / r.sold : 0;
+
+    /* PREV */
+    r.prevSold = prev.sold;
+    r.prevRevenue = prev.value;
+    r.prevDRR = prev.sold / 30;
+    r.prevASP = prev.sold ? prev.value / prev.sold : 0;
+
+    /* PROJECTION */
+    const days = 30;
+    const currentDays = 30; // safe
+    r.projection = (r.netUnits / currentDays) * days;
+
+    /* FLAG */
     r.flag = getFlag(r);
 
     return r;
