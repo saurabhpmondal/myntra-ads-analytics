@@ -47,14 +47,32 @@ function sortRows(rows) {
   return out;
 }
 
-/* ---------- NEW: KPI TREND ---------- */
-
 function trend(current, previous) {
   if (!previous) return { color: "", arrow: "" };
 
   if (current > previous) return { color: "green", arrow: "▲" };
   if (current < previous) return { color: "red", arrow: "▼" };
   return { color: "", arrow: "→" };
+}
+
+function getPrevMonthFilter(filter) {
+  const f = { ...filter };
+
+  let m = Number(filter.month);
+  let y = Number(filter.year);
+
+  if (!m || !y) return f;
+
+  m = m - 1;
+  if (m === 0) {
+    m = 12;
+    y = y - 1;
+  }
+
+  f.month = m;
+  f.year = y;
+
+  return f;
 }
 
 export function initSalesTab() {
@@ -67,9 +85,13 @@ export function initSalesTab() {
     await ensureData();
 
     const filter = window.ACTIVE_FILTER || {};
-    const data = buildSalesData(SALES, RETURNS, MASTER, filter);
 
-    let rows = sortRows(data.rows);
+    const current = buildSalesData(SALES, RETURNS, MASTER, filter);
+
+    const prevFilter = getPrevMonthFilter(filter);
+    const previous = buildSalesData(SALES, RETURNS, MASTER, prevFilter);
+
+    let rows = sortRows(current.rows);
 
     if (BRAND !== "ALL") {
       rows = rows.filter(r => r.brand === BRAND);
@@ -81,18 +103,26 @@ export function initSalesTab() {
       );
     }
 
-    const brands = [...new Set(data.rows.map(r => r.brand))];
+    const brands = [...new Set(current.rows.map(r => r.brand))];
     const visible = rows.slice(0, LIMIT);
 
-    /* ---------------- KPI ---------------- */
+    /* ---------- KPI ---------- */
 
-    const totalRevenue = data.cards.value;
-    const totalUnits = data.cards.sold;
-    const totalReturns = data.cards.returns;
-    const netUnits = data.cards.netUnits;
+    const totalRevenue = current.cards.value;
+    const totalUnits = current.cards.sold;
+    const totalReturns = current.cards.returns;
+    const netUnits = current.cards.netUnits;
+
+    const prevRevenue = previous.cards.value;
+    const prevUnits = previous.cards.sold;
+    const prevReturns = previous.cards.returns;
+    const prevNet = previous.cards.netUnits;
 
     const asp = totalUnits ? totalRevenue / totalUnits : 0;
+    const prevAsp = prevUnits ? prevRevenue / prevUnits : 0;
+
     const returnPct = totalUnits ? (totalReturns / totalUnits) * 100 : 0;
+    const prevReturnPct = prevUnits ? (prevReturns / prevUnits) * 100 : 0;
 
     let days = 30;
     if (filter.start && filter.end) {
@@ -102,31 +132,25 @@ export function initSalesTab() {
     }
 
     const drr = netUnits / (days || 1);
+    const prevDRR = prevNet / 30;
 
-    /* ---------- NEW: PROJECTION ---------- */
+    const fullMonthDays = 30;
 
-    const fullMonthDays = 30; // safe baseline
     const projectedRevenue = (totalRevenue / (days || 1)) * fullMonthDays;
     const projectedUnits = (netUnits / (days || 1)) * fullMonthDays;
 
-    /* ---------- NEW: LAST MONTH (APPROX SAFE) ---------- */
-    // using current dataset as baseline fallback (no engine change)
-    const lastMonthRevenue = projectedRevenue * 0.9; // safe approx baseline
-    const lastMonthUnits = projectedUnits * 0.9;
+    /* ---------- TRENDS ---------- */
 
-    /* ---------- TREND ---------- */
-
-    const tRevenue = trend(projectedRevenue, lastMonthRevenue);
-    const tUnits = trend(projectedUnits, lastMonthUnits);
-    const tASP = trend(asp, asp * 0.95);
-    const tReturn = trend(returnPct, returnPct * 1.05);
-    const tNet = trend(netUnits, lastMonthUnits);
-    const tDRR = trend(drr, drr * 0.95);
+    const tRevenue = trend(projectedRevenue, prevRevenue);
+    const tUnits = trend(projectedUnits, prevUnits);
+    const tASP = trend(asp, prevAsp);
+    const tReturn = trend(returnPct, prevReturnPct);
+    const tNet = trend(netUnits, prevNet);
+    const tDRR = trend(drr, prevDRR);
 
     root.innerHTML = `
       <section class="panel">
 
-        <!-- KPI -->
         <div style="padding:16px;display:grid;grid-template-columns:repeat(6,1fr);gap:10px;">
           
           <div class="card" style="color:${tRevenue.color}">
@@ -161,7 +185,6 @@ export function initSalesTab() {
 
         </div>
 
-        <!-- FILTERS -->
         <div style="padding:16px;display:grid;gap:12px;grid-template-columns:1fr 180px 180px;align-items:end;">
 
           <div>
@@ -229,7 +252,8 @@ export function initSalesTab() {
                     <td>${fmt(r.netUnits)}</td>
                     <td>${fmt(r.drr)}</td>
                   </tr>
-                `).join("")}
+                `).join("")
+              }
             </tbody>
           </table>
         </div>
