@@ -1,7 +1,7 @@
 import { SHEETS } from "../config/sheets.js";
 import { fetchCSV } from "../core/fetcher.js";
 import { parseCSV } from "../core/parser.js";
-import { buildBusinessData } from "./businessEngine.js";
+import { buildBusinessData, buildBrandDailyMatrix } from "./businessEngine.js";
 
 let READY = false;
 let SALES = [];
@@ -60,6 +60,8 @@ export function initBusinessTab() {
       stockRows: STOCK
     });
 
+    const matrix = buildBrandDailyMatrix(SALES);
+
     root.innerHTML = `
       ${table(
         "Brand Wise",
@@ -96,6 +98,17 @@ export function initBusinessTab() {
             <td>${fmt(r.stock)}</td>
             <td>${fmt(r.sales)}</td>
             <td>${fmt(r.sellThrough)}%</td>
+          </tr>
+        `).join("")
+      )}
+
+      ${table(
+        "Brand Daily Performance",
+        ["Date", ...matrix.brands],
+        matrix.rows.map(r => `
+          <tr>
+            <td>${r.date}</td>
+            ${r.brands.map(v=>`<td>${v}</td>`).join("")}
           </tr>
         `).join("")
       )}
