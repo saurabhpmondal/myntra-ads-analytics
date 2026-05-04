@@ -47,12 +47,13 @@ function sortRows(rows) {
   return out;
 }
 
+/* ---------- CLEAN TREND (NO COLOR) ---------- */
 function trend(current, previous) {
-  if (!previous) return { color: "", arrow: "" };
+  if (!previous) return "";
 
-  if (current > previous) return { color: "green", arrow: "▲" };
-  if (current < previous) return { color: "red", arrow: "▼" };
-  return { color: "", arrow: "→" };
+  if (current > previous) return "▲";
+  if (current < previous) return "▼";
+  return "→";
 }
 
 function getPrevMonthFilter(filter) {
@@ -87,7 +88,6 @@ export function initSalesTab() {
     const filter = window.ACTIVE_FILTER || {};
 
     const current = buildSalesData(SALES, RETURNS, MASTER, filter);
-
     const prevFilter = getPrevMonthFilter(filter);
     const previous = buildSalesData(SALES, RETURNS, MASTER, prevFilter);
 
@@ -139,52 +139,47 @@ export function initSalesTab() {
     const projectedRevenue = (totalRevenue / (days || 1)) * fullMonthDays;
     const projectedUnits = (netUnits / (days || 1)) * fullMonthDays;
 
-    /* ---------- TRENDS ---------- */
-
-    const tRevenue = trend(projectedRevenue, prevRevenue);
-    const tUnits = trend(projectedUnits, prevUnits);
-    const tASP = trend(asp, prevAsp);
-    const tReturn = trend(returnPct, prevReturnPct);
-    const tNet = trend(netUnits, prevNet);
-    const tDRR = trend(drr, prevDRR);
+    /* ---------- UI ---------- */
 
     root.innerHTML = `
       <section class="panel">
 
+        <!-- CLEAN KPI -->
         <div style="padding:16px;display:grid;grid-template-columns:repeat(6,1fr);gap:10px;">
           
-          <div class="card" style="color:${tRevenue.color}">
+          <div class="card">
             <div class="label">Revenue</div>
-            <div class="value">₹${fmt(totalRevenue)} ${tRevenue.arrow}</div>
+            <div class="value">₹${fmt(totalRevenue)} ${trend(projectedRevenue, prevRevenue)}</div>
           </div>
 
-          <div class="card" style="color:${tUnits.color}">
+          <div class="card">
             <div class="label">Units</div>
-            <div class="value">${fmt(totalUnits)} ${tUnits.arrow}</div>
+            <div class="value">${fmt(totalUnits)} ${trend(projectedUnits, prevUnits)}</div>
           </div>
 
-          <div class="card" style="color:${tASP.color}">
+          <div class="card">
             <div class="label">ASP</div>
-            <div class="value">₹${fmt(asp)} ${tASP.arrow}</div>
+            <div class="value">₹${fmt(asp)} ${trend(asp, prevAsp)}</div>
           </div>
 
-          <div class="card" style="color:${tReturn.color}">
+          <div class="card">
             <div class="label">Return %</div>
-            <div class="value">${fmt(returnPct)}% ${tReturn.arrow}</div>
+            <div class="value">${fmt(returnPct)}% ${trend(returnPct, prevReturnPct)}</div>
           </div>
 
-          <div class="card" style="color:${tNet.color}">
+          <div class="card">
             <div class="label">Net Units</div>
-            <div class="value">${fmt(netUnits)} ${tNet.arrow}</div>
+            <div class="value">${fmt(netUnits)} ${trend(netUnits, prevNet)}</div>
           </div>
 
-          <div class="card" style="color:${tDRR.color}">
+          <div class="card">
             <div class="label">DRR</div>
-            <div class="value">${fmt(drr)} ${tDRR.arrow}</div>
+            <div class="value">${fmt(drr)} ${trend(drr, prevDRR)}</div>
           </div>
 
         </div>
 
+        <!-- ORIGINAL FILTERS (UNCHANGED) -->
         <div style="padding:16px;display:grid;gap:12px;grid-template-columns:1fr 180px 180px;align-items:end;">
 
           <div>
@@ -237,28 +232,69 @@ export function initSalesTab() {
 
             <tbody>
               ${
-                visible.map(r => `
-                  <tr>
-                    <td>${r.rank}</td>
-                    <td>${r.brandRank}</td>
-                    <td><a href="https://www.myntra.com/${r.id}" target="_blank">${r.id}</a></td>
-                    <td>${r.brand}</td>
-                    <td>${r.erp_sku}</td>
-                    <td>${r.status}</td>
-                    <td>${fmt(r.sold)}</td>
-                    <td>₹${fmt(r.value)}</td>
-                    <td>${fmt(r.returns)}</td>
-                    <td>${fmt(r.returnPct)}%</td>
-                    <td>${fmt(r.netUnits)}</td>
-                    <td>${fmt(r.drr)}</td>
-                  </tr>
-                `).join("")
+                visible.length
+                  ? visible.map(r => `
+                      <tr>
+                        <td>${r.rank}</td>
+                        <td>${r.brandRank}</td>
+                        <td><a href="https://www.myntra.com/${r.id}" target="_blank">${r.id}</a></td>
+                        <td>${r.brand}</td>
+                        <td>${r.erp_sku}</td>
+                        <td>${r.status}</td>
+                        <td>${fmt(r.sold)}</td>
+                        <td>₹${fmt(r.value)}</td>
+                        <td>${fmt(r.returns)}</td>
+                        <td>${fmt(r.returnPct)}%</td>
+                        <td>${fmt(r.netUnits)}</td>
+                        <td>${fmt(r.drr)}</td>
+                      </tr>
+                    `).join("")
+                  : `<tr><td colspan="12">No data</td></tr>`
               }
             </tbody>
           </table>
         </div>
 
+        ${
+          rows.length > LIMIT
+            ? `<button id="salesMore" class="load-more">Load More</button>`
+            : ""
+        }
+
       </section>
     `;
+
+    document.getElementById("salesSort").value = SORT;
+    document.getElementById("salesBrand").value = BRAND;
+
+    document.getElementById("salesSort").onchange = e => {
+      SORT = e.target.value;
+      LIMIT = 50;
+      window.renderSalesTab();
+    };
+
+    document.getElementById("salesBrand").onchange = e => {
+      BRAND = e.target.value;
+      LIMIT = 50;
+      window.renderSalesTab();
+    };
+
+    document.getElementById("salesSearch").oninput = e => {
+      clearTimeout(TIMER);
+      TIMER = setTimeout(() => {
+        QUERY = e.target.value;
+        LIMIT = 50;
+        window.renderSalesTab();
+      }, 300);
+    };
+
+    const more = document.getElementById("salesMore");
+
+    if (more) {
+      more.onclick = () => {
+        LIMIT += 50;
+        window.renderSalesTab();
+      };
+    }
   };
 }
