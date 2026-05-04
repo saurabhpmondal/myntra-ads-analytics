@@ -75,9 +75,45 @@ export function initSalesTab() {
 
     const visible = rows.slice(0, LIMIT);
 
+    /* ---------------- NEW KPI CALC ---------------- */
+
+    const totalRevenue = data.cards.value;
+    const totalUnits = data.cards.sold;
+    const totalReturns = data.cards.returns;
+    const netUnits = data.cards.netUnits;
+
+    const asp = totalUnits ? totalRevenue / totalUnits : 0;
+    const returnPct = totalUnits ? (totalReturns / totalUnits) * 100 : 0;
+
+    /* DRR based on filter range */
+    let days = 30;
+
+    if (filter.start && filter.end) {
+      const s = Number(String(filter.start).slice(-2));
+      const e = Number(String(filter.end).slice(-2));
+      if (s && e && e >= s) days = (e - s + 1);
+    }
+
+    const drr = netUnits / (days || 1);
+
+    /* ---------------- UI ---------------- */
+
     root.innerHTML = `
       <section class="panel">
 
+        <!-- KPI CARDS -->
+        <div style="padding:16px;display:grid;grid-template-columns:repeat(6,1fr);gap:10px;">
+          
+          <div class="card"><div class="label">Revenue</div><div class="value">₹${fmt(totalRevenue)}</div></div>
+          <div class="card"><div class="label">Units</div><div class="value">${fmt(totalUnits)}</div></div>
+          <div class="card"><div class="label">ASP</div><div class="value">₹${fmt(asp)}</div></div>
+          <div class="card"><div class="label">Return %</div><div class="value">${fmt(returnPct)}%</div></div>
+          <div class="card"><div class="label">Net Units</div><div class="value">${fmt(netUnits)}</div></div>
+          <div class="card"><div class="label">DRR</div><div class="value">${fmt(drr)}</div></div>
+
+        </div>
+
+        <!-- EXISTING FILTERS -->
         <div style="padding:16px;display:grid;gap:12px;grid-template-columns:1fr 180px 180px;align-items:end;">
 
           <div>
