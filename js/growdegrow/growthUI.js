@@ -3,6 +3,10 @@ import { buildGrowthData } from "./growthEngine.js";
 let DATA = null;
 let viewMode = "none";
 
+/* NEW */
+let brandFilter = "ALL";
+let searchText = "";
+
 function fmtPct(v){
   return `${v.toFixed(1)}%`;
 }
@@ -17,16 +21,56 @@ export function initGrowDegrowTab(){
 
     const { rows, days, prev1DaysArr, prev2DaysArr, months } = DATA;
 
+    /* ---------- NEW: BUILD BRAND LIST ---------- */
+    const brands = Array.from(
+      new Set(rows.map(r => (r.brand || "").trim()).filter(Boolean))
+    ).sort();
+
+    /* ---------- NEW: APPLY FILTERS ---------- */
+    let filteredRows = rows;
+
+    if (brandFilter !== "ALL") {
+      filteredRows = filteredRows.filter(r => r.brand === brandFilter);
+    }
+
+    if (searchText) {
+      const s = searchText.toLowerCase();
+      filteredRows = filteredRows.filter(r =>
+        String(r.style_id).toLowerCase().includes(s) ||
+        String(r.erp_sku).toLowerCase().includes(s)
+      );
+    }
+
     let html = `
       <section class="panel">
-        <div class="panel-head" style="display:flex;justify-content:space-between;align-items:center;">
+        <div class="panel-head" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+          
           <h3>Growth Report</h3>
 
-          <select id="viewMode" style="padding:3px 6px;font-size:12px;width:150px;">
-            <option value="none">No Previous</option>
-            <option value="prev1">${months.prev1} Day-wise</option>
-            <option value="prev2">${months.prev2} Day-wise</option>
-          </select>
+          <div style="display:flex;gap:8px;align-items:center;">
+
+            <!-- NEW: SEARCH -->
+            <input 
+              id="searchBox"
+              placeholder="Search style / SKU"
+              style="padding:4px 6px;font-size:12px;width:160px;"
+              value="${searchText}"
+            />
+
+            <!-- NEW: BRAND FILTER -->
+            <select id="brandFilter" style="padding:3px 6px;font-size:12px;width:140px;">
+              <option value="ALL">All Brands</option>
+              ${brands.map(b=>`<option value="${b}">${b}</option>`).join("")}
+            </select>
+
+            <!-- EXISTING -->
+            <select id="viewMode" style="padding:3px 6px;font-size:12px;width:150px;">
+              <option value="none">No Previous</option>
+              <option value="prev1">${months.prev1} Day-wise</option>
+              <option value="prev2">${months.prev2} Day-wise</option>
+            </select>
+
+          </div>
         </div>
 
         <div class="table-wrap" style="overflow:auto;">
@@ -56,7 +100,7 @@ export function initGrowDegrowTab(){
             <tbody>
     `;
 
-    rows.slice(0,100).forEach(r=>{
+    filteredRows.slice(0,100).forEach(r=>{
 
       const projColor = r.projection > r.m1 ? "green" : "red";
       const growthColor =
@@ -82,7 +126,19 @@ export function initGrowDegrowTab(){
         <td>${r.drr.toFixed(1)}</td>
         <td style="color:${projColor}">${r.projection.toFixed(0)}</td>
 
-        ${days.map(d=>`<td>${r.days[d]||0}</td>`).join("")}
+        ${days.map((d,i)=>{
+          const val = r.days[d] || 0;
+          const prev = i > 0 ? (r.days[days[i-1]] || 0) : null;
+
+          let color = "";
+          if (prev !== null) {
+            if (val > prev) color = "green";
+            else if (val < prev) color = "red";
+            else color = ""; // no color if same
+          }
+
+          return `<td style="color:${color}">${val}</td>`;
+        }).join("")}
       </tr>`;
     });
 
@@ -90,11 +146,27 @@ export function initGrowDegrowTab(){
 
     root.innerHTML = html;
 
-    const select = document.getElementById("viewMode");
-    select.value = viewMode;
+    /* ---------- BIND CONTROLS ---------- */
 
-    select.onchange = (e)=>{
+    const view = document.getElementById("viewMode");
+    const brand = document.getElementById("brandFilter");
+    const search = document.getElementById("searchBox");
+
+    view.value = viewMode;
+    brand.value = brandFilter;
+
+    view.onchange = e=>{
       viewMode = e.target.value;
+      window.renderGrowDegrowTab();
+    };
+
+    brand.onchange = e=>{
+      brandFilter = e.target.value;
+      window.renderGrowDegrowTab();
+    };
+
+    search.oninput = e=>{
+      searchText = e.target.value;
       window.renderGrowDegrowTab();
     };
   };
