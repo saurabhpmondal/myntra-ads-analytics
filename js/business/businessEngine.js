@@ -56,13 +56,9 @@ export function buildBusinessData(data) {
 
   let totalUnits = 0;
 
-  /* ---------------- SALES FILTER (MATCH SALES ENGINE) ---------------- */
-
   const filteredSales = salesRows.filter(r =>
     validSale(r) && passFilter(r, filter)
   );
-
-  /* ---------------- SALES AGG ---------------- */
 
   filteredSales.forEach(r => {
     const qty = num(r.qty || 1);
@@ -74,28 +70,23 @@ export function buildBusinessData(data) {
 
     totalUnits += qty;
 
-    /* BRAND */
     if (!brandMap[brand]) {
       brandMap[brand] = { brand, units: 0, revenue: 0 };
     }
     brandMap[brand].units += qty;
     brandMap[brand].revenue += revenue;
 
-    /* PO */
     if (!poMap[po]) {
       poMap[po] = { po, units: 0, revenue: 0 };
     }
     poMap[po].units += qty;
     poMap[po].revenue += revenue;
 
-    /* WAREHOUSE SALES */
     if (!warehouseSales[wh]) {
       warehouseSales[wh] = 0;
     }
     warehouseSales[wh] += qty;
   });
-
-  /* ---------------- STOCK AGG ---------------- */
 
   stockRows.forEach(r => {
     const wh = txt(r.warehouse_id);
@@ -108,8 +99,6 @@ export function buildBusinessData(data) {
     warehouseStock[wh] += stock;
   });
 
-  /* ---------------- BRAND OUTPUT ---------------- */
-
   const brands = Object.values(brandMap)
     .map(r => ({
       ...r,
@@ -117,16 +106,12 @@ export function buildBusinessData(data) {
     }))
     .sort((a, b) => b.units - a.units);
 
-  /* ---------------- PO OUTPUT ---------------- */
-
   const pos = Object.values(poMap)
     .map(r => ({
       ...r,
       share: totalUnits ? (r.units / totalUnits) * 100 : 0
     }))
     .sort((a, b) => b.units - a.units);
-
-  /* ---------------- WAREHOUSE OUTPUT ---------------- */
 
   const warehouses = Object.keys(warehouseStock)
     .map(wh => {
@@ -147,4 +132,42 @@ export function buildBusinessData(data) {
     pos,
     warehouses
   };
+}
+
+/* ---------------- NEW: BRAND DAILY MATRIX ---------------- */
+
+export function buildBrandDailyMatrix(salesRows) {
+  const filter = window.ACTIVE_FILTER || {};
+
+  const filtered = salesRows.filter(r =>
+    validSale(r) && passFilter(r, filter)
+  );
+
+  const brandSet = new Set();
+  const dateMap = {};
+
+  filtered.forEach(r => {
+    const brand = txt(r.brand);
+    const d = num(r.date);
+    const qty = num(r.qty || 1);
+
+    if (!brand || !d) return;
+
+    brandSet.add(brand);
+
+    if (!dateMap[d]) dateMap[d] = {};
+    if (!dateMap[d][brand]) dateMap[d][brand] = 0;
+
+    dateMap[d][brand] += qty;
+  });
+
+  const brands = Array.from(brandSet).sort();
+  const dates = Object.keys(dateMap).map(Number).sort((a,b)=>a-b);
+
+  const rows = dates.map(d => ({
+    date: d,
+    brands: brands.map(b => dateMap[d][b] || 0)
+  }));
+
+  return { brands, rows };
 }
