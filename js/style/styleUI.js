@@ -106,38 +106,20 @@ export function initStyleTab() {
     const rows = getFilteredRows();
     const report = buildStyleReport(rows);
 
-    /* ---------- SALES DATA (RANK) ---------- */
-
-    const filter = window.ACTIVE_FILTER || {};
-    const sales = buildSalesData(
-      window.SALES_ROWS || [],
-      window.RETURN_ROWS || [],
-      window.MASTER_ROWS || [],
-      filter
-    );
-
-    const salesMap = {};
-    sales.rows.forEach(r => {
-      salesMap[r.id] = r;
-    });
-
-    /* ---------- MASTER MAP ---------- */
+    /* ---------- MASTER MAP ONLY (KEEP) ---------- */
 
     const masterMap = {};
     (window.MASTER_ROWS || []).forEach(r => {
       masterMap[String(r.style_id).trim()] = r;
     });
 
-    /* ---------- MERGE ---------- */
+    /* ---------- MERGE (REMOVED RANKS ONLY) ---------- */
 
     const enriched = report.map(r => {
-      const s = salesMap[r.id] || {};
       const m = masterMap[r.id] || {};
 
       return {
         ...r,
-        rank: s.rank_units || "",
-        brandRank: s.brandRank_units || "",
         launch: m.launch_date || "",
         live: m.live_date || ""
       };
@@ -179,8 +161,6 @@ export function initStyleTab() {
           <table>
             <thead>
               <tr>
-                <th>Rank</th>
-                <th>Brand Rank</th>
                 <th>Style ID</th>
                 <th>Launch</th>
                 <th>Live</th>
@@ -200,9 +180,6 @@ export function initStyleTab() {
             <tbody>
               ${visible.map(r => `
                 <tr>
-                  <td>${r.rank}</td>
-                  <td>${r.brandRank}</td>
-
                   <td>
                     <a href="https://www.myntra.com/${r.id}" target="_blank">
                       ${r.id}
