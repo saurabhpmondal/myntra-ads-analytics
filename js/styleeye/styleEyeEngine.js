@@ -1,4 +1,5 @@
 import { buildStyleReport } from "../style/styleEngine.js";
+import { buildSalesData } from "../sales/salesEngine.js"; // ✅ ADDED
 
 function txt(v){return String(v==null?"":v).trim();}
 function num(v){return Number(String(v==null?"":v).replace(/,/g,"").trim())||0;}
@@ -100,7 +101,36 @@ function buildActions(x){
   return out;
 }
 
+/* ---------------- ADD: RANK MAP ---------------- */
+function getRankingMap(data){
+  const filter = window.ACTIVE_FILTER || {};
+
+  const sales = buildSalesData(
+    data.salesRows || [],
+    data.returnRows || [],
+    data.masterRows || [],
+    filter
+  );
+
+  const map = {};
+
+  sales.rows.forEach(r=>{
+    map[r.id] = {
+      overall: r.rank,
+      brand: r.brandRank
+    };
+  });
+
+  return map;
+}
+/* ---------------- END ADD ---------------- */
+
 export function buildStyleEyeData(data,query){
+
+  /* -------- ADD -------- */
+  const rankMap = getRankingMap(data);
+  /* -------- END ADD -------- */
+
   var q=txt(query).toLowerCase();
 
   var salesRows=data.salesRows || [];
@@ -271,6 +301,14 @@ export function buildStyleEyeData(data,query){
       risk:returnPct>35 ? "Risk" : "No Risk"
     }
   };
+
+  /* -------- ADD: INJECT RANK -------- */
+  const rank = rankMap[styleId] || {};
+  result.ranking = {
+    overall: rank.overall || 0,
+    brand: rank.brand || 0
+  };
+  /* -------- END ADD -------- */
 
   result.actions=buildActions(result);
 
