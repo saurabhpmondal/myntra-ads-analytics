@@ -7,6 +7,9 @@ let viewMode = "none";
 let brandFilter = "ALL";
 let searchText = "";
 
+/* NEW */
+let LIMIT = 100;
+
 function fmtPct(v){
   return `${v.toFixed(1)}%`;
 }
@@ -16,6 +19,15 @@ export function initGrowDegrowTab(){
   window.renderGrowDegrowTab = async () => {
 
     const root = document.getElementById("growdegrow");
+
+    /* ✅ NEW: LOADING STATE */
+    if (!DATA) {
+      root.innerHTML = `
+        <section class="panel">
+          <div class="loading">Loading Growth Report...</div>
+        </section>
+      `;
+    }
 
     if(!DATA) DATA = await buildGrowthData();
 
@@ -49,7 +61,7 @@ export function initGrowDegrowTab(){
 
           <div style="display:flex;gap:8px;align-items:center;">
 
-            <!-- NEW: SEARCH -->
+            <!-- SEARCH -->
             <input 
               id="searchBox"
               placeholder="Search style / SKU"
@@ -57,13 +69,13 @@ export function initGrowDegrowTab(){
               value="${searchText}"
             />
 
-            <!-- NEW: BRAND FILTER -->
+            <!-- BRAND FILTER -->
             <select id="brandFilter" style="padding:3px 6px;font-size:12px;width:140px;">
               <option value="ALL">All Brands</option>
               ${brands.map(b=>`<option value="${b}">${b}</option>`).join("")}
             </select>
 
-            <!-- EXISTING -->
+            <!-- VIEW -->
             <select id="viewMode" style="padding:3px 6px;font-size:12px;width:150px;">
               <option value="none">No Previous</option>
               <option value="prev1">${months.prev1} Day-wise</option>
@@ -100,7 +112,8 @@ export function initGrowDegrowTab(){
             <tbody>
     `;
 
-    filteredRows.slice(0,100).forEach(r=>{
+    /* ✅ UPDATED: USE LIMIT */
+    filteredRows.slice(0, LIMIT).forEach(r=>{
 
       const projColor = r.projection > r.m1 ? "green" : "red";
       const growthColor =
@@ -134,7 +147,6 @@ export function initGrowDegrowTab(){
           if (prev !== null) {
             if (val > prev) color = "green";
             else if (val < prev) color = "red";
-            else color = ""; // no color if same
           }
 
           return `<td style="color:${color}">${val}</td>`;
@@ -142,7 +154,18 @@ export function initGrowDegrowTab(){
       </tr>`;
     });
 
-    html += `</tbody></table></div></section>`;
+    html += `</tbody></table></div>`;
+
+    /* ✅ NEW: LOAD MORE BUTTON */
+    if (filteredRows.length > LIMIT) {
+      html += `
+        <div style="padding:10px;text-align:center;">
+          <button id="loadMore" class="load-more">Load More</button>
+        </div>
+      `;
+    }
+
+    html += `</section>`;
 
     root.innerHTML = html;
 
@@ -157,17 +180,29 @@ export function initGrowDegrowTab(){
 
     view.onchange = e=>{
       viewMode = e.target.value;
+      LIMIT = 100; /* reset */
       window.renderGrowDegrowTab();
     };
 
     brand.onchange = e=>{
       brandFilter = e.target.value;
+      LIMIT = 100;
       window.renderGrowDegrowTab();
     };
 
     search.oninput = e=>{
       searchText = e.target.value;
+      LIMIT = 100;
       window.renderGrowDegrowTab();
     };
+
+    /* ✅ NEW: LOAD MORE EVENT */
+    const more = document.getElementById("loadMore");
+    if (more) {
+      more.onclick = ()=>{
+        LIMIT += 100;
+        window.renderGrowDegrowTab();
+      };
+    }
   };
 }
