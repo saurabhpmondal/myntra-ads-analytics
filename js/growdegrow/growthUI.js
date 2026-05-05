@@ -3,11 +3,12 @@ import { buildGrowthData } from "./growthEngine.js";
 let DATA = null;
 let viewMode = "none";
 
-/* NEW */
 let brandFilter = "ALL";
 let searchText = "";
 
-/* NEW */
+/* ✅ NEW */
+let ratingFilter = "ALL";
+let growthFilter = "ALL";
 let LIMIT = 100;
 
 function fmtPct(v){
@@ -20,26 +21,24 @@ export function initGrowDegrowTab(){
 
     const root = document.getElementById("growdegrow");
 
-    /* ✅ NEW: LOADING STATE */
-    if (!DATA) {
-      root.innerHTML = `
-        <section class="panel">
-          <div class="loading">Loading Growth Report...</div>
-        </section>
-      `;
-    }
+    /* ✅ LOADING STATE (ADDED) */
+    root.innerHTML = `
+      <section class="panel">
+        <div class="loading">Loading Growth Report...</div>
+      </section>
+    `;
 
     if(!DATA) DATA = await buildGrowthData();
 
     const { rows, days, prev1DaysArr, prev2DaysArr, months } = DATA;
 
-    /* ---------- NEW: BUILD BRAND LIST ---------- */
     const brands = Array.from(
       new Set(rows.map(r => (r.brand || "").trim()).filter(Boolean))
     ).sort();
 
-    /* ---------- NEW: APPLY FILTERS ---------- */
     let filteredRows = rows;
+
+    /* ---------- EXISTING FILTERS ---------- */
 
     if (brandFilter !== "ALL") {
       filteredRows = filteredRows.filter(r => r.brand === brandFilter);
@@ -53,15 +52,37 @@ export function initGrowDegrowTab(){
       );
     }
 
+    /* ---------- NEW FILTERS ---------- */
+
+    if (ratingFilter !== "ALL") {
+      if (ratingFilter === "LOW") {
+        filteredRows = filteredRows.filter(r => r.rating < 3);
+      }
+      if (ratingFilter === "MID") {
+        filteredRows = filteredRows.filter(r => r.rating >= 3 && r.rating <= 4);
+      }
+      if (ratingFilter === "HIGH") {
+        filteredRows = filteredRows.filter(r => r.rating > 4);
+      }
+    }
+
+    if (growthFilter !== "ALL") {
+      if (growthFilter === "POS") {
+        filteredRows = filteredRows.filter(r => r.growth > 0);
+      }
+      if (growthFilter === "NEG") {
+        filteredRows = filteredRows.filter(r => r.growth < 0);
+      }
+    }
+
     let html = `
       <section class="panel">
         <div class="panel-head" style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
           
           <h3>Growth Report</h3>
 
-          <div style="display:flex;gap:8px;align-items:center;">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
 
-            <!-- SEARCH -->
             <input 
               id="searchBox"
               placeholder="Search style / SKU"
@@ -69,13 +90,26 @@ export function initGrowDegrowTab(){
               value="${searchText}"
             />
 
-            <!-- BRAND FILTER -->
             <select id="brandFilter" style="padding:3px 6px;font-size:12px;width:140px;">
               <option value="ALL">All Brands</option>
               ${brands.map(b=>`<option value="${b}">${b}</option>`).join("")}
             </select>
 
-            <!-- VIEW -->
+            <!-- ✅ NEW RATING FILTER -->
+            <select id="ratingFilter" style="padding:3px 6px;font-size:12px;width:150px;">
+              <option value="ALL">All Ratings</option>
+              <option value="LOW">Below 3</option>
+              <option value="MID">Between 3-4</option>
+              <option value="HIGH">Above 4</option>
+            </select>
+
+            <!-- ✅ NEW GROWTH FILTER -->
+            <select id="growthFilter" style="padding:3px 6px;font-size:12px;width:140px;">
+              <option value="ALL">All Growth</option>
+              <option value="POS">Positive</option>
+              <option value="NEG">Negative</option>
+            </select>
+
             <select id="viewMode" style="padding:3px 6px;font-size:12px;width:150px;">
               <option value="none">No Previous</option>
               <option value="prev1">${months.prev1} Day-wise</option>
@@ -83,6 +117,10 @@ export function initGrowDegrowTab(){
             </select>
 
           </div>
+        </div>
+
+        <div style="padding:6px 12px;font-size:12px;color:#666;">
+          Showing ${Math.min(LIMIT, filteredRows.length)} of ${filteredRows.length}
         </div>
 
         <div class="table-wrap" style="overflow:auto;">
@@ -112,8 +150,7 @@ export function initGrowDegrowTab(){
             <tbody>
     `;
 
-    /* ✅ UPDATED: USE LIMIT */
-    filteredRows.slice(0, LIMIT).forEach(r=>{
+    filteredRows.slice(0,LIMIT).forEach(r=>{
 
       const projColor = r.projection > r.m1 ? "green" : "red";
       const growthColor =
@@ -121,7 +158,11 @@ export function initGrowDegrowTab(){
         r.growth < 0 ? "red" : "gray";
 
       html += `<tr>
-        <td>${r.style_id}</td>
+        <td>
+          <a href="https://www.myntra.com/${r.style_id}" target="_blank">
+            ${r.style_id}
+          </a>
+        </td>
         <td>${r.erp_sku}</td>
         <td>${r.brand}</td>
         <td>${r.rating || ""}</td>
@@ -156,50 +197,50 @@ export function initGrowDegrowTab(){
 
     html += `</tbody></table></div>`;
 
-    /* ✅ NEW: LOAD MORE BUTTON */
+    /* ✅ LOAD MORE (ADDED) */
     if (filteredRows.length > LIMIT) {
-      html += `
-        <div style="padding:10px;text-align:center;">
-          <button id="loadMore" class="load-more">Load More</button>
-        </div>
-      `;
+      html += `<button id="loadMoreGrowth" class="load-more">Load More</button>`;
     }
 
     html += `</section>`;
 
     root.innerHTML = html;
 
-    /* ---------- BIND CONTROLS ---------- */
+    /* ---------- BIND ---------- */
 
-    const view = document.getElementById("viewMode");
-    const brand = document.getElementById("brandFilter");
-    const search = document.getElementById("searchBox");
+    document.getElementById("viewMode").value = viewMode;
+    document.getElementById("brandFilter").value = brandFilter;
+    document.getElementById("ratingFilter").value = ratingFilter;
+    document.getElementById("growthFilter").value = growthFilter;
 
-    view.value = viewMode;
-    brand.value = brandFilter;
-
-    view.onchange = e=>{
+    document.getElementById("viewMode").onchange = e=>{
       viewMode = e.target.value;
-      LIMIT = 100; /* reset */
       window.renderGrowDegrowTab();
     };
 
-    brand.onchange = e=>{
+    document.getElementById("brandFilter").onchange = e=>{
       brandFilter = e.target.value;
-      LIMIT = 100;
       window.renderGrowDegrowTab();
     };
 
-    search.oninput = e=>{
+    document.getElementById("ratingFilter").onchange = e=>{
+      ratingFilter = e.target.value;
+      window.renderGrowDegrowTab();
+    };
+
+    document.getElementById("growthFilter").onchange = e=>{
+      growthFilter = e.target.value;
+      window.renderGrowDegrowTab();
+    };
+
+    document.getElementById("searchBox").oninput = e=>{
       searchText = e.target.value;
-      LIMIT = 100;
       window.renderGrowDegrowTab();
     };
 
-    /* ✅ NEW: LOAD MORE EVENT */
-    const more = document.getElementById("loadMore");
+    const more = document.getElementById("loadMoreGrowth");
     if (more) {
-      more.onclick = ()=>{
+      more.onclick = () => {
         LIMIT += 100;
         window.renderGrowDegrowTab();
       };
