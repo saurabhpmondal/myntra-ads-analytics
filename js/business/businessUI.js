@@ -43,41 +43,31 @@ export function initBusinessTab() {
 
     const matrix = buildBrandDailyMatrix(SALES);
 
-    /* ---------- BRAND TABLE ---------- */
+    /* ---------- BUILD TABLES ---------- */
 
     function brandRows() {
-      let html = data.brands.map(r => {
-        const asp = r.units ? r.revenue / r.units : 0;
-
-        return `
-          <tr>
-            <td>${r.brand}</td>
-            <td>${fmt(r.units)}</td>
-            <td>₹${fmt(r.revenue)}</td>
-            <td>₹${fmt(asp)}</td>
-            <td>${fmt(r.share)}%</td>
-          </tr>
-        `;
-      }).join("");
-
-      const totalAsp = data.totals.units
-        ? data.totals.revenue / data.totals.units
-        : 0;
+      let html = data.brands.map(r => `
+        <tr>
+          <td>${r.brand}</td>
+          <td>${fmt(r.units)}</td>
+          <td>₹${fmt(r.revenue)}</td>
+          <td>${fmt(r.share)}%</td>
+          <td>₹${fmt(r.units ? r.revenue / r.units : 0)}</td>
+        </tr>
+      `).join("");
 
       html += `
         <tr style="font-weight:bold;background:#f5f5f5;">
           <td>Total</td>
           <td>${fmt(data.totals.units)}</td>
           <td>₹${fmt(data.totals.revenue)}</td>
-          <td>₹${fmt(totalAsp)}</td>
           <td>100%</td>
+          <td>₹${fmt(data.totals.units ? data.totals.revenue / data.totals.units : 0)}</td>
         </tr>
       `;
 
       return html;
     }
-
-    /* ---------- PO TABLE ---------- */
 
     function poRows() {
       let totalUnits = 0;
@@ -87,35 +77,29 @@ export function initBusinessTab() {
         totalUnits += r.units;
         totalRevenue += r.revenue;
 
-        const asp = r.units ? r.revenue / r.units : 0;
-
         return `
           <tr>
             <td>${r.po}</td>
             <td>${fmt(r.units)}</td>
             <td>₹${fmt(r.revenue)}</td>
-            <td>₹${fmt(asp)}</td>
             <td>${fmt(r.share)}%</td>
+            <td>₹${fmt(r.units ? r.revenue / r.units : 0)}</td>
           </tr>
         `;
       }).join("");
-
-      const totalAsp = totalUnits ? totalRevenue / totalUnits : 0;
 
       html += `
         <tr style="font-weight:bold;background:#f5f5f5;">
           <td>Total</td>
           <td>${fmt(totalUnits)}</td>
           <td>₹${fmt(totalRevenue)}</td>
-          <td>₹${fmt(totalAsp)}</td>
           <td>100%</td>
+          <td>₹${fmt(totalUnits ? totalRevenue / totalUnits : 0)}</td>
         </tr>
       `;
 
       return html;
     }
-
-    /* ---------- MATRIX TABLE ---------- */
 
     function matrixTable() {
       const heads = ["Date", ...matrix.brands];
@@ -169,21 +153,17 @@ export function initBusinessTab() {
       `;
     }
 
-    /* ---------- UI ---------- */
+    /* ✅ ONLY CHANGE = ORDER */
 
     root.innerHTML = `
+      ${matrixTable()} <!-- 🔥 NOW AT TOP -->
+
       <section class="panel">
         <div class="panel-head"><h3>Brand Wise</h3></div>
         <div class="table-wrap">
           <table>
             <thead>
-              <tr>
-                <th>Brand</th>
-                <th>Units</th>
-                <th>Revenue</th>
-                <th>ASP</th>
-                <th>Share %</th>
-              </tr>
+              <tr><th>Brand</th><th>Units</th><th>Revenue</th><th>Share %</th><th>ASP</th></tr>
             </thead>
             <tbody>${brandRows()}</tbody>
           </table>
@@ -195,13 +175,7 @@ export function initBusinessTab() {
         <div class="table-wrap">
           <table>
             <thead>
-              <tr>
-                <th>PO Type</th>
-                <th>Units</th>
-                <th>Revenue</th>
-                <th>ASP</th>
-                <th>Share %</th>
-              </tr>
+              <tr><th>PO Type</th><th>Units</th><th>Revenue</th><th>Share %</th><th>ASP</th></tr>
             </thead>
             <tbody>${poRows()}</tbody>
           </table>
@@ -228,8 +202,6 @@ export function initBusinessTab() {
           </table>
         </div>
       </section>
-
-      ${matrixTable()}
     `;
   };
 }
