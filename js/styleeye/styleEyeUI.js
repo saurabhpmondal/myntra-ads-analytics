@@ -78,6 +78,14 @@ function renderSingle(root, d) {
           <div style="margin-top:8px;font-size:13px;color:#666;">
             ${d.brand} | ${d.erp_sku} | ${d.status} | Rating ${fmt(d.rating)}
           </div>
+
+          <!-- ✅ ADDED (NO CHANGE ABOVE) -->
+          <div style="margin-top:8px;font-size:13px;color:#444;">
+            Overall Rank: ${d.ranking.overall || "-"} |
+            Brand Rank: ${d.ranking.brand || "-"} |
+            Launch: ${d.launch_date || "-"} |
+            Live: ${d.live_date || "-"}
+          </div>
         </div>
 
         <a
