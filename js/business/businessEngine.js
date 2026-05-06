@@ -44,6 +44,21 @@ function passFilter(row, filter) {
   return true;
 }
 
+function daysInMonth(year, month) {
+  return new Date(year, month, 0).getDate();
+}
+
+function previousMonth(year, month) {
+  if (month === 1) {
+    return { year: year - 1, month: 12 };
+  }
+
+  return {
+    year,
+    month: month - 1
+  };
+}
+
 export function buildBusinessData(data) {
   const { salesRows, stockRows } = data;
 
@@ -176,4 +191,171 @@ export function buildBrandDailyMatrix(salesRows) {
   }));
 
   return { brands, rows };
+}
+
+/* ---------- DAILY UNITS MATRIX ---------- */
+
+export function buildDailyUnitsMatrix(salesRows) {
+
+  const filter = window.ACTIVE_FILTER || {};
+
+  const rows = salesRows.filter(r =>
+    passFilter(r, filter)
+  );
+
+  const poSet = new Set();
+  const brandSet = new Set();
+
+  const dateMap = {};
+
+  rows.forEach(r => {
+
+    const d = num(r.date);
+    const qty = num(r.qty || 1);
+
+    const po = txt(r.po_type);
+    const brand = txt(r.brand);
+
+    if (!d) return;
+
+    if (po) poSet.add(po);
+    if (brand) brandSet.add(brand);
+
+    if (!dateMap[d]) {
+      dateMap[d] = {};
+    }
+
+    if (po) {
+      if (!dateMap[d][po]) dateMap[d][po] = 0;
+      dateMap[d][po] += qty;
+    }
+
+    if (brand) {
+      if (!dateMap[d][brand]) dateMap[d][brand] = 0;
+      dateMap[d][brand] += qty;
+    }
+  });
+
+  const columns = [
+    ...Array.from(poSet).sort(),
+    ...Array.from(brandSet).sort()
+  ];
+
+  const dates = Object.keys(dateMap)
+    .map(Number)
+    .sort((a,b)=>a-b);
+
+  const data = dates.map(d => {
+
+    const values = columns.map(c => dateMap[d][c] || 0);
+
+    return {
+      date: d,
+      values,
+      total: values.reduce((s,v)=>s+v,0)
+    };
+  });
+
+  const totals = columns.map((c,idx)=>
+    data.reduce((s,r)=>s+(r.values[idx]||0),0)
+  );
+
+  return {
+    columns,
+    rows: data,
+    totals,
+    grandTotal: totals.reduce((s,v)=>s+v,0)
+  };
+}
+
+/* ---------- PROJECTION MATRIX ---------- */
+
+export function buildProjectionMatrix(salesRows) {
+
+  const filter = window.ACTIVE_FILTER || {};
+
+  const currentYear = num(filter.year);
+  const currentMonth = num(filter.month);
+
+  const prev = previousMonth(currentYear, currentMonth);
+
+  const currentRows = salesRows.filter(r =>
+    num(r.year) === currentYear &&
+    monthNum(r.month) === currentMonth
+  );
+
+  const prevRows = salesRows.filter(r =>
+    num(r.year) === prev.year &&
+    monthNum(r.month) === prev.month
+  );
+
+  let latestDay = 1;
+
+  currentRows.forEach(r => {
+    const d = num(r.date || r.day);
+    if (d > latestDay) latestDay = d;
+  });
+
+  const poSet = new Set();
+  const brandSet = new Set();
+
+  currentRows.forEach(r => {
+    const po = txt(r.po_type);
+    const brand = txt(r.brand);
+
+    if (po) poSet.add(po);
+    if (brand) brandSet.add(brand);
+  });
+
+  const columns = [
+    "Total",
+    ...Array.from(poSet).sort(),
+    ...Array.from(brandSet).sort()
+  ];
+
+  function getValue(rows, key) {
+
+    if (key === "Total") {
+      return rows.reduce((s,r)=>s+num(r.qty||1),0);
+    }
+
+    return rows
+      .filter(r =>
+        txt(r.po_type) === key ||
+        txt(r.brand) === key
+      )
+      .reduce((s,r)=>s+num(r.qty||1),0);
+  }
+
+  const mtd = columns.map(c => getValue(currentRows, c));
+
+  const pds = mtd.map(v => v / latestDay);
+
+  const monthDays = daysInMonth(currentYear, currentMonth);
+
+  const proj = pds.map(v => v * monthDays);
+
+  const prevMonthValues = columns.map(c => getValue(prevRows, c));
+
+  const status = proj.map((v, i) => {
+
+    const prevVal = prevMonthValues[i];
+
+    if (!prevVal) return 0;
+
+    return ((v - prevVal) / prevVal) * 100;
+  });
+
+  return {
+    currentMonth: currentMonth,
+    previousMonth: prev.month,
+    columns,
+    latestDay,
+    monthDays,
+    mtd,
+    pds,
+    proj,
+    prevMonthValues,
+    status
+  };
 }
