@@ -54,6 +54,7 @@ async function ensureData() {
 }
 
 export function initBusinessTab() {
+
   window.renderBusinessTab = async function () {
 
     const root = document.getElementById("business");
@@ -68,13 +69,27 @@ export function initBusinessTab() {
       stockRows: STOCK
     });
 
-    const matrix = buildBrandDailyMatrix(SALES);
-
-    /* ---------- NEW ---------- */
+    /* KEEP EXISTING ENGINE CALLS */
+    buildBrandDailyMatrix(SALES);
 
     const dailyUnits = buildDailyUnitsMatrix(SALES);
-
     const projection = buildProjectionMatrix(SALES);
+
+    /* ---------- SPLIT PO & BRAND ---------- */
+
+    const poColumns = [];
+    const brandColumns = [];
+
+    dailyUnits.columns.forEach(c => {
+
+      const isPO =
+        c.toUpperCase() === "PPMP" ||
+        c.toUpperCase() === "SJIT" ||
+        c.toUpperCase() === "SOR";
+
+      if (isPO) poColumns.push(c);
+      else brandColumns.push(c);
+    });
 
     /* ---------- BUILD TABLES ---------- */
 
@@ -137,73 +152,7 @@ export function initBusinessTab() {
       return html;
     }
 
-    function matrixTable() {
-
-      const heads = ["Date", ...matrix.brands];
-
-      let body = "";
-
-      matrix.rows.forEach((r, i) => {
-
-        body += `<tr>
-          <td>${r.date}</td>
-
-          ${r.brands.map((v, idx) => {
-
-            let color = "";
-
-            if (i > 0) {
-
-              const prev = matrix.rows[i-1].brands[idx];
-
-              if (v > prev) color = "green";
-              else if (v < prev) color = "red";
-            }
-
-            return `<td style="color:${color}">${v}</td>`;
-
-          }).join("")}
-
-        </tr>`;
-      });
-
-      const totals = new Array(matrix.brands.length).fill(0);
-
-      matrix.rows.forEach(r=>{
-        r.brands.forEach((v,i)=>{
-          totals[i] += v;
-        });
-      });
-
-      body += `
-        <tr style="font-weight:bold;background:#f5f5f5;">
-          <td>Total</td>
-          ${totals.map(v=>`<td>${v}</td>`).join("")}
-        </tr>
-      `;
-
-      return `
-        <section class="panel">
-          <div class="panel-head">
-            <h3>Brand Daily Performance</h3>
-          </div>
-
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  ${heads.map(h=>`<th>${h}</th>`).join("")}
-                </tr>
-              </thead>
-
-              <tbody>${body}</tbody>
-            </table>
-          </div>
-        </section>
-      `;
-    }
-
-    /* ---------- NEW DAILY UNITS TABLE ---------- */
+    /* ---------- DAILY UNITS ---------- */
 
     function dailyUnitsTable() {
 
@@ -219,44 +168,113 @@ export function initBusinessTab() {
             <table>
 
               <thead>
-                <tr>
-                  <th>Date</th>
 
-                  ${dailyUnits.columns.map(c => `
+                <tr>
+
+                  <th rowspan="2">Date</th>
+                  <th rowspan="2">Total</th>
+
+                  <th colspan="${poColumns.length}">
+                    PO TYPE
+                  </th>
+
+                  <th colspan="${brandColumns.length}">
+                    BRANDS
+                  </th>
+
+                </tr>
+
+                <tr>
+
+                  ${poColumns.map(c => `
                     <th>${c}</th>
                   `).join("")}
 
-                  <th>Grand Total</th>
+                  ${brandColumns.map(c => `
+                    <th>${c}</th>
+                  `).join("")}
+
                 </tr>
+
               </thead>
 
               <tbody>
 
-                ${dailyUnits.rows.map(r => `
-                  <tr>
+                ${dailyUnits.rows.map(r => {
 
-                    <td>${r.date}</td>
+                  const poTotal =
+                    poColumns.reduce((s, c) => {
 
-                    ${r.values.map(v => `
-                      <td>${fmt(v)}</td>
-                    `).join("")}
+                      const idx = dailyUnits.columns.indexOf(c);
 
-                    <td style="font-weight:600;">
-                      ${fmt(r.total)}
-                    </td>
+                      return s + (r.values[idx] || 0);
 
-                  </tr>
-                `).join("")}
+                    }, 0);
+
+                  return `
+                    <tr>
+
+                      <td>${r.date}</td>
+
+                      <td style="font-weight:600;">
+                        ${fmt(poTotal)}
+                      </td>
+
+                      ${poColumns.map(c => {
+
+                        const idx = dailyUnits.columns.indexOf(c);
+
+                        return `
+                          <td>${fmt(r.values[idx] || 0)}</td>
+                        `;
+                      }).join("")}
+
+                      ${brandColumns.map(c => {
+
+                        const idx = dailyUnits.columns.indexOf(c);
+
+                        return `
+                          <td>${fmt(r.values[idx] || 0)}</td>
+                        `;
+                      }).join("")}
+
+                    </tr>
+                  `;
+                }).join("")}
 
                 <tr style="font-weight:bold;background:#f5f5f5;">
 
                   <td>Grand Total</td>
 
-                  ${dailyUnits.totals.map(v => `
-                    <td>${fmt(v)}</td>
-                  `).join("")}
+                  <td>
+                    ${fmt(
+                      poColumns.reduce((s, c) => {
 
-                  <td>${fmt(dailyUnits.grandTotal)}</td>
+                        const idx = dailyUnits.columns.indexOf(c);
+
+                        return s + (dailyUnits.totals[idx] || 0);
+
+                      }, 0)
+                    )}
+                  </td>
+
+                  ${poColumns.map(c => {
+
+                    const idx = dailyUnits.columns.indexOf(c);
+
+                    return `
+                      <td>${fmt(dailyUnits.totals[idx] || 0)}</td>
+                    `;
+                  }).join("")}
+
+                  ${brandColumns.map(c => {
+
+                    const idx = dailyUnits.columns.indexOf(c);
+
+                    return `
+                      <td>${fmt(dailyUnits.totals[idx] || 0)}</td>
+                    `;
+                  }).join("")}
 
                 </tr>
 
@@ -270,7 +288,7 @@ export function initBusinessTab() {
       `;
     }
 
-    /* ---------- NEW PROJECTION TABLE ---------- */
+    /* ---------- PROJECTION TABLE ---------- */
 
     function projectionTable() {
 
@@ -291,11 +309,25 @@ export function initBusinessTab() {
               <thead>
 
                 <tr>
-                  <th>MONTH</th>
+
+                  <th rowspan="2">MONTH</th>
+
+                  <th colspan="${2 + poColumns.length}">
+                    PO TYPE
+                  </th>
+
+                  <th colspan="${brandColumns.length}">
+                    BRANDS
+                  </th>
+
+                </tr>
+
+                <tr>
 
                   ${projection.columns.map(c => `
                     <th>${c}</th>
                   `).join("")}
+
                 </tr>
 
               </thead>
@@ -379,8 +411,6 @@ export function initBusinessTab() {
       ${dailyUnitsTable()}
 
       ${projectionTable()}
-
-      ${matrixTable()}
 
       <section class="panel">
 
