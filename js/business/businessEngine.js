@@ -437,7 +437,18 @@ export function buildStatusMatrix(data) {
 
   filteredSales.forEach(r => {
 
-    const status = txt(r.status);
+    const style =
+      txt(r.style_id) ||
+      txt(r.styleid) ||
+      txt(r.style);
+
+    const erp =
+      txt(r.erp_sku) ||
+      txt(r.erpsku);
+
+    const status =
+      masterByStyle[style] ||
+      masterByERP[erp];
 
     if (!status) return;
 
