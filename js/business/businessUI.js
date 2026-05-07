@@ -19,6 +19,26 @@ function fmt(n) {
   });
 }
 
+function num(v) {
+  return Number(String(v ?? "").replace(/,/g, "").trim()) || 0;
+}
+
+function txt(v) {
+  return String(v ?? "").trim();
+}
+
+function monthNum(v) {
+  const s = txt(v).toUpperCase();
+
+  const map = {
+    JAN:1,FEB:2,MAR:3,APR:4,MAY:5,
+    JUN:6,JUNE:6,JUL:7,JULY:7,
+    AUG:8,SEP:9,SEPT:9,OCT:10,NOV:11,DEC:12
+  };
+
+  return map[s] || num(v);
+}
+
 function monthName(n) {
   const map = [
     "",
@@ -95,20 +115,61 @@ export function initBusinessTab() {
 
     const gmvMap = {};
 
-    SALES.forEach(r => {
+    const activeFilter = window.ACTIVE_FILTER || {};
 
-      const d = Number(r.date || 0);
+    function passGMVFilter(row) {
 
-      if (!d) return;
+      const y = num(row.year);
+      const m = monthNum(row.month);
+      const d = num(row.date || row.day);
 
-      if (!gmvMap[d]) gmvMap[d] = 0;
+      if (activeFilter.year && y !== num(activeFilter.year)) {
+        return false;
+      }
 
-      gmvMap[d] += Number(
-        String(r.final_amount || 0)
-          .replace(/,/g, "")
-          .trim()
-      ) || 0;
-    });
+      if (activeFilter.month && m !== num(activeFilter.month)) {
+        return false;
+      }
+
+      if (activeFilter.start) {
+
+        const sd = Number(
+          String(activeFilter.start).slice(-2)
+        );
+
+        if (d < sd) return false;
+      }
+
+      if (activeFilter.end) {
+
+        const ed = Number(
+          String(activeFilter.end).slice(-2)
+        );
+
+        if (d > ed) return false;
+      }
+
+      return true;
+    }
+
+    SALES
+      .filter(r => passGMVFilter(r))
+      .forEach(r => {
+
+        const d = Number(r.date || 0);
+
+        if (!d) return;
+
+        if (!gmvMap[d]) {
+          gmvMap[d] = 0;
+        }
+
+        gmvMap[d] += Number(
+          String(r.final_amount || 0)
+            .replace(/,/g, "")
+            .trim()
+        ) || 0;
+      });
 
     /* ---------- BUILD TABLES ---------- */
 
