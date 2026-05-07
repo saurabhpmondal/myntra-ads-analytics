@@ -103,7 +103,11 @@ export function initBusinessTab() {
 
       if (!gmvMap[d]) gmvMap[d] = 0;
 
-      gmvMap[d] += Number(r.final_amount || 0);
+      gmvMap[d] += Number(
+        String(r.final_amount || 0)
+          .replace(/,/g, "")
+          .trim()
+      ) || 0;
     });
 
     /* ---------- BUILD TABLES ---------- */
