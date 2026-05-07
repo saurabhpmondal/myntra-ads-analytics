@@ -90,22 +90,26 @@ export function buildBusinessData(data) {
     if (!brandMap[brand]) {
       brandMap[brand] = { brand, units: 0, revenue: 0 };
     }
+
     brandMap[brand].units += qty;
     brandMap[brand].revenue += revenue;
 
     if (!poMap[po]) {
       poMap[po] = { po, units: 0, revenue: 0 };
     }
+
     poMap[po].units += qty;
     poMap[po].revenue += revenue;
 
     if (!warehouseSales[wh]) {
       warehouseSales[wh] = 0;
     }
+
     warehouseSales[wh] += qty;
   });
 
   stockRows.forEach(r => {
+
     const wh = txt(r.warehouse_id);
     const stock = num(r.sellable_inventory_count || r.units);
 
@@ -132,6 +136,7 @@ export function buildBusinessData(data) {
 
   const warehouses = Object.keys(warehouseStock)
     .map(wh => {
+
       const stock = warehouseStock[wh];
       const sales = warehouseSales[wh] || 0;
 
@@ -158,6 +163,7 @@ export function buildBusinessData(data) {
 /* ---------- BRAND DAILY MATRIX ---------- */
 
 export function buildBrandDailyMatrix(salesRows) {
+
   const filter = window.ACTIVE_FILTER || {};
 
   const filtered = salesRows.filter(r =>
@@ -168,6 +174,7 @@ export function buildBrandDailyMatrix(salesRows) {
   const dateMap = {};
 
   filtered.forEach(r => {
+
     const brand = txt(r.brand);
     const d = num(r.date);
     const qty = num(r.qty || 1);
@@ -183,7 +190,10 @@ export function buildBrandDailyMatrix(salesRows) {
   });
 
   const brands = Array.from(brandSet).sort();
-  const dates = Object.keys(dateMap).map(Number).sort((a,b)=>a-b);
+
+  const dates = Object.keys(dateMap)
+    .map(Number)
+    .sort((a,b)=>a-b);
 
   const rows = dates.map(d => ({
     date: d,
@@ -207,16 +217,19 @@ export function buildDailyUnitsMatrix(salesRows) {
   const brandSet = new Set();
 
   const dateMap = {};
+  const gmvMap = {};
 
   rows.forEach(r => {
 
     const d = num(r.date);
+
+    if (!d) return;
+
     const qty = num(r.qty || 1);
+    const revenue = num(r.final_amount);
 
     const po = txt(r.po_type);
     const brand = txt(r.brand);
-
-    if (!d) return;
 
     if (po) poSet.add(po);
     if (brand) brandSet.add(brand);
@@ -225,13 +238,27 @@ export function buildDailyUnitsMatrix(salesRows) {
       dateMap[d] = {};
     }
 
+    if (!gmvMap[d]) {
+      gmvMap[d] = 0;
+    }
+
+    gmvMap[d] += revenue;
+
     if (po) {
-      if (!dateMap[d][po]) dateMap[d][po] = 0;
+
+      if (!dateMap[d][po]) {
+        dateMap[d][po] = 0;
+      }
+
       dateMap[d][po] += qty;
     }
 
     if (brand) {
-      if (!dateMap[d][brand]) dateMap[d][brand] = 0;
+
+      if (!dateMap[d][brand]) {
+        dateMap[d][brand] = 0;
+      }
+
       dateMap[d][brand] += qty;
     }
   });
@@ -252,6 +279,7 @@ export function buildDailyUnitsMatrix(salesRows) {
     return {
       date: d,
       values,
+      gmv: gmvMap[d] || 0,
       total: values.reduce((s,v)=>s+v,0)
     };
   });
@@ -264,7 +292,8 @@ export function buildDailyUnitsMatrix(salesRows) {
     columns,
     rows: data,
     totals,
-    grandTotal: totals.reduce((s,v)=>s+v,0)
+    grandTotal: totals.reduce((s,v)=>s+v,0),
+    grandGMV: data.reduce((s,r)=>s+r.gmv,0)
   };
 }
 
@@ -292,7 +321,9 @@ export function buildProjectionMatrix(salesRows) {
   let latestDay = 1;
 
   currentRows.forEach(r => {
+
     const d = num(r.date || r.day);
+
     if (d > latestDay) latestDay = d;
   });
 
@@ -300,6 +331,7 @@ export function buildProjectionMatrix(salesRows) {
   const brandSet = new Set();
 
   currentRows.forEach(r => {
+
     const po = txt(r.po_type);
     const brand = txt(r.brand);
 
@@ -329,11 +361,11 @@ export function buildProjectionMatrix(salesRows) {
 
   const mtd = columns.map(c => getValue(currentRows, c));
 
-  const pds = mtd.map(v => v / latestDay);
+  const pds = mtd.map(v => Math.round(v / latestDay));
 
   const monthDays = daysInMonth(currentYear, currentMonth);
 
-  const proj = pds.map(v => v * monthDays);
+  const proj = pds.map(v => Math.round(v * monthDays));
 
   const prevMonthValues = columns.map(c => getValue(prevRows, c));
 
