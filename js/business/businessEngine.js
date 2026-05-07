@@ -391,3 +391,167 @@ export function buildProjectionMatrix(salesRows) {
     status
   };
 }
+
+/* ---------- STATUS MATRIX ---------- */
+
+export function buildStatusMatrix(data) {
+
+  const {
+    salesRows,
+    sjitRows,
+    sorRows,
+    sellerRows,
+    masterRows
+  } = data;
+
+  const filter = window.ACTIVE_FILTER || {};
+
+  const statusMap = {};
+  const masterByStyle = {};
+  const masterByERP = {};
+
+  /* ---------- MASTER ---------- */
+
+  masterRows.forEach(r => {
+
+    const style = txt(r.style_id);
+    const erp = txt(r.erp_sku);
+    const status = txt(r.status);
+
+    if (style) {
+      masterByStyle[style] = status;
+    }
+
+    if (erp) {
+      masterByERP[erp] = status;
+    }
+  });
+
+  /* ---------- SALES ---------- */
+
+  const filteredSales = salesRows.filter(r =>
+    passFilter(r, filter)
+  );
+
+  let totalSales = 0;
+
+  filteredSales.forEach(r => {
+
+    const status = txt(r.status);
+
+    if (!status) return;
+
+    const qty = num(r.qty || 1);
+
+    totalSales += qty;
+
+    if (!statusMap[status]) {
+
+      statusMap[status] = {
+        status,
+        sales: 0,
+        sellerStock: 0,
+        sjitStock: 0,
+        sorStock: 0
+      };
+    }
+
+    statusMap[status].sales += qty;
+  });
+
+  /* ---------- SELLER STOCK ---------- */
+
+  sellerRows.forEach(r => {
+
+    const erp = txt(r.erp_sku);
+    const stock = num(r.units);
+
+    const status = masterByERP[erp];
+
+    if (!status) return;
+
+    if (!statusMap[status]) {
+
+      statusMap[status] = {
+        status,
+        sales: 0,
+        sellerStock: 0,
+        sjitStock: 0,
+        sorStock: 0
+      };
+    }
+
+    statusMap[status].sellerStock += stock;
+  });
+
+  /* ---------- SJIT STOCK ---------- */
+
+  sjitRows.forEach(r => {
+
+    const style = txt(r.style_id);
+    const stock = num(
+      r.sellable_inventory_count || r.units
+    );
+
+    const status = masterByStyle[style];
+
+    if (!status) return;
+
+    if (!statusMap[status]) {
+
+      statusMap[status] = {
+        status,
+        sales: 0,
+        sellerStock: 0,
+        sjitStock: 0,
+        sorStock: 0
+      };
+    }
+
+    statusMap[status].sjitStock += stock;
+  });
+
+  /* ---------- SOR STOCK ---------- */
+
+  sorRows.forEach(r => {
+
+    const style = txt(r.style_id);
+    const stock = num(r.units);
+
+    const status = masterByStyle[style];
+
+    if (!status) return;
+
+    if (!statusMap[status]) {
+
+      statusMap[status] = {
+        status,
+        sales: 0,
+        sellerStock: 0,
+        sjitStock: 0,
+        sorStock: 0
+      };
+    }
+
+    statusMap[status].sorStock += stock;
+  });
+
+  /* ---------- FINAL ---------- */
+
+  return Object.values(statusMap)
+    .map(r => ({
+
+      ...r,
+
+      share:
+        totalSales
+          ? (r.sales / totalSales) * 100
+          : 0,
+
+      totalStock:
+        r.sellerStock +
+        r.sjitStock +
+        r.sorStock
+    }))
+    .sort((a,b)=>b.sales-a.sales);
+}
