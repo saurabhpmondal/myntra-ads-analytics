@@ -91,6 +91,21 @@ export function initBusinessTab() {
       else brandColumns.push(c);
     });
 
+    /* ---------- DAILY GMV MAP ---------- */
+
+    const gmvMap = {};
+
+    SALES.forEach(r => {
+
+      const d = Number(r.date || 0);
+
+      if (!d) return;
+
+      if (!gmvMap[d]) gmvMap[d] = 0;
+
+      gmvMap[d] += Number(r.final_amount || 0);
+    });
+
     /* ---------- BUILD TABLES ---------- */
 
     function brandRows() {
@@ -173,6 +188,7 @@ export function initBusinessTab() {
 
                   <th rowspan="2">Date</th>
                   <th rowspan="2">Total</th>
+                  <th rowspan="2">GMV</th>
 
                   <th colspan="${poColumns.length}">
                     PO TYPE
@@ -220,6 +236,10 @@ export function initBusinessTab() {
                         ${fmt(poTotal)}
                       </td>
 
+                      <td style="font-weight:600;">
+                        ₹${fmt(gmvMap[r.date] || 0)}
+                      </td>
+
                       ${poColumns.map(c => {
 
                         const idx = dailyUnits.columns.indexOf(c);
@@ -255,6 +275,13 @@ export function initBusinessTab() {
                         return s + (dailyUnits.totals[idx] || 0);
 
                       }, 0)
+                    )}
+                  </td>
+
+                  <td>
+                    ₹${fmt(
+                      Object.values(gmvMap)
+                        .reduce((s,v)=>s+v,0)
                     )}
                   </td>
 
@@ -349,7 +376,7 @@ export function initBusinessTab() {
                   <td>${currentMonth} (PDS)</td>
 
                   ${projection.pds.map(v => `
-                    <td>${fmt(v)}</td>
+                    <td>${fmt(Math.round(v))}</td>
                   `).join("")}
 
                 </tr>
@@ -359,7 +386,7 @@ export function initBusinessTab() {
                   <td>${currentMonth} (PROJ)</td>
 
                   ${projection.proj.map(v => `
-                    <td>${fmt(v)}</td>
+                    <td>${fmt(Math.round(v))}</td>
                   `).join("")}
 
                 </tr>
