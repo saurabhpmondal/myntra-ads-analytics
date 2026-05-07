@@ -6,12 +6,17 @@ import {
   buildBusinessData,
   buildBrandDailyMatrix,
   buildDailyUnitsMatrix,
-  buildProjectionMatrix
+  buildProjectionMatrix,
+  buildStatusMatrix
 } from "./businessEngine.js";
 
 let READY = false;
+
 let SALES = [];
 let STOCK = [];
+let SOR = [];
+let MASTER = [];
+let SELLER = [];
 
 function fmt(n) {
   return Number(n || 0).toLocaleString("en-IN", {
@@ -60,15 +65,28 @@ function monthName(n) {
 }
 
 async function ensureData() {
+
   if (READY) return;
 
-  const [salesCsv, stockCsv] = await Promise.all([
+  const [
+    salesCsv,
+    stockCsv,
+    sorCsv,
+    masterCsv,
+    sellerCsv
+  ] = await Promise.all([
     fetchCSV(SHEETS.SALES),
-    fetchCSV(SHEETS.SJIT_STOCK)
+    fetchCSV(SHEETS.SJIT_STOCK),
+    fetchCSV(SHEETS.SOR_STOCK),
+    fetchCSV(SHEETS.PRODUCT_MASTER),
+    fetchCSV(SHEETS.SELLER_STOCK)
   ]);
 
   SALES = parseCSV(salesCsv);
   STOCK = parseCSV(stockCsv);
+  SOR = parseCSV(sorCsv);
+  MASTER = parseCSV(masterCsv);
+  SELLER = parseCSV(sellerCsv);
 
   READY = true;
 }
@@ -89,11 +107,19 @@ export function initBusinessTab() {
       stockRows: STOCK
     });
 
-    /* KEEP EXISTING ENGINE CALLS */
     buildBrandDailyMatrix(SALES);
 
     const dailyUnits = buildDailyUnitsMatrix(SALES);
+
     const projection = buildProjectionMatrix(SALES);
+
+    const statusData = buildStatusMatrix({
+      salesRows: SALES,
+      sjitRows: STOCK,
+      sorRows: SOR,
+      sellerRows: SELLER,
+      masterRows: MASTER
+    });
 
     /* ---------- SPLIT PO & BRAND ---------- */
 
@@ -496,6 +522,67 @@ export function initBusinessTab() {
       `;
     }
 
+    /* ---------- STATUS TABLE ---------- */
+
+    function statusTable() {
+
+      return `
+        <section class="panel">
+
+          <div class="panel-head">
+            <h3>Status Performance</h3>
+          </div>
+
+          <div class="table-wrap">
+
+            <table>
+
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Sales</th>
+                  <th>Share %</th>
+                  <th>Seller Stock</th>
+                  <th>SJIT Stock</th>
+                  <th>SOR Stock</th>
+                  <th>Total Stock</th>
+                </tr>
+              </thead>
+
+              <tbody>
+
+                ${statusData.map(r => `
+                  <tr>
+
+                    <td>${r.status}</td>
+
+                    <td>${fmt(r.sales)}</td>
+
+                    <td>${fmt(r.share)}%</td>
+
+                    <td>${fmt(r.sellerStock)}</td>
+
+                    <td>${fmt(r.sjitStock)}</td>
+
+                    <td>${fmt(r.sorStock)}</td>
+
+                    <td style="font-weight:700;">
+                      ${fmt(r.totalStock)}
+                    </td>
+
+                  </tr>
+                `).join("")}
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        </section>
+      `;
+    }
+
     /* ---------- FINAL ---------- */
 
     root.innerHTML = `
@@ -503,6 +590,8 @@ export function initBusinessTab() {
       ${dailyUnitsTable()}
 
       ${projectionTable()}
+
+      ${statusTable()}
 
       <section class="panel">
 
