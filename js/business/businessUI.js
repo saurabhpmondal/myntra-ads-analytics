@@ -7,7 +7,8 @@ import {
   buildBrandDailyMatrix,
   buildDailyUnitsMatrix,
   buildProjectionMatrix,
-  buildStatusMatrix
+  buildStatusMatrix,
+  buildBrandChannelMatrix
 } from "./businessEngine.js";
 
 let READY = false;
@@ -119,6 +120,12 @@ export function initBusinessTab() {
       sorRows: SOR,
       sellerRows: SELLER,
       masterRows: MASTER
+    });
+
+    const brandChannelData = buildBrandChannelMatrix({
+      salesRows: SALES,
+      sjitRows: STOCK,
+      sorRows: SOR
     });
 
     /* ---------- SPLIT PO & BRAND ---------- */
@@ -583,6 +590,106 @@ export function initBusinessTab() {
       `;
     }
 
+    /* ---------- BRAND CHANNEL TABLE ---------- */
+
+    function brandChannelTable() {
+
+      return `
+        <section class="panel">
+
+          <div class="panel-head">
+            <h3>Brand Channel Performance</h3>
+          </div>
+
+          <div class="table-wrap">
+
+            <table>
+
+              <thead>
+
+                <tr>
+
+                  <th rowspan="2">Brand</th>
+
+                  <th colspan="2">
+                    STOCK (U)
+                  </th>
+
+                  <th colspan="4">
+                    SALE (U)
+                  </th>
+
+                  <th colspan="3">
+                    Share (%)
+                  </th>
+
+                  <th colspan="3">
+                    DRR
+                  </th>
+
+                </tr>
+
+                <tr>
+
+                  <th>SOR</th>
+                  <th>SJIT</th>
+
+                  <th>SOR</th>
+                  <th>SJIT</th>
+                  <th>PPMP</th>
+                  <th>Total</th>
+
+                  <th>SOR</th>
+                  <th>SJIT</th>
+                  <th>PPMP</th>
+
+                  <th>SOR</th>
+                  <th>SJIT</th>
+                  <th>PPMP</th>
+
+                </tr>
+
+              </thead>
+
+              <tbody>
+
+                ${brandChannelData.map(r => `
+                  <tr>
+
+                    <td>${r.brand}</td>
+
+                    <td>${fmt(r.sorStock)}</td>
+                    <td>${fmt(r.sjitStock)}</td>
+
+                    <td>${fmt(r.sorSales)}</td>
+                    <td>${fmt(r.sjitSales)}</td>
+                    <td>${fmt(r.ppmpSales)}</td>
+
+                    <td style="font-weight:700;">
+                      ${fmt(r.totalSales)}
+                    </td>
+
+                    <td>${fmt(r.sorShare)}%</td>
+                    <td>${fmt(r.sjitShare)}%</td>
+                    <td>${fmt(r.ppmpShare)}%</td>
+
+                    <td>${fmt(r.sorDRR)}</td>
+                    <td>${fmt(r.sjitDRR)}</td>
+                    <td>${fmt(r.ppmpDRR)}</td>
+
+                  </tr>
+                `).join("")}
+
+              </tbody>
+
+            </table>
+
+          </div>
+
+        </section>
+      `;
+    }
+
     /* ---------- FINAL ---------- */
 
     root.innerHTML = `
@@ -592,6 +699,8 @@ export function initBusinessTab() {
       ${projectionTable()}
 
       ${statusTable()}
+
+      ${brandChannelTable()}
 
       <section class="panel">
 
