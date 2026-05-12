@@ -49,8 +49,12 @@ function daysInMonth(year, month) {
 }
 
 function previousMonth(year, month) {
+
   if (month === 1) {
-    return { year: year - 1, month: 12 };
+    return {
+      year: year - 1,
+      month: 12
+    };
   }
 
   return {
@@ -648,8 +652,13 @@ export function buildBrandChannelMatrix(data) {
     }
   });
 
+  /* IMPORTANT:
+     SAME FILTER LOGIC AS DAILY UNITS TABLE
+     DO NOT USE validSale()
+  */
+
   const filteredSales = (salesRows || []).filter(r =>
-    validSale(r) && passFilter(r, filter)
+    passFilter(r, filter)
   );
 
   let latestDay = 1;
