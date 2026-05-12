@@ -410,8 +410,6 @@ export function buildStatusMatrix(data) {
   const masterByStyle = {};
   const masterByERP = {};
 
-  /* ---------- MASTER ---------- */
-
   masterRows.forEach(r => {
 
     const style = txt(r.style_id);
@@ -426,8 +424,6 @@ export function buildStatusMatrix(data) {
       masterByERP[erp] = status;
     }
   });
-
-  /* ---------- SALES ---------- */
 
   const filteredSales = salesRows.filter(r =>
     passFilter(r, filter)
@@ -470,8 +466,6 @@ export function buildStatusMatrix(data) {
     statusMap[status].sales += qty;
   });
 
-  /* ---------- SELLER STOCK ---------- */
-
   sellerRows.forEach(r => {
 
     const erp = txt(r.erp_sku);
@@ -494,8 +488,6 @@ export function buildStatusMatrix(data) {
 
     statusMap[status].sellerStock += stock;
   });
-
-  /* ---------- SJIT STOCK ---------- */
 
   sjitRows.forEach(r => {
 
@@ -522,8 +514,6 @@ export function buildStatusMatrix(data) {
     statusMap[status].sjitStock += stock;
   });
 
-  /* ---------- SOR STOCK ---------- */
-
   sorRows.forEach(r => {
 
     const style = txt(r.style_id);
@@ -547,8 +537,6 @@ export function buildStatusMatrix(data) {
     statusMap[status].sorStock += stock;
   });
 
-  /* ---------- FINAL ---------- */
-
   return Object.values(statusMap)
     .map(r => ({
 
@@ -565,4 +553,146 @@ export function buildStatusMatrix(data) {
         r.sorStock
     }))
     .sort((a,b)=>b.sales-a.sales);
+}
+
+/* ---------- BRAND CHANNEL MATRIX ---------- */
+
+export function buildBrandChannelMatrix(data) {
+
+  const {
+    salesRows,
+    sjitRows,
+    sorRows
+  } = data;
+
+  const filter = window.ACTIVE_FILTER || {};
+
+  const brandMap = {};
+
+  const filteredSales = salesRows.filter(r =>
+    validSale(r) && passFilter(r, filter)
+  );
+
+  let latestDay = 1;
+
+  filteredSales.forEach(r => {
+    const d = num(r.date || r.day);
+    if (d > latestDay) latestDay = d;
+  });
+
+  filteredSales.forEach(r => {
+
+    const brand = txt(r.brand);
+    const po = txt(r.po_type).toUpperCase();
+    const qty = num(r.qty || 1);
+
+    if (!brand) return;
+
+    if (!brandMap[brand]) {
+
+      brandMap[brand] = {
+        brand,
+        sorStock: 0,
+        sjitStock: 0,
+        sorSales: 0,
+        sjitSales: 0,
+        ppmpSales: 0
+      };
+    }
+
+    if (po === "SOR") {
+      brandMap[brand].sorSales += qty;
+    }
+
+    if (po === "SJIT") {
+      brandMap[brand].sjitSales += qty;
+    }
+
+    if (po === "PPMP") {
+      brandMap[brand].ppmpSales += qty;
+    }
+  });
+
+  sjitRows.forEach(r => {
+
+    const brand = txt(r.brand);
+    const stock = num(
+      r.sellable_inventory_count || r.units
+    );
+
+    if (!brand) return;
+
+    if (!brandMap[brand]) {
+
+      brandMap[brand] = {
+        brand,
+        sorStock: 0,
+        sjitStock: 0,
+        sorSales: 0,
+        sjitSales: 0,
+        ppmpSales: 0
+      };
+    }
+
+    brandMap[brand].sjitStock += stock;
+  });
+
+  sorRows.forEach(r => {
+
+    const brand = txt(r.brand);
+    const stock = num(r.units);
+
+    if (!brand) return;
+
+    if (!brandMap[brand]) {
+
+      brandMap[brand] = {
+        brand,
+        sorStock: 0,
+        sjitStock: 0,
+        sorSales: 0,
+        sjitSales: 0,
+        ppmpSales: 0
+      };
+    }
+
+    brandMap[brand].sorStock += stock;
+  });
+
+  const rows = Object.values(brandMap)
+    .map(r => {
+
+      const total =
+        r.sorSales +
+        r.sjitSales +
+        r.ppmpSales;
+
+      return {
+
+        ...r,
+
+        totalSales: total,
+
+        sorShare:
+          total ? (r.sorSales / total) * 100 : 0,
+
+        sjitShare:
+          total ? (r.sjitSales / total) * 100 : 0,
+
+        ppmpShare:
+          total ? (r.ppmpSales / total) * 100 : 0,
+
+        sorDRR:
+          latestDay ? r.sorSales / latestDay : 0,
+
+        sjitDRR:
+          latestDay ? r.sjitSales / latestDay : 0,
+
+        ppmpDRR:
+          latestDay ? r.ppmpSales / latestDay : 0
+      };
+    })
+    .sort((a,b)=>b.totalSales-a.totalSales);
+
+  return rows;
 }
