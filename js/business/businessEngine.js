@@ -620,12 +620,35 @@ export function buildBrandChannelMatrix(data) {
   const {
     salesRows,
     sjitRows,
-    sorRows
+    sorRows,
+    masterRows
   } = data;
 
   const filter = window.ACTIVE_FILTER || {};
 
   const brandMap = {};
+
+  const masterByStyle = {};
+  const masterByERP = {};
+
+  /* ---------- MASTER BRAND MAP ---------- */
+
+  masterRows.forEach(r => {
+
+    const style = txt(r.style_id);
+    const erp = txt(r.erp_sku);
+    const brand = txt(r.brand);
+
+    if (style && brand) {
+      masterByStyle[style] = brand;
+    }
+
+    if (erp && brand) {
+      masterByERP[erp] = brand;
+    }
+  });
+
+  /* ---------- FILTERED SALES ---------- */
 
   const filteredSales = salesRows.filter(r =>
     validSale(r) && passFilter(r, filter)
@@ -684,16 +707,24 @@ export function buildBrandChannelMatrix(data) {
 
   sjitRows.forEach(r => {
 
+    const style =
+      txt(r.style_id) ||
+      txt(r.styleid);
+
+    const erp =
+      txt(r.erp_sku) ||
+      txt(r.erpsku);
+
     const brand =
-      txt(r.brand) ||
-      txt(r.Brand);
+      masterByStyle[style] ||
+      masterByERP[erp];
+
+    if (!brand) return;
 
     const stock = num(
       r.sellable_inventory_count ||
       r.units
     );
-
-    if (!brand) return;
 
     if (!brandMap[brand]) {
 
@@ -717,13 +748,21 @@ export function buildBrandChannelMatrix(data) {
 
   sorRows.forEach(r => {
 
-    const brand =
-      txt(r.brand) ||
-      txt(r.Brand);
+    const style =
+      txt(r.style_id) ||
+      txt(r.styleid);
 
-    const stock = num(r.units);
+    const erp =
+      txt(r.erp_sku) ||
+      txt(r.erpsku);
+
+    const brand =
+      masterByStyle[style] ||
+      masterByERP[erp];
 
     if (!brand) return;
+
+    const stock = num(r.units);
 
     if (!brandMap[brand]) {
 
