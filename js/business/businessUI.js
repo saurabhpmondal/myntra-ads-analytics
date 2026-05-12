@@ -125,7 +125,8 @@ export function initBusinessTab() {
     const brandChannelData = buildBrandChannelMatrix({
       salesRows: SALES,
       sjitRows: STOCK,
-      sorRows: SOR
+      sorRows: SOR,
+      masterRows: MASTER
     });
 
     /* ---------- SPLIT PO & BRAND ---------- */
