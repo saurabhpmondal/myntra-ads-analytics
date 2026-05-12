@@ -34,6 +34,7 @@ function txt(v) {
 }
 
 function monthNum(v) {
+
   const s = txt(v).toUpperCase();
 
   const map = {
@@ -46,6 +47,7 @@ function monthNum(v) {
 }
 
 function monthName(n) {
+
   const map = [
     "",
     "JAN",
@@ -141,8 +143,11 @@ export function initBusinessTab() {
         c.toUpperCase() === "SJIT" ||
         c.toUpperCase() === "SOR";
 
-      if (isPO) poColumns.push(c);
-      else brandColumns.push(c);
+      if (isPO) {
+        poColumns.push(c);
+      } else {
+        brandColumns.push(c);
+      }
     });
 
     /* ---------- DAILY GMV MAP ---------- */
@@ -157,11 +162,17 @@ export function initBusinessTab() {
       const m = monthNum(row.month);
       const d = num(row.date || row.day);
 
-      if (activeFilter.year && y !== num(activeFilter.year)) {
+      if (
+        activeFilter.year &&
+        y !== num(activeFilter.year)
+      ) {
         return false;
       }
 
-      if (activeFilter.month && m !== num(activeFilter.month)) {
+      if (
+        activeFilter.month &&
+        m !== num(activeFilter.month)
+      ) {
         return false;
       }
 
@@ -205,32 +216,61 @@ export function initBusinessTab() {
         ) || 0;
       });
 
-    /* ---------- BUILD TABLES ---------- */
+    /* ---------- BRAND ROWS ---------- */
 
     function brandRows() {
 
       let html = data.brands.map(r => `
         <tr>
+
           <td>${r.brand}</td>
+
           <td>${fmt(r.units)}</td>
+
           <td>₹${fmt(r.revenue)}</td>
+
           <td>${fmt(r.share)}%</td>
-          <td>₹${fmt(r.units ? r.revenue / r.units : 0)}</td>
+
+          <td>
+            ₹${fmt(
+              r.units
+                ? r.revenue / r.units
+                : 0
+            )}
+          </td>
+
         </tr>
       `).join("");
 
       html += `
         <tr style="font-weight:bold;background:#f5f5f5;">
+
           <td>Total</td>
+
           <td>${fmt(data.totals.units)}</td>
-          <td>₹${fmt(data.totals.revenue)}</td>
+
+          <td>
+            ₹${fmt(data.totals.revenue)}
+          </td>
+
           <td>100%</td>
-          <td>₹${fmt(data.totals.units ? data.totals.revenue / data.totals.units : 0)}</td>
+
+          <td>
+            ₹${fmt(
+              data.totals.units
+                ? data.totals.revenue /
+                  data.totals.units
+                : 0
+            )}
+          </td>
+
         </tr>
       `;
 
       return html;
     }
+
+    /* ---------- PO ROWS ---------- */
 
     function poRows() {
 
@@ -244,22 +284,46 @@ export function initBusinessTab() {
 
         return `
           <tr>
+
             <td>${r.po}</td>
+
             <td>${fmt(r.units)}</td>
+
             <td>₹${fmt(r.revenue)}</td>
+
             <td>${fmt(r.share)}%</td>
-            <td>₹${fmt(r.units ? r.revenue / r.units : 0)}</td>
+
+            <td>
+              ₹${fmt(
+                r.units
+                  ? r.revenue / r.units
+                  : 0
+              )}
+            </td>
+
           </tr>
         `;
       }).join("");
 
       html += `
         <tr style="font-weight:bold;background:#f5f5f5;">
+
           <td>Total</td>
+
           <td>${fmt(totalUnits)}</td>
+
           <td>₹${fmt(totalRevenue)}</td>
+
           <td>100%</td>
-          <td>₹${fmt(totalUnits ? totalRevenue / totalUnits : 0)}</td>
+
+          <td>
+            ₹${fmt(
+              totalUnits
+                ? totalRevenue / totalUnits
+                : 0
+            )}
+          </td>
+
         </tr>
       `;
 
@@ -286,7 +350,9 @@ export function initBusinessTab() {
                 <tr>
 
                   <th rowspan="2">Date</th>
+
                   <th rowspan="2">Total</th>
+
                   <th rowspan="2">GMV</th>
 
                   <th colspan="${poColumns.length}">
@@ -318,9 +384,10 @@ export function initBusinessTab() {
                 ${dailyUnits.rows.map(r => {
 
                   const poTotal =
-                    poColumns.reduce((s, c) => {
+                    poColumns.reduce((s,c) => {
 
-                      const idx = dailyUnits.columns.indexOf(c);
+                      const idx =
+                        dailyUnits.columns.indexOf(c);
 
                       return s + (r.values[idx] || 0);
 
@@ -341,19 +408,25 @@ export function initBusinessTab() {
 
                       ${poColumns.map(c => {
 
-                        const idx = dailyUnits.columns.indexOf(c);
+                        const idx =
+                          dailyUnits.columns.indexOf(c);
 
                         return `
-                          <td>${fmt(r.values[idx] || 0)}</td>
+                          <td>
+                            ${fmt(r.values[idx] || 0)}
+                          </td>
                         `;
                       }).join("")}
 
                       ${brandColumns.map(c => {
 
-                        const idx = dailyUnits.columns.indexOf(c);
+                        const idx =
+                          dailyUnits.columns.indexOf(c);
 
                         return `
-                          <td>${fmt(r.values[idx] || 0)}</td>
+                          <td>
+                            ${fmt(r.values[idx] || 0)}
+                          </td>
                         `;
                       }).join("")}
 
@@ -367,11 +440,14 @@ export function initBusinessTab() {
 
                   <td>
                     ${fmt(
-                      poColumns.reduce((s, c) => {
+                      poColumns.reduce((s,c) => {
 
-                        const idx = dailyUnits.columns.indexOf(c);
+                        const idx =
+                          dailyUnits.columns.indexOf(c);
 
-                        return s + (dailyUnits.totals[idx] || 0);
+                        return s + (
+                          dailyUnits.totals[idx] || 0
+                        );
 
                       }, 0)
                     )}
@@ -386,19 +462,29 @@ export function initBusinessTab() {
 
                   ${poColumns.map(c => {
 
-                    const idx = dailyUnits.columns.indexOf(c);
+                    const idx =
+                      dailyUnits.columns.indexOf(c);
 
                     return `
-                      <td>${fmt(dailyUnits.totals[idx] || 0)}</td>
+                      <td>
+                        ${fmt(
+                          dailyUnits.totals[idx] || 0
+                        )}
+                      </td>
                     `;
                   }).join("")}
 
                   ${brandColumns.map(c => {
 
-                    const idx = dailyUnits.columns.indexOf(c);
+                    const idx =
+                      dailyUnits.columns.indexOf(c);
 
                     return `
-                      <td>${fmt(dailyUnits.totals[idx] || 0)}</td>
+                      <td>
+                        ${fmt(
+                          dailyUnits.totals[idx] || 0
+                        )}
+                      </td>
                     `;
                   }).join("")}
 
@@ -418,8 +504,11 @@ export function initBusinessTab() {
 
     function projectionTable() {
 
-      const currentMonth = monthName(projection.currentMonth);
-      const previousMonth = monthName(projection.previousMonth);
+      const currentMonth =
+        monthName(projection.currentMonth);
+
+      const previousMonth =
+        monthName(projection.previousMonth);
 
       return `
         <section class="panel">
@@ -475,7 +564,9 @@ export function initBusinessTab() {
                   <td>${currentMonth} (PDS)</td>
 
                   ${projection.pds.map(v => `
-                    <td>${fmt(Math.round(v))}</td>
+                    <td>
+                      ${fmt(Math.round(v))}
+                    </td>
                   `).join("")}
 
                 </tr>
@@ -485,7 +576,9 @@ export function initBusinessTab() {
                   <td>${currentMonth} (PROJ)</td>
 
                   ${projection.proj.map(v => `
-                    <td>${fmt(Math.round(v))}</td>
+                    <td>
+                      ${fmt(Math.round(v))}
+                    </td>
                   `).join("")}
 
                 </tr>
@@ -546,15 +639,25 @@ export function initBusinessTab() {
             <table>
 
               <thead>
+
                 <tr>
+
                   <th>Status</th>
+
                   <th>Sales</th>
+
                   <th>Share %</th>
+
                   <th>Seller Stock</th>
+
                   <th>SJIT Stock</th>
+
                   <th>SOR Stock</th>
+
                   <th>Total Stock</th>
+
                 </tr>
+
               </thead>
 
               <tbody>
@@ -660,10 +763,13 @@ export function initBusinessTab() {
                     <td>${r.brand}</td>
 
                     <td>${fmt(r.sorStock)}</td>
+
                     <td>${fmt(r.sjitStock)}</td>
 
                     <td>${fmt(r.sorSales)}</td>
+
                     <td>${fmt(r.sjitSales)}</td>
+
                     <td>${fmt(r.ppmpSales)}</td>
 
                     <td style="font-weight:700;">
@@ -671,11 +777,15 @@ export function initBusinessTab() {
                     </td>
 
                     <td>${fmt(r.sorShare)}%</td>
+
                     <td>${fmt(r.sjitShare)}%</td>
+
                     <td>${fmt(r.ppmpShare)}%</td>
 
                     <td>${fmt(r.sorDRR)}</td>
+
                     <td>${fmt(r.sjitDRR)}</td>
+
                     <td>${fmt(r.ppmpDRR)}</td>
 
                   </tr>
@@ -714,17 +824,27 @@ export function initBusinessTab() {
           <table>
 
             <thead>
+
               <tr>
+
                 <th>Brand</th>
+
                 <th>Units</th>
+
                 <th>Revenue</th>
+
                 <th>Share %</th>
+
                 <th>ASP</th>
+
               </tr>
+
             </thead>
 
             <tbody>
+
               ${brandRows()}
+
             </tbody>
 
           </table>
@@ -744,17 +864,27 @@ export function initBusinessTab() {
           <table>
 
             <thead>
+
               <tr>
+
                 <th>PO Type</th>
+
                 <th>Units</th>
+
                 <th>Revenue</th>
+
                 <th>Share %</th>
+
                 <th>ASP</th>
+
               </tr>
+
             </thead>
 
             <tbody>
+
               ${poRows()}
+
             </tbody>
 
           </table>
@@ -774,22 +904,34 @@ export function initBusinessTab() {
           <table>
 
             <thead>
+
               <tr>
+
                 <th>Warehouse</th>
+
                 <th>Stock</th>
+
                 <th>Sales</th>
+
                 <th>Sell Through %</th>
+
               </tr>
+
             </thead>
 
             <tbody>
 
               ${data.warehouses.map(r => `
                 <tr>
+
                   <td>${r.warehouse}</td>
+
                   <td>${fmt(r.stock)}</td>
+
                   <td>${fmt(r.sales)}</td>
+
                   <td>${fmt(r.sellThrough)}%</td>
+
                 </tr>
               `).join("")}
 
