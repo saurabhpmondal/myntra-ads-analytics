@@ -12,12 +12,6 @@ import {
 
 import {
 
-  buildFreshnessMatrix
-
-} from "../engine/freshnessEngine.js";
-
-import {
-
   buildLaunchContributionReport
 
 } from "../reports/launchContributionReport.js";
@@ -59,47 +53,10 @@ export function initFreshnessTab() {
           rawData
         );
 
-      const matrix =
-        buildFreshnessMatrix(
-          parsedData
-        );
-
       const report =
         buildLaunchContributionReport(
-          matrix
+          parsedData
         );
-
-      const grandTotalStyles =
-        report.rows.reduce(
-          (s,r)=>
-            s + r.launchStyles,
-          0
-        );
-
-      const grandTotalSales =
-        report.rows.reduce(
-          (s,r)=>
-            s + r.soldQty,
-          0
-        );
-
-      const brandTotals = {};
-
-      report.brands.forEach(b => {
-
-        brandTotals[b] = 0;
-      });
-
-      report.rows.forEach(r => {
-
-        report.brands.forEach(b => {
-
-          const qty =
-            r.brands[b]?.qty || 0;
-
-          brandTotals[b] += qty;
-        });
-      });
 
       root.innerHTML = `
 
@@ -119,37 +76,25 @@ export function initFreshnessTab() {
 
                 <tr>
 
-                  <th rowspan="2">
-                    Launch Period
+                  <th>
+                    Launch Bucket
                   </th>
 
-                  <th rowspan="2">
+                  <th>
                     Launch Styles
                   </th>
 
-                  <th rowspan="2">
-                    Sold Qty
+                  <th>
+                    Sold Units
                   </th>
 
-                  <th rowspan="2">
-                    Share (%)
+                  <th>
+                    Share %
                   </th>
 
-                  ${report.brands.map(b => `
-                    <th colspan="1">
-                      ${b}
-                    </th>
-                  `).join("")}
-
-                </tr>
-
-                <tr>
-
-                  ${report.brands.map(() => `
-                    <th>
-                      Sold Units (Share%)
-                    </th>
-                  `).join("")}
+                  <th>
+                    Top Brands
+                  </th>
 
                 </tr>
 
@@ -162,7 +107,7 @@ export function initFreshnessTab() {
                   <tr>
 
                     <td>
-                      ${r.label}
+                      ${r.bucket}
                     </td>
 
                     <td>
@@ -177,7 +122,7 @@ export function initFreshnessTab() {
                       "
                     >
                       ${fmt(
-                        r.soldQty
+                        r.sales
                       )}
                     </td>
 
@@ -187,21 +132,26 @@ export function initFreshnessTab() {
                       )}%
                     </td>
 
-                    ${report.brands.map(b => {
+                    <td>
 
-                      const qty =
-                        r.brands[b]?.qty || 0;
+                      ${r.brands.map(b => `
+                        <div
+                          style="
+                            margin-bottom:4px;
+                          "
+                        >
+                          <b>
+                            ${b.brand}
+                          </b>
 
-                      const share =
-                        r.brands[b]?.share || 0;
+                          :
+                          ${fmt(b.qty)}
 
-                      return `
-                        <td>
-                          ${fmt(qty)}
-                          (${fmt(share)}%)
-                        </td>
-                      `;
-                    }).join("")}
+                          (${fmt(b.share)}%)
+                        </div>
+                      `).join("")}
+
+                    </td>
 
                   </tr>
 
@@ -220,13 +170,13 @@ export function initFreshnessTab() {
 
                   <td>
                     ${fmt(
-                      grandTotalStyles
+                      report.totals.styles
                     )}
                   </td>
 
                   <td>
                     ${fmt(
-                      grandTotalSales
+                      report.totals.sales
                     )}
                   </td>
 
@@ -234,26 +184,9 @@ export function initFreshnessTab() {
                     100%
                   </td>
 
-                  ${report.brands.map(b => {
-
-                    const qty =
-                      brandTotals[b];
-
-                    const share =
-                      grandTotalSales
-                        ? (
-                            qty /
-                            grandTotalSales
-                          ) * 100
-                        : 0;
-
-                    return `
-                      <td>
-                        ${fmt(qty)}
-                        (${fmt(share)}%)
-                      </td>
-                    `;
-                  }).join("")}
+                  <td>
+                    —
+                  </td>
 
                 </tr>
 
