@@ -157,26 +157,25 @@ export function buildLaunchContributionReport(
 
     if (!style) return;
 
+    const brand =
+      txt(r.brand);
+
+    const launchDate =
+      makeDate(
+        r.year,
+        r.month,
+        r.date
+      );
+
     masterByStyle[style] = {
 
       style,
-
-      brand:
-        txt(r.brand),
-
-      launchDate:
-        makeDate(
-          r.year,
-          r.month,
-          r.date
-        )
+      brand,
+      launchDate
     };
 
-    if (txt(r.brand)) {
-
-      allBrands.add(
-        txt(r.brand)
-      );
+    if (brand) {
+      allBrands.add(brand);
     }
   });
 
@@ -205,46 +204,73 @@ export function buildLaunchContributionReport(
 
     "0-30": {
       bucket: "0-30",
-      styles: new Set(),
+      launchStyles: new Set(),
+      soldStyles: new Set(),
       sales: 0,
       brands: {}
     },
 
     "31-60": {
       bucket: "31-60",
-      styles: new Set(),
+      launchStyles: new Set(),
+      soldStyles: new Set(),
       sales: 0,
       brands: {}
     },
 
     "61-90": {
       bucket: "61-90",
-      styles: new Set(),
+      launchStyles: new Set(),
+      soldStyles: new Set(),
       sales: 0,
       brands: {}
     },
 
     "91-120": {
       bucket: "91-120",
-      styles: new Set(),
+      launchStyles: new Set(),
+      soldStyles: new Set(),
       sales: 0,
       brands: {}
     },
 
     "121-180": {
       bucket: "121-180",
-      styles: new Set(),
+      launchStyles: new Set(),
+      soldStyles: new Set(),
       sales: 0,
       brands: {}
     },
 
     ">180": {
       bucket: ">180",
-      styles: new Set(),
+      launchStyles: new Set(),
+      soldStyles: new Set(),
       sales: 0,
       brands: {}
     }
   };
+
+  /* ---------- ACTUAL LAUNCH STYLES ---------- */
+
+  Object.values(masterByStyle)
+    .forEach(r => {
+
+      const age =
+        diffDays(
+          latestDate,
+          r.launchDate
+        );
+
+      const bucket =
+        getBucket(age);
+
+      bucketMap[
+        bucket
+      ].launchStyles.add(
+        r.style
+      );
+    });
 
   let grandSales = 0;
 
@@ -279,7 +305,9 @@ export function buildLaunchContributionReport(
 
     bucketMap[
       bucket
-    ].styles.add(style);
+    ].soldStyles.add(
+      style
+    );
 
     bucketMap[
       bucket
@@ -390,7 +418,10 @@ export function buildLaunchContributionReport(
       bucket,
 
       launchStyles:
-        row.styles.size,
+        row.launchStyles.size,
+
+      soldStyles:
+        row.soldStyles.size,
 
       sales:
         row.sales,
@@ -451,11 +482,19 @@ export function buildLaunchContributionReport(
 
     totals: {
 
-      styles:
+      launchStyles:
         rows.reduce(
           (s,r)=>
             s +
             r.launchStyles,
+          0
+        ),
+
+      soldStyles:
+        rows.reduce(
+          (s,r)=>
+            s +
+            r.soldStyles,
           0
         ),
 
