@@ -1,4 +1,5 @@
 function num(v) {
+
   return Number(
     String(v ?? "")
       .replace(/,/g, "")
@@ -7,36 +8,16 @@ function num(v) {
 }
 
 function txt(v) {
-  return String(v ?? "").trim();
+
+  return String(v ?? "")
+    .trim();
 }
 
-function monthNum(v) {
-
-  const s =
-    txt(v).toUpperCase();
-
-  const map = {
-    JAN:1,
-    FEB:2,
-    MAR:3,
-    APR:4,
-    MAY:5,
-    JUN:6,
-    JUNE:6,
-    JUL:7,
-    JULY:7,
-    AUG:8,
-    SEP:9,
-    SEPT:9,
-    OCT:10,
-    NOV:11,
-    DEC:12
-  };
-
-  return map[s] || num(v);
-}
-
-function makeDate(y, m, d) {
+function makeDate(
+  y,
+  m,
+  d
+) {
 
   return new Date(
     Number(y),
@@ -45,38 +26,53 @@ function makeDate(y, m, d) {
   );
 }
 
-function diffDays(a, b) {
+function diffDays(
+  current,
+  launch
+) {
 
   const ms =
-    a.getTime() - b.getTime();
+    current - launch;
 
   return Math.floor(
     ms / (1000 * 60 * 60 * 24)
   );
 }
 
-function validSale(row) {
+function getBucket(days) {
 
-  const s =
-    txt(row.order_status)
-      .toUpperCase();
+  if (days <= 30) {
+    return "0-30";
+  }
 
-  return (
-    s !== "RTO" &&
-    s !== "F"
-  );
+  if (days <= 60) {
+    return "31-60";
+  }
+
+  if (days <= 90) {
+    return "61-90";
+  }
+
+  if (days <= 120) {
+    return "91-120";
+  }
+
+  return ">120";
 }
 
-function passFilter(row, filter) {
+function passFilter(
+  row,
+  filter
+) {
 
   const y =
     num(row.year);
 
   const m =
-    monthNum(row.month);
+    num(row.month);
 
   const d =
-    num(row.date || row.day);
+    num(row.date);
 
   if (
     filter.year &&
@@ -94,10 +90,12 @@ function passFilter(row, filter) {
 
   if (filter.start) {
 
-    const sd = Number(
-      String(filter.start)
-        .slice(-2)
-    );
+    const sd =
+      Number(
+        String(
+          filter.start
+        ).slice(-2)
+      );
 
     if (d < sd) {
       return false;
@@ -106,10 +104,12 @@ function passFilter(row, filter) {
 
   if (filter.end) {
 
-    const ed = Number(
-      String(filter.end)
-        .slice(-2)
-    );
+    const ed =
+      Number(
+        String(
+          filter.end
+        ).slice(-2)
+      );
 
     if (d > ed) {
       return false;
@@ -119,11 +119,9 @@ function passFilter(row, filter) {
   return true;
 }
 
-/* ------------------------------------------------ */
-/* MAIN REPORT */
-/* ------------------------------------------------ */
-
-export function buildLaunchContributionReport(data) {
+export function buildLaunchContributionReport(
+  data
+) {
 
   const {
     salesRows,
@@ -133,11 +131,20 @@ export function buildLaunchContributionReport(data) {
   const filter =
     window.ACTIVE_FILTER || {};
 
-  /* -------------------------------------------- */
-  /* MASTER MAP */
-  /* -------------------------------------------- */
+  const filteredSales =
+    salesRows.filter(r =>
+      passFilter(
+        r,
+        filter
+      )
+    );
 
-  const launchMap = {};
+  /* ---------- MASTER MAP ---------- */
+
+  const masterByStyle = {};
+
+  const allBrands =
+    new Set();
 
   masterRows.forEach(r => {
 
@@ -146,22 +153,7 @@ export function buildLaunchContributionReport(data) {
 
     if (!style) return;
 
-    const y =
-      num(r.year);
-
-    const m =
-      monthNum(r.month);
-
-    const d =
-      num(r.date);
-
-    if (
-      !y ||
-      !m ||
-      !d
-    ) return;
-
-    launchMap[style] = {
+    masterByStyle[style] = {
 
       style,
 
@@ -169,235 +161,297 @@ export function buildLaunchContributionReport(data) {
         txt(r.brand),
 
       launchDate:
-        makeDate(y, m, d)
+        makeDate(
+          r.year,
+          r.month,
+          r.date
+        )
     };
+
+    if (txt(r.brand)) {
+
+      allBrands.add(
+        txt(r.brand)
+      );
+    }
   });
 
-  /* -------------------------------------------- */
-  /* CURRENT FILTER DATE */
-  /* -------------------------------------------- */
+  /* ---------- CURRENT DATE ---------- */
 
-  const fy =
-    num(filter.year);
+  let latestDate =
+    new Date();
 
-  const fm =
-    num(filter.month);
+  filteredSales.forEach(r => {
 
-  const endDay =
-    filter.end
-      ? Number(
-          String(filter.end)
-            .slice(-2)
-        )
-      : 31;
+    const dt =
+      makeDate(
+        r.year,
+        r.month,
+        r.date
+      );
 
-  const reportDate =
-    makeDate(
-      fy,
-      fm,
-      endDay
-    );
+    if (dt > latestDate) {
+      latestDate = dt;
+    }
+  });
 
-  /* -------------------------------------------- */
-  /* BUCKETS */
-  /* -------------------------------------------- */
+  /* ---------- BUCKET STRUCTURE ---------- */
 
   const bucketMap = {
 
     "0-30": {
-      bucket: "0-30 DAYS",
+      bucket: "0-30",
       styles: new Set(),
       sales: 0,
       brands: {}
     },
 
     "31-60": {
-      bucket: "31-60 DAYS",
+      bucket: "31-60",
       styles: new Set(),
       sales: 0,
       brands: {}
     },
 
     "61-90": {
-      bucket: "61-90 DAYS",
+      bucket: "61-90",
+      styles: new Set(),
+      sales: 0,
+      brands: {}
+    },
+
+    "91-120": {
+      bucket: "91-120",
+      styles: new Set(),
+      sales: 0,
+      brands: {}
+    },
+
+    ">120": {
+      bucket: ">120",
       styles: new Set(),
       sales: 0,
       brands: {}
     }
-
   };
 
-  /* -------------------------------------------- */
-  /* FILTER SALES */
-  /* -------------------------------------------- */
+  let grandSales = 0;
 
-  const filteredSales =
-    salesRows.filter(r =>
-      validSale(r) &&
-      passFilter(r, filter)
-    );
-
-  let totalSales = 0;
+  /* ---------- SALES PROCESS ---------- */
 
   filteredSales.forEach(r => {
 
     const style =
-      txt(r.style_id) ||
-      txt(r.styleid) ||
-      txt(r.style);
-
-    if (!style) return;
-
-    const master =
-      launchMap[style];
-
-    if (!master) return;
-
-    const launchDate =
-      master.launchDate;
-
-    const age =
-      diffDays(
-        reportDate,
-        launchDate
-      );
-
-    let bucketKey = "";
-
-    if (
-      age >= 0 &&
-      age <= 30
-    ) {
-      bucketKey = "0-30";
-    }
-
-    else if (
-      age >= 31 &&
-      age <= 60
-    ) {
-      bucketKey = "31-60";
-    }
-
-    else if (
-      age >= 61 &&
-      age <= 90
-    ) {
-      bucketKey = "61-90";
-    }
-
-    else {
-      return;
-    }
+      txt(r.style_id);
 
     const qty =
       num(r.qty || 1);
 
-    totalSales += qty;
+    const master =
+      masterByStyle[
+        style
+      ];
+
+    if (!master) return;
+
+    const age =
+      diffDays(
+        latestDate,
+        master.launchDate
+      );
 
     const bucket =
-      bucketMap[bucketKey];
-
-    bucket.sales += qty;
-
-    bucket.styles.add(style);
+      getBucket(age);
 
     const brand =
-      master.brand || "UNKNOWN";
+      txt(master.brand);
 
-    if (!bucket.brands[brand]) {
-      bucket.brands[brand] = 0;
+    bucketMap[
+      bucket
+    ].styles.add(style);
+
+    bucketMap[
+      bucket
+    ].sales += qty;
+
+    grandSales += qty;
+
+    if (
+      !bucketMap[
+        bucket
+      ].brands[brand]
+    ) {
+
+      bucketMap[
+        bucket
+      ].brands[brand] = 0;
     }
 
-    bucket.brands[brand] += qty;
+    bucketMap[
+      bucket
+    ].brands[brand] += qty;
   });
 
-  /* -------------------------------------------- */
-  /* FINAL ROWS */
-  /* -------------------------------------------- */
+  /* ---------- BRAND TOTALS ---------- */
 
-  const rows =
-    Object.values(bucketMap)
-      .map(r => {
+  const brandTotals = {};
 
-        const brandEntries =
-          Object.entries(r.brands)
-            .sort((a,b)=>
-              b[1]-a[1]
-            );
+  Object.keys(bucketMap)
+    .forEach(bucket => {
 
-        const topBrands =
-          brandEntries
-            .slice(0, 5)
-            .map(([brand, qty]) => {
+      const brands =
+        bucketMap[
+          bucket
+        ].brands;
 
-              const share =
-                r.sales
-                  ? (
-                      qty /
-                      r.sales
-                    ) * 100
-                  : 0;
+      Object.keys(brands)
+        .forEach(brand => {
 
-              return {
-                brand,
-                qty,
-                share
-              };
-            });
+          if (
+            !brandTotals[
+              brand
+            ]
+          ) {
 
-        return {
+            brandTotals[
+              brand
+            ] = 0;
+          }
 
-          bucket:
-            r.bucket,
+          brandTotals[
+            brand
+          ] += brands[
+            brand
+          ];
+        });
+    });
 
-          launchStyles:
-            r.styles.size,
+  /* ---------- FINAL ROWS ---------- */
 
-          sales:
-            r.sales,
+  const rows = [
 
-          share:
-            totalSales
-              ? (
-                  r.sales /
-                  totalSales
-                ) * 100
-              : 0,
+    "0-30",
+    "31-60",
+    "61-90",
+    "91-120",
+    ">120"
 
-          brands:
-            topBrands
-        };
-      });
+  ].map(bucket => {
 
-  /* -------------------------------------------- */
-  /* GRAND TOTAL */
-  /* -------------------------------------------- */
+    const row =
+      bucketMap[bucket];
 
-  const totalStyles =
-    rows.reduce(
-      (s,r)=>
-        s + r.launchStyles,
-      0
-    );
+    const brandCells =
+      {};
 
-  const grandSales =
-    rows.reduce(
-      (s,r)=>
-        s + r.sales,
-      0
-    );
+    Array.from(
+      allBrands
+    )
+    .sort()
+    .forEach(brand => {
+
+      const qty =
+        row.brands[
+          brand
+        ] || 0;
+
+      const share =
+        row.sales
+          ? (
+              qty /
+              row.sales
+            ) * 100
+          : 0;
+
+      brandCells[
+        brand
+      ] = {
+
+        qty,
+
+        share
+      };
+    });
+
+    return {
+
+      bucket,
+
+      launchStyles:
+        row.styles.size,
+
+      sales:
+        row.sales,
+
+      share:
+        grandSales
+          ? (
+              row.sales /
+              grandSales
+            ) * 100
+          : 0,
+
+      brands:
+        brandCells
+    };
+  });
+
+  /* ---------- TOTAL BRANDS ---------- */
+
+  const totalBrandCells =
+    {};
+
+  Array.from(
+    allBrands
+  )
+  .sort()
+  .forEach(brand => {
+
+    const qty =
+      brandTotals[
+        brand
+      ] || 0;
+
+    totalBrandCells[
+      brand
+    ] = {
+
+      qty,
+
+      share:
+        grandSales
+          ? (
+              qty /
+              grandSales
+            ) * 100
+          : 0
+    };
+  });
 
   return {
+
+    brands:
+      Array.from(
+        allBrands
+      ).sort(),
 
     rows,
 
     totals: {
 
       styles:
-        totalStyles,
+        rows.reduce(
+          (s,r)=>
+            s +
+            r.launchStyles,
+          0
+        ),
 
       sales:
-        grandSales
+        grandSales,
+
+      brands:
+        totalBrandCells
     }
   };
 }
