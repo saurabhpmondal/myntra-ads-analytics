@@ -14,7 +14,11 @@ import { initBusinessTab } from "./business/businessUI.js";
 /* NEW */
 import { initGrowDegrowTab } from "./growdegrow/growthUI.js";
 
+/* NEW FRESHNESS */
+import { initFreshness } from "./freshness/index.js";
+
 window.addEventListener("DOMContentLoaded", async () => {
+
   await initDashboard();
 
   initCampaignTab();
@@ -32,13 +36,19 @@ window.addEventListener("DOMContentLoaded", async () => {
   /* NEW */
   initGrowDegrowTab();
 
+  /* NEW FRESHNESS */
+  initFreshness();
+
   document.querySelectorAll(".tab-btn").forEach(btn => {
+
     btn.onclick = () => {
+
       const tab = btn.dataset.tab;
 
-      document.querySelectorAll(".tab-btn").forEach(x =>
-        x.classList.remove("active")
-      );
+      document.querySelectorAll(".tab-btn")
+        .forEach(x =>
+          x.classList.remove("active")
+        );
 
       btn.classList.add("active");
 
@@ -50,32 +60,85 @@ window.addEventListener("DOMContentLoaded", async () => {
         "ppr",
         "analysis",
         "sales",
-        "growdegrow",  // NEW
+
+        "growdegrow",
+
         "sjit",
         "sor",
         "styleeye",
         "export",
-        "business"
+        "business",
+
+        /* NEW FRESHNESS */
+        "freshness"
+
       ].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = id === tab ? "block" : "none";
+
+        const el =
+          document.getElementById(id);
+
+        if (el) {
+
+          el.style.display =
+            id === tab
+              ? "block"
+              : "none";
+        }
       });
 
-      if (tab === "campaign") window.renderCampaignTab?.();
-      if (tab === "adgroup") window.renderAdgroupTab?.();
-      if (tab === "style") window.renderStyleTab?.();
-      if (tab === "ppr") window.renderPPRTab?.();
-      if (tab === "analysis") window.renderAnalysisTab?.();
-      if (tab === "sales") window.renderSalesTab?.();
+      if (tab === "campaign") {
+        window.renderCampaignTab?.();
+      }
+
+      if (tab === "adgroup") {
+        window.renderAdgroupTab?.();
+      }
+
+      if (tab === "style") {
+        window.renderStyleTab?.();
+      }
+
+      if (tab === "ppr") {
+        window.renderPPRTab?.();
+      }
+
+      if (tab === "analysis") {
+        window.renderAnalysisTab?.();
+      }
+
+      if (tab === "sales") {
+        window.renderSalesTab?.();
+      }
 
       /* NEW */
-      if (tab === "growdegrow") window.renderGrowDegrowTab?.();
+      if (tab === "growdegrow") {
+        window.renderGrowDegrowTab?.();
+      }
 
-      if (tab === "sjit") window.renderSJITTab?.();
-      if (tab === "sor") window.renderSORTab?.();
-      if (tab === "styleeye") window.renderStyleEyeTab?.();
-      if (tab === "export") window.renderExportTab?.();
-      if (tab === "business") window.renderBusinessTab?.();
+      if (tab === "sjit") {
+        window.renderSJITTab?.();
+      }
+
+      if (tab === "sor") {
+        window.renderSORTab?.();
+      }
+
+      if (tab === "styleeye") {
+        window.renderStyleEyeTab?.();
+      }
+
+      if (tab === "export") {
+        window.renderExportTab?.();
+      }
+
+      if (tab === "business") {
+        window.renderBusinessTab?.();
+      }
+
+      /* NEW FRESHNESS */
+      if (tab === "freshness") {
+        window.renderFreshnessTab?.();
+      }
     };
   });
 });
