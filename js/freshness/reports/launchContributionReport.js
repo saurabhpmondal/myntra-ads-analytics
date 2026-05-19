@@ -57,7 +57,11 @@ function getBucket(days) {
     return "91-120";
   }
 
-  return ">120";
+  if (days <= 180) {
+    return "121-180";
+  }
+
+  return ">180";
 }
 
 function passFilter(
@@ -227,8 +231,15 @@ export function buildLaunchContributionReport(
       brands: {}
     },
 
-    ">120": {
-      bucket: ">120",
+    "121-180": {
+      bucket: "121-180",
+      styles: new Set(),
+      sales: 0,
+      brands: {}
+    },
+
+    ">180": {
+      bucket: ">180",
       styles: new Set(),
       sales: 0,
       brands: {}
@@ -334,7 +345,8 @@ export function buildLaunchContributionReport(
     "31-60",
     "61-90",
     "91-120",
-    ">120"
+    "121-180",
+    ">180"
 
   ].map(bucket => {
 
