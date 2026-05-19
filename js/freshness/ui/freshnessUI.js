@@ -85,6 +85,10 @@ export function initFreshnessTab() {
                   </th>
 
                   <th rowspan="2">
+                    Sold Styles
+                  </th>
+
+                  <th rowspan="2">
                     Sold Qty
                   </th>
 
@@ -130,6 +134,12 @@ export function initFreshnessTab() {
                     <td>
                       ${fmt(
                         r.launchStyles
+                      )}
+                    </td>
+
+                    <td>
+                      ${fmt(
+                        r.soldStyles
                       )}
                     </td>
 
@@ -201,13 +211,22 @@ export function initFreshnessTab() {
 
                   <td>
                     ${fmt(
-                      report.totals.styles
+                      report.totals
+                        .launchStyles
                     )}
                   </td>
 
                   <td>
                     ${fmt(
-                      report.totals.sales
+                      report.totals
+                        .soldStyles
+                    )}
+                  </td>
+
+                  <td>
+                    ${fmt(
+                      report.totals
+                        .sales
                     )}
                   </td>
 
