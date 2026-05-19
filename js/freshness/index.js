@@ -1,8 +1,4 @@
-import {
-
-  initFreshnessTab
-
-} from "./ui/freshnessUI.js";
+import { initFreshnessTab } from "./ui/freshnessUI.js";
 
 export function initFreshness() {
 
