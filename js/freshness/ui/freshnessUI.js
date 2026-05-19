@@ -76,25 +76,42 @@ export function initFreshnessTab() {
 
                 <tr>
 
-                  <th>
-                    Launch Bucket
+                  <th rowspan="2">
+                    Launch Period
                   </th>
 
-                  <th>
+                  <th rowspan="2">
                     Launch Styles
                   </th>
 
-                  <th>
-                    Sold Units
+                  <th rowspan="2">
+                    Sold Qty
                   </th>
 
-                  <th>
-                    Share %
+                  <th rowspan="2">
+                    Share (%)
                   </th>
 
-                  <th>
-                    Top Brands
-                  </th>
+                  ${report.brands.map(
+                    brand => `
+                      <th>
+                        ${brand}
+                      </th>
+                    `
+                  ).join("")}
+
+                </tr>
+
+                <tr>
+
+                  ${report.brands.map(
+                    () => `
+                      <th>
+                        Sold Units
+                        (Share%)
+                      </th>
+                    `
+                  ).join("")}
 
                 </tr>
 
@@ -132,26 +149,40 @@ export function initFreshnessTab() {
                       )}%
                     </td>
 
-                    <td>
+                    ${report.brands.map(
+                      brand => {
 
-                      ${r.brands.map(b => `
-                        <div
-                          style="
-                            margin-bottom:4px;
-                          "
-                        >
-                          <b>
-                            ${b.brand}
-                          </b>
+                        const b =
+                          r.brands[
+                            brand
+                          ];
 
-                          :
-                          ${fmt(b.qty)}
+                        return `
+                          <td>
 
-                          (${fmt(b.share)}%)
-                        </div>
-                      `).join("")}
+                            ${fmt(
+                              b.qty
+                            )}
 
-                    </td>
+                            <br>
+
+                            <span
+                              style="
+                                color:#666;
+                                font-size:11px;
+                              "
+                            >
+                              (
+                              ${fmt(
+                                b.share
+                              )}%
+                              )
+                            </span>
+
+                          </td>
+                        `;
+                      }
+                    ).join("")}
 
                   </tr>
 
@@ -184,9 +215,41 @@ export function initFreshnessTab() {
                     100%
                   </td>
 
-                  <td>
-                    —
-                  </td>
+                  ${report.brands.map(
+                    brand => {
+
+                      const b =
+                        report.totals
+                          .brands[
+                            brand
+                          ];
+
+                      return `
+                        <td>
+
+                          ${fmt(
+                            b.qty
+                          )}
+
+                          <br>
+
+                          <span
+                            style="
+                              color:#666;
+                              font-size:11px;
+                            "
+                          >
+                            (
+                            ${fmt(
+                              b.share
+                            )}%
+                            )
+                          </span>
+
+                        </td>
+                      `;
+                    }
+                  ).join("")}
 
                 </tr>
 
