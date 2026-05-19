@@ -11,34 +11,36 @@ let MASTER = [];
 
 export async function getFreshnessData() {
 
-  if (READY) {
+  if (!READY) {
 
-    return {
-      salesRows: SALES,
-      masterRows: MASTER
-    };
+    const [
+      salesCsv,
+      masterCsv
+    ] = await Promise.all([
+
+      fetchCSV(
+        SHEETS.SALES
+      ),
+
+      fetchCSV(
+        SHEETS.PRODUCT_MASTER
+      )
+
+    ]);
+
+    SALES =
+      parseCSV(salesCsv);
+
+    MASTER =
+      parseCSV(masterCsv);
+
+    READY = true;
   }
 
-  const [
-    salesCsv,
-    masterCsv
-  ] = await Promise.all([
-
-    fetchCSV(SHEETS.SALES),
-
-    fetchCSV(
-      SHEETS.PRODUCT_MASTER
-    )
-  ]);
-
-  SALES = parseCSV(salesCsv);
-
-  MASTER = parseCSV(masterCsv);
-
-  READY = true;
-
   return {
+
     salesRows: SALES,
+
     masterRows: MASTER
   };
 }
