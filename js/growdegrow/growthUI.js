@@ -259,9 +259,7 @@ export function initGrowDegrowTab(){
 
         filteredRows =
           filteredRows.filter(
-            r =>
-              r.growth > 0 ||
-              r.isNewGrowth
+            r => r.growth > 0
           );
       }
 
@@ -270,6 +268,14 @@ export function initGrowDegrowTab(){
         filteredRows =
           filteredRows.filter(
             r => r.growth < 0
+          );
+      }
+
+      if (growthFilter === "NEW") {
+
+        filteredRows =
+          filteredRows.filter(
+            r => r.isNewGrowth
           );
       }
     }
@@ -437,6 +443,10 @@ export function initGrowDegrowTab(){
 
                 <option value="NEG">
                   Negative
+                </option>
+
+                <option value="NEW">
+                  NEW
                 </option>
 
               </select>
@@ -760,8 +770,6 @@ export function initGrowDegrowTab(){
     `;
 
     root.innerHTML = html;
-
-    /* ---------- BIND ---------- */
 
     document.getElementById(
       "viewMode"
