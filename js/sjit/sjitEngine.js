@@ -181,10 +181,14 @@ export function buildSJITDebug(data, cfg = {}) {
       Math.max(stock - (coverDays * drr), 0)
     );
 
-    const recallFlag =
-      sc > recallDays ||
-      rating < 3.8 ||
-      !isContinue(status);
+    const ratingBlock =
+  rating > 0 &&
+  rating < 3.8;
+
+const recallFlag =
+  sc > recallDays ||
+  ratingBlock ||
+  !isContinue(status);
 
     const shipmentQty = recallFlag ? 0 : projectionQty;
 
