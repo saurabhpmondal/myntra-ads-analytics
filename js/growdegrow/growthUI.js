@@ -14,6 +14,9 @@ let growthFilter = "ALL";
 
 let LIMIT = 100;
 
+/* ✅ SEARCH DEBOUNCE */
+let SEARCH_TIMER = null;
+
 function fmtPct(v){
 
   if(v === null){
@@ -827,14 +830,25 @@ export function initGrowDegrowTab(){
       window.renderGrowDegrowTab();
     };
 
+    /* ✅ 300ms DEBOUNCE */
+
     document.getElementById(
       "searchBox"
     ).oninput = e=>{
 
-      searchText =
-        e.target.value;
+      clearTimeout(
+        SEARCH_TIMER
+      );
 
-      window.renderGrowDegrowTab();
+      SEARCH_TIMER =
+        setTimeout(()=>{
+
+          searchText =
+            e.target.value;
+
+          window.renderGrowDegrowTab();
+
+        }, 300);
     };
 
     document.getElementById(
