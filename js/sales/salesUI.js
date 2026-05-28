@@ -178,14 +178,21 @@ export function initSalesTab() {
 
     if (QUERY) {
 
+      const q =
+        QUERY.toLowerCase();
+
       rows =
         rows.filter(r =>
 
-          String(r.id)
+          String(r.id || "")
             .toLowerCase()
-            .includes(
-              QUERY.toLowerCase()
-            )
+            .includes(q)
+
+          ||
+
+          String(r.erp_sku || "")
+            .toLowerCase()
+            .includes(q)
         );
     }
 
@@ -254,10 +261,10 @@ export function initSalesTab() {
             display:grid;
             gap:12px;
             grid-template-columns:
-              1fr
-              140px
-              180px
-              140px;
+              220px
+              130px
+              160px
+              130px;
             align-items:end;
           "
         >
@@ -271,6 +278,9 @@ export function initSalesTab() {
             <input
               id="salesSearch"
               value="${QUERY}"
+              style="
+                max-width:220px;
+              "
             >
 
           </div>
