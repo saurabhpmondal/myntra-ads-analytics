@@ -263,12 +263,18 @@ export function initSJITTab() {
               display:grid;
               gap:12px;
               grid-template-columns:
-                repeat(4,minmax(0,1fr));
+                140px
+                140px
+                140px
+                140px
+                minmax(260px,1fr)
+                180px;
               align-items:end;
             "
           >
 
             <div>
+
               <label
                 style="
                   font-size:12px;
@@ -283,9 +289,11 @@ export function initSJITTab() {
                 <option value="45">45</option>
                 <option value="60">60</option>
               </select>
+
             </div>
 
             <div>
+
               <label
                 style="
                   font-size:12px;
@@ -300,9 +308,11 @@ export function initSJITTab() {
                 <option value="60">60</option>
                 <option value="90">90</option>
               </select>
+
             </div>
 
             <div>
+
               <label
                 style="
                   font-size:12px;
@@ -317,9 +327,11 @@ export function initSJITTab() {
                 <option value="90">90</option>
                 <option value="120">120</option>
               </select>
+
             </div>
 
             <div>
+
               <label
                 style="
                   font-size:12px;
@@ -336,22 +348,8 @@ export function initSJITTab() {
                 <option value="recall">Recall</option>
                 <option value="stock">Stock</option>
               </select>
+
             </div>
-
-          </div>
-
-          <div
-            style="
-              padding:
-                0 16px 16px 16px;
-              display:grid;
-              grid-template-columns:
-                minmax(0,1fr)
-                180px;
-              gap:12px;
-              align-items:end;
-            "
-          >
 
             <div>
 
@@ -409,33 +407,19 @@ export function initSJITTab() {
                 <tr>
 
                   <th>Style ID</th>
-
                   <th>ERP SKU</th>
-
                   <th>ERP Status</th>
-
                   <th>Brand</th>
-
                   <th>Launch Date</th>
-
                   <th>Rating</th>
-
                   <th>Gross</th>
-
                   <th>Return %</th>
-
                   <th>Net</th>
-
                   <th>DRR</th>
-
                   <th>Stock</th>
-
                   <th>SC</th>
-
                   <th>Projection</th>
-
                   <th>Shipment</th>
-
                   <th>Recall</th>
 
                 </tr>
@@ -448,49 +432,27 @@ export function initSJITTab() {
 
                   <tr>
 
-                    <td>
-                      ${r.style_id}
-                    </td>
+                    <td>${r.style_id}</td>
 
-                    <td>
-                      ${r.erp_sku}
-                    </td>
+                    <td>${r.erp_sku}</td>
 
-                    <td>
-                      ${r.status}
-                    </td>
+                    <td>${r.status}</td>
 
-                    <td>
-                      ${r.brand}
-                    </td>
+                    <td>${r.brand}</td>
 
-                    <td>
-                      ${r.launch_date}
-                    </td>
+                    <td>${r.launch_date}</td>
 
-                    <td>
-                      ${fmt(r.rating)}
-                    </td>
+                    <td>${fmt(r.rating)}</td>
 
-                    <td>
-                      ${fmt(r.gross)}
-                    </td>
+                    <td>${fmt(r.gross)}</td>
 
-                    <td>
-                      ${fmt(r.returnPct)}%
-                    </td>
+                    <td>${fmt(r.returnPct)}%</td>
 
-                    <td>
-                      ${fmt(r.net)}
-                    </td>
+                    <td>${fmt(r.net)}</td>
 
-                    <td>
-                      ${fmt(r.drr)}
-                    </td>
+                    <td>${fmt(r.drr)}</td>
 
-                    <td>
-                      ${fmt(r.stock)}
-                    </td>
+                    <td>${fmt(r.stock)}</td>
 
                     <td>
 
@@ -502,17 +464,11 @@ export function initSJITTab() {
 
                     </td>
 
-                    <td>
-                      ${fmt(r.projectionQty)}
-                    </td>
+                    <td>${fmt(r.projectionQty)}</td>
 
-                    <td>
-                      ${fmt(r.shipmentQty)}
-                    </td>
+                    <td>${fmt(r.shipmentQty)}</td>
 
-                    <td>
-                      ${fmt(r.recallQty)}
-                    </td>
+                    <td>${fmt(r.recallQty)}</td>
 
                   </tr>
 
