@@ -55,6 +55,11 @@ function fmt(n) {
     );
 }
 
+function raw(n) {
+
+  return Number(n || 0);
+}
+
 function sortRows(rows) {
 
   const out = [...rows];
@@ -123,20 +128,21 @@ function exportCSV(rows) {
       `"${r.status}"`,
       `"${r.brand}"`,
       `"${r.launch_date}"`,
-      fmt(r.rating),
-      fmt(r.gross),
-      fmt(r.returnPct),
-      fmt(r.net),
-      fmt(r.drr),
-      fmt(r.stock),
+
+      raw(r.rating),
+      raw(r.gross),
+      raw(r.returnPct),
+      raw(r.net),
+      raw(r.drr),
+      raw(r.stock),
 
       Number(r.sc) >= 999999
-        ? "∞"
-        : fmt(r.sc),
+        ? 999999
+        : raw(r.sc),
 
-      fmt(r.projectionQty),
-      fmt(r.shipmentQty),
-      fmt(r.recallQty)
+      raw(r.projectionQty),
+      raw(r.shipmentQty),
+      raw(r.recallQty)
 
     ].join(","))
 
