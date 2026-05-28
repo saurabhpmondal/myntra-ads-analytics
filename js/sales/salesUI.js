@@ -33,6 +33,11 @@ function fmt(n) {
   );
 }
 
+function raw(n) {
+
+  return Number(n || 0);
+}
+
 async function ensureData() {
 
   if (READY) return;
@@ -110,6 +115,92 @@ function sortRows(rows) {
   }
 
   return out;
+}
+
+function exportCSV(rows) {
+
+  const headers = [
+
+    "Rank",
+    "Brand Rank",
+    "Style",
+    "Brand",
+    "ERP SKU",
+    "Launch Date",
+    "Status",
+    "Sold",
+    "Value",
+    "Returns",
+    "Return %",
+    "Net",
+    "DRR"
+  ];
+
+  const csv = [
+
+    headers.join(","),
+
+    ...rows.map(r => [
+
+      RANK_BY === "units"
+        ? raw(r.rank_units)
+        : raw(r.rank),
+
+      RANK_BY === "units"
+        ? raw(r.brandRank_units)
+        : raw(r.brandRank),
+
+      `"${r.id}"`,
+
+      `"${r.brand}"`,
+
+      `"${r.erp_sku}"`,
+
+      `"${r.launch_date}"`,
+
+      `"${r.status}"`,
+
+      raw(r.sold),
+
+      raw(r.value),
+
+      raw(r.returns),
+
+      raw(r.returnPct),
+
+      raw(r.netUnits),
+
+      raw(r.drr)
+
+    ].join(","))
+
+  ].join("\n");
+
+  const blob = new Blob(
+    [csv],
+    {
+      type: "text/csv;charset=utf-8;"
+    }
+  );
+
+  const url =
+    URL.createObjectURL(blob);
+
+  const link =
+    document.createElement("a");
+
+  link.href = url;
+
+  link.download =
+    `sales-report.csv`;
+
+  document.body.appendChild(link);
+
+  link.click();
+
+  document.body.removeChild(link);
+
+  URL.revokeObjectURL(url);
 }
 
 function card(
@@ -264,7 +355,8 @@ export function initSalesTab() {
               220px
               130px
               160px
-              130px;
+              130px
+              140px;
             align-items:end;
           "
         >
@@ -354,6 +446,24 @@ export function initSalesTab() {
               </option>
 
             </select>
+
+          </div>
+
+          <div>
+
+            <label>
+              Export
+            </label>
+
+            <button
+              id="salesExport"
+              class="load-more"
+              style="
+                width:100%;
+              "
+            >
+              Export CSV
+            </button>
 
           </div>
 
@@ -593,6 +703,13 @@ export function initSalesTab() {
           window.renderSalesTab();
 
         }, 300);
+    };
+
+    document.getElementById(
+      "salesExport"
+    ).onclick = () => {
+
+      exportCSV(rows);
     };
 
     const more =
