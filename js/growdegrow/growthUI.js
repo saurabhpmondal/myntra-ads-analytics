@@ -1,22 +1,30 @@
 import { buildGrowthData } from "./growthEngine.js";
 
 let DATA = null;
+
 let viewMode = "none";
 
 let brandFilter = "ALL";
+
 let searchText = "";
 
-/* FILTERS */
 let ratingFilter = "ALL";
+
 let growthFilter = "ALL";
 
 let LIMIT = 100;
 
 function fmtPct(v){
-  return `${v.toFixed(1)}%`;
+
+  if(v === null){
+    return "NEW";
+  }
+
+  return `${Number(v || 0).toFixed(2)}%`;
 }
 
 function raw(v){
+
   return Number(v || 0);
 }
 
@@ -59,7 +67,6 @@ function exportCSV(
     "Projection",
 
     ...days.map(d => `${d}`)
-
   ];
 
   const csv = [
@@ -94,9 +101,13 @@ function exportCSV(
 
       raw(r.m0),
 
-      raw(r.growth),
-      raw(r.drr),
-      raw(r.projection),
+      r.growth === null
+        ? "NEW"
+        : raw(r.growth),
+
+      Number(r.drr || 0).toFixed(2),
+
+      Math.ceil(r.projection || 0),
 
       ...days.map(
         d => raw(r.days[d] || 0)
@@ -150,8 +161,10 @@ export function initGrowDegrowTab(){
       </section>
     `;
 
-    if(!DATA) {
-      DATA = await buildGrowthData();
+    if(!DATA){
+
+      DATA =
+        await buildGrowthData();
     }
 
     const {
@@ -166,7 +179,8 @@ export function initGrowDegrowTab(){
       new Set(
         rows
           .map(r =>
-            (r.brand || "").trim()
+            (r.brand || "")
+              .trim()
           )
           .filter(Boolean)
       )
@@ -174,7 +188,7 @@ export function initGrowDegrowTab(){
 
     let filteredRows = rows;
 
-    /* BRAND FILTER */
+    /* ---------- BRAND ---------- */
 
     if (brandFilter !== "ALL") {
 
@@ -184,7 +198,7 @@ export function initGrowDegrowTab(){
         );
     }
 
-    /* SEARCH */
+    /* ---------- SEARCH ---------- */
 
     if (searchText) {
 
@@ -206,7 +220,7 @@ export function initGrowDegrowTab(){
         );
     }
 
-    /* RATING FILTER */
+    /* ---------- RATING ---------- */
 
     if (ratingFilter !== "ALL") {
 
@@ -237,7 +251,7 @@ export function initGrowDegrowTab(){
       }
     }
 
-    /* GROWTH FILTER */
+    /* ---------- GROWTH ---------- */
 
     if (growthFilter !== "ALL") {
 
@@ -245,7 +259,9 @@ export function initGrowDegrowTab(){
 
         filteredRows =
           filteredRows.filter(
-            r => r.growth > 0
+            r =>
+              r.growth > 0 ||
+              r.isNewGrowth
           );
       }
 
@@ -587,7 +603,10 @@ export function initGrowDegrowTab(){
 
       const growthColor =
 
-        r.growth > 0
+        r.isNewGrowth
+          ? "#2563eb"
+
+        : r.growth > 0
           ? "green"
 
         : r.growth < 0
@@ -663,7 +682,7 @@ export function initGrowDegrowTab(){
           </td>
 
           <td>
-            ${r.drr.toFixed(1)}
+            ${Number(r.drr || 0).toFixed(2)}
           </td>
 
           <td
@@ -672,7 +691,7 @@ export function initGrowDegrowTab(){
             "
           >
 
-            ${r.projection.toFixed(0)}
+            ${Math.ceil(r.projection)}
 
           </td>
 
