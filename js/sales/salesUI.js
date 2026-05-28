@@ -128,8 +128,8 @@ function exportCSV(rows) {
     "ERP SKU",
     "Launch Date",
     "Status",
-    "Sold",
-    "Value",
+    "Sold Units",
+    "GMV",
     "Returns",
     "Return %",
     "Net",
@@ -166,11 +166,15 @@ function exportCSV(rows) {
 
       raw(r.returns),
 
-      raw(r.returnPct),
+      Number(
+        r.returnPct || 0
+      ).toFixed(2),
 
       raw(r.netUnits),
 
-      raw(r.drr)
+      Number(
+        r.drr || 0
+      ).toFixed(2)
 
     ].join(","))
 
