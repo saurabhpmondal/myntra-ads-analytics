@@ -344,29 +344,59 @@ export function initSJITTab() {
             style="
               padding:
                 0 16px 16px 16px;
-              display:flex;
+              display:grid;
+              grid-template-columns:
+                minmax(0,1fr)
+                180px;
               gap:12px;
-              align-items:center;
+              align-items:end;
             "
           >
 
-            <input
-              id="sjitSearch"
-              value="${QUERY}"
-              placeholder="
-                Style / ERP SKU / Brand
-              "
-            >
+            <div>
 
-            <button
-              id="sjitExport"
-              class="load-more"
-              style="
-                white-space:nowrap;
-              "
-            >
-              Export CSV
-            </button>
+              <label
+                style="
+                  font-size:12px;
+                  color:#666;
+                "
+              >
+                Search
+              </label>
+
+              <input
+                id="sjitSearch"
+                value="${QUERY}"
+                placeholder="
+                  Style / ERP SKU / Brand
+                "
+              >
+
+            </div>
+
+            <div>
+
+              <label
+                style="
+                  font-size:12px;
+                  color:#666;
+                "
+              >
+                Export
+              </label>
+
+              <button
+                id="sjitExport"
+                class="load-more"
+                style="
+                  width:100%;
+                  white-space:nowrap;
+                "
+              >
+                Export CSV
+              </button>
+
+            </div>
 
           </div>
 
