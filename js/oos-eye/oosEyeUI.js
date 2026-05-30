@@ -3,9 +3,10 @@ import { buildOOSEyeData } from "./oosEyeEngine.js";
 let DATA = null;
 
 let BRAND = "ALL";
-let PRIORITY = "ALL";
+let SEVERITY = "ALL";
 let SEARCH = "";
 let LIMIT = 100;
+let DAYS = 90;
 
 function fmt(v){
 
@@ -31,11 +32,10 @@ export function initOOSEyeTab(){
         </section>
       `;
 
-      if(!DATA){
-
-        DATA =
-          await buildOOSEyeData();
-      }
+      DATA =
+        await buildOOSEyeData(
+          DAYS
+        );
 
       const {
         rows,
@@ -68,14 +68,14 @@ export function initOOSEyeTab(){
       }
 
       if(
-        PRIORITY !== "ALL"
+        SEVERITY !== "ALL"
       ){
 
         filteredRows =
           filteredRows.filter(
             r =>
-              r.priority ===
-              PRIORITY
+              r.severityFlag ===
+              SEVERITY
           );
       }
 
@@ -122,15 +122,11 @@ export function initOOSEyeTab(){
 
           <div class="summary-card">
 
-            <div
-              class="label"
-            >
+            <div class="label">
               Flagged Styles
             </div>
 
-            <div
-              class="value"
-            >
+            <div class="value">
               ${fmt(
                 kpis.flaggedStyles
               )}
@@ -140,15 +136,11 @@ export function initOOSEyeTab(){
 
           <div class="summary-card">
 
-            <div
-              class="label"
-            >
+            <div class="label">
               Critical Styles
             </div>
 
-            <div
-              class="value"
-            >
+            <div class="value">
               ${fmt(
                 kpis.criticalStyles
               )}
@@ -158,17 +150,13 @@ export function initOOSEyeTab(){
 
           <div class="summary-card">
 
-            <div
-              class="label"
-            >
-              Lost Units Risk
+            <div class="label">
+              Estimated Lost Units
             </div>
 
-            <div
-              class="value"
-            >
+            <div class="value">
               ${fmt(
-                kpis.lostUnitsRisk
+                kpis.estimatedLostUnits
               )}
             </div>
 
@@ -176,18 +164,12 @@ export function initOOSEyeTab(){
 
           <div class="summary-card">
 
-            <div
-              class="label"
-            >
-              New Launch Risk
+            <div class="label">
+              Avg OOS Days
             </div>
 
-            <div
-              class="value"
-            >
-              ${fmt(
-                kpis.newLaunchRisk
-              )}
+            <div class="value">
+              ${kpis.avgOOSDays}
             </div>
 
           </div>
@@ -215,7 +197,8 @@ export function initOOSEyeTab(){
               grid-template-columns:
                 220px
                 180px
-                180px;
+                180px
+                140px;
               gap:8px;
             "
           >
@@ -237,25 +220,23 @@ export function initOOSEyeTab(){
               </option>
 
               ${
-                brands
-                  .map(
-                    b => `
-                      <option value="${b}">
-                        ${b}
-                      </option>
-                    `
-                  )
-                  .join("")
+                brands.map(
+                  b => `
+                  <option value="${b}">
+                    ${b}
+                  </option>
+                `
+                ).join("")
               }
 
             </select>
 
             <select
-              id="oosPriority"
+              id="oosSeverity"
             >
 
               <option value="ALL">
-                All Priority
+                All Severity
               </option>
 
               <option value="CRITICAL">
@@ -272,6 +253,32 @@ export function initOOSEyeTab(){
 
               <option value="LOW">
                 Low
+              </option>
+
+            </select>
+
+            <select
+              id="oosDays"
+            >
+
+              <option value="30">
+                30 Days
+              </option>
+
+              <option value="45">
+                45 Days
+              </option>
+
+              <option value="60">
+                60 Days
+              </option>
+
+              <option value="90">
+                90 Days
+              </option>
+
+              <option value="120">
+                120 Days
               </option>
 
             </select>
@@ -298,9 +305,7 @@ export function initOOSEyeTab(){
 
         </div>
 
-        <div
-          class="table-wrap"
-        >
+        <div class="table-wrap">
 
           <table>
 
@@ -308,53 +313,23 @@ export function initOOSEyeTab(){
 
               <tr>
 
-                <th>
-                  Priority
-                </th>
+                <th>Style</th>
+                <th>ERP SKU</th>
+                <th>Launch Date</th>
+                <th>Brand</th>
+                <th>Launch Age</th>
 
-                <th>
-                  Style
-                </th>
+                <th>Sales</th>
+                <th>DRR</th>
+                <th>OOS Days</th>
 
-                <th>
-                  ERP
-                </th>
+                <th>Seller</th>
+                <th>SJIT</th>
+                <th>SOR</th>
+                <th>Total</th>
 
-                <th>
-                  Brand
-                </th>
-
-                <th>
-                  Launch Age
-                </th>
-
-                <th>
-                  30D Sales
-                </th>
-
-                <th>
-                  DRR
-                </th>
-
-                <th>
-                  OOS Days
-                </th>
-
-                <th>
-                  Seller
-                </th>
-
-                <th>
-                  SJIT
-                </th>
-
-                <th>
-                  SOR
-                </th>
-
-                <th>
-                  Severity
-                </th>
+                <th>Sales Loss</th>
+                <th>Severity</th>
 
               </tr>
 
@@ -371,25 +346,23 @@ export function initOOSEyeTab(){
             "#666";
 
           if(
-            r.priority ===
+            r.severityFlag ===
             "CRITICAL"
           ){
 
             color =
               "#dc2626";
-          }
 
-          else if(
-            r.priority ===
+          }else if(
+            r.severityFlag ===
             "HIGH"
           ){
 
             color =
               "#ea580c";
-          }
 
-          else if(
-            r.priority ===
+          }else if(
+            r.severityFlag ===
             "MEDIUM"
           ){
 
@@ -400,17 +373,6 @@ export function initOOSEyeTab(){
           html += `
 
             <tr>
-
-              <td
-                style="
-                  color:${color};
-                  font-weight:700;
-                "
-              >
-
-                ${r.priority}
-
-              </td>
 
               <td>
 
@@ -432,6 +394,10 @@ export function initOOSEyeTab(){
               </td>
 
               <td>
+                ${r.launchDate}
+              </td>
+
+              <td>
                 ${r.brand}
               </td>
 
@@ -440,9 +406,7 @@ export function initOOSEyeTab(){
               </td>
 
               <td>
-                ${fmt(
-                  r.sales30d
-                )}
+                ${fmt(r.sales)}
               </td>
 
               <td>
@@ -454,26 +418,33 @@ export function initOOSEyeTab(){
               </td>
 
               <td>
-                ${fmt(
-                  r.sellerStock
-                )}
+                ${fmt(r.sellerStock)}
               </td>
 
               <td>
-                ${fmt(
-                  r.sjitStock
-                )}
+                ${fmt(r.sjitStock)}
               </td>
 
               <td>
-                ${fmt(
-                  r.sorStock
-                )}
+                ${fmt(r.sorStock)}
               </td>
 
               <td>
+                ${fmt(r.totalStock)}
+              </td>
 
-                ${r.severity}
+              <td>
+                ${r.salesLoss}
+              </td>
+
+              <td
+                style="
+                  color:${color};
+                  font-weight:700;
+                "
+              >
+
+                ${r.severityFlag}
 
               </td>
 
@@ -525,9 +496,15 @@ export function initOOSEyeTab(){
 
       document
         .getElementById(
-          "oosPriority"
+          "oosSeverity"
         )
-        .value = PRIORITY;
+        .value = SEVERITY;
+
+      document
+        .getElementById(
+          "oosDays"
+        )
+        .value = DAYS;
 
       document
         .getElementById(
@@ -544,12 +521,29 @@ export function initOOSEyeTab(){
 
       document
         .getElementById(
-          "oosPriority"
+          "oosSeverity"
         )
         .onchange = e=>{
 
-          PRIORITY =
+          SEVERITY =
             e.target.value;
+
+          window
+            .renderOOSEyeTab();
+        };
+
+      document
+        .getElementById(
+          "oosDays"
+        )
+        .onchange = e=>{
+
+          DAYS =
+            Number(
+              e.target.value
+            );
+
+          LIMIT = 100;
 
           window
             .renderOOSEyeTab();
