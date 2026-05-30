@@ -17,6 +17,8 @@ import { initGrowDegrowTab } from "./growdegrow/growthUI.js";
 /* NEW */
 import { initFreshness } from "./freshness/index.js";
 
+import { initOOSEyeTab } from "./oos-eye/oosEyeUI.js";
+
 window.addEventListener("DOMContentLoaded", async () => {
 
   await initDashboard();
@@ -38,6 +40,8 @@ window.addEventListener("DOMContentLoaded", async () => {
 
   /* NEW */
   initFreshness();
+
+initOOSEyeTab();
 
   document.querySelectorAll(".tab-btn")
     .forEach(btn => {
@@ -78,7 +82,9 @@ window.addEventListener("DOMContentLoaded", async () => {
           "business",
 
           /* NEW */
-          "freshness"
+          "freshness", 
+
+"ooseye"
 
         ].forEach(id => {
 
@@ -188,6 +194,13 @@ window.addEventListener("DOMContentLoaded", async () => {
           window
             .renderFreshnessTab?.();
         }
+
+if (
+  tab === "ooseye"
+) {
+  window
+    .renderOOSEyeTab?.();
+}
       };
     });
 });
