@@ -22,7 +22,10 @@ let LIMIT = 100;
 /* ✅ SEARCH DEBOUNCE */
 let SEARCH_TIMER = null;
 
-
+const kpi =
+  buildGrowthKPIs(
+    filteredRows
+  );
 
 function fmtPct(v){
 
