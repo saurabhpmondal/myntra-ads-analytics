@@ -1,28 +1,32 @@
-import { getOOSStore } from "./oosEyeStore.js";
+import { getOOSStore }
+  from "./oosEyeStore.js";
 
-function txt(v){
-
-  return String(v || "")
-    .trim();
+import {
+  buildProductMaster
 }
+from "./oosProductMaster.js";
 
-function num(v){
-
-  return Number(v || 0);
+import {
+  buildSalesMap
 }
+from "./oosSales.js";
 
-function parseDate(
-  day,
-  month,
-  year
-){
-
-  return new Date(
-    Number(year),
-    Number(month) - 1,
-    Number(day)
-  );
+import {
+  buildSJITMap,
+  buildSORMap,
+  buildSellerMap
 }
+from "./oosStock.js";
+
+import {
+  evaluateOOS
+}
+from "./oosSeverity.js";
+
+import {
+  buildOOSKPIs
+}
+from "./oosKPI.js";
 
 function daysBetween(
   a,
@@ -37,7 +41,9 @@ function daysBetween(
   );
 }
 
-export async function buildOOSEyeData(){
+export async function buildOOSEyeData(
+  selectedDays = 90
+){
 
   const {
 
@@ -53,219 +59,37 @@ export async function buildOOSEyeData(){
   const today =
     new Date();
 
-  /* ------------------------
-     PRODUCT MASTER
-  ------------------------ */
+  const {
 
-  const erpToStyle = {};
+    styleMaster,
+    erpToStyle
 
-  const styleMaster = {};
-
-  productMaster.forEach(r=>{
-
-    const style =
-      txt(r.style_id);
-
-    const erp =
-      txt(r.erp_sku);
-
-    if(!style){
-
-      return;
-    }
-
-    const launchDate =
-      parseDate(
-        r.date,
-        r.month,
-        r.year
-      );
-
-    styleMaster[style] = {
-
-      style,
-
-      erp,
-
-      brand:
-        txt(r.brand),
-
-      status:
-        txt(r.status),
-
-      launchDate
-
-    };
-
-    if(erp){
-
-      erpToStyle[erp] =
-        style;
-    }
-  });
-
-  /* ------------------------
-     LAST 30 DAYS SALES
-  ------------------------ */
-
-  const salesMap = {};
-
-  sales.forEach(r=>{
-
-    const style =
-      txt(r.style_id);
-
-    if(!style){
-
-      return;
-    }
-
-    const saleDate =
-      parseDate(
-        r.date,
-        r.month,
-        r.year
-      );
-
-    const age =
-      daysBetween(
-        saleDate,
-        today
-      );
-
-    if(age > 30){
-
-      return;
-    }
-
-    salesMap[style] =
-      (
-        salesMap[style] || 0
-      )
-      +
-      num(r.qty);
-  });
-
-  /* ------------------------
-     SJIT
-  ------------------------ */
-
-  const sjitMap = {};
-
-  sjitStock.forEach(r=>{
-
-    const style =
-      txt(r.style_id);
-
-    sjitMap[style] =
-      (
-        sjitMap[style] || 0
-      )
-      +
-      num(
-        r.inventory_count
-      );
-  });
-
-  /* ------------------------
-     SOR
-  ------------------------ */
-
-  const sorMap = {};
-
-  sorStock.forEach(r=>{
-
-    const style =
-      txt(r.style_id);
-
-    sorMap[style] =
-      (
-        sorMap[style] || 0
-      )
-      +
-      num(
-        r.units
-      );
-  });
-
-  /* ------------------------
-     SELLER STOCK
-  ------------------------ */
-
-  const headers =
-    Object.keys(
-      sellerStock[0] || {}
+  } =
+    buildProductMaster(
+      productMaster
     );
 
-  const dateColumns =
-    headers.filter(h=>{
+  const salesMap =
+    buildSalesMap(
+      sales,
+      selectedDays
+    );
 
-      return (
-        h.includes("-")
-      );
-    });
+  const sjitMap =
+    buildSJITMap(
+      sjitStock
+    );
 
-  const latestDate =
-    dateColumns[
-      dateColumns.length - 1
-    ];
+  const sorMap =
+    buildSORMap(
+      sorStock
+    );
 
-  const sellerMap = {};
-
-  sellerStock.forEach(r=>{
-
-    const erp =
-      txt(r.erp);
-
-    const style =
-      erpToStyle[erp];
-
-    if(!style){
-
-      return;
-    }
-
-    let oosDays = 0;
-
-    for(
-      let i =
-        dateColumns.length - 1;
-      i >= 0;
-      i--
-    ){
-
-      const stock =
-        num(
-          r[
-            dateColumns[i]
-          ]
-        );
-
-      if(stock <= 0){
-
-        oosDays++;
-
-      }else{
-
-        break;
-      }
-    }
-
-    sellerMap[style] = {
-
-      currentStock:
-        num(
-          r[latestDate]
-        ),
-
-      oosDays
-
-    };
-  });
-
-  /* ------------------------
-     FINAL REPORT
-  ------------------------ */
+  const sellerMap =
+    buildSellerMap(
+      sellerStock,
+      erpToStyle
+    );
 
   const rows = [];
 
@@ -299,29 +123,19 @@ export async function buildOOSEyeData(){
       );
 
     if(
-      launchAge > 90
+      launchAge >
+      selectedDays
     ){
 
       return;
     }
 
-    const sales30d =
+    const salesQty =
       salesMap[style];
 
-    let threshold = 7;
-
-    if(
-      sales30d > 100
-    ){
-
-      threshold = 1;
-
-    }else if(
-      sales30d >= 50
-    ){
-
-      threshold = 3;
-    }
+    const drr =
+      salesQty /
+      selectedDays;
 
     const seller =
       sellerMap[style] || {
@@ -331,49 +145,45 @@ export async function buildOOSEyeData(){
 
       };
 
+    const {
+
+      isFlagged,
+      salesLoss,
+      severityFlag
+
+    } =
+      evaluateOOS(
+
+        salesQty,
+
+        drr,
+
+        seller.oosDays
+
+      );
+
     if(
-      seller.oosDays <
-      threshold
+      !isFlagged
     ){
 
       return;
     }
 
-    const drr =
-      sales30d / 30;
+    const sjitQty =
+      sjitMap[style] || 0;
 
-    const severity =
-      drr *
-      seller.oosDays;
+    const sorQty =
+      sorMap[style] || 0;
 
-    let priority =
-      "LOW";
+    const totalStock =
 
-    if(
-      severity > 50
-    ){
+      seller.currentStock +
 
-      priority =
-        "CRITICAL";
+      sjitQty +
 
-    }else if(
-      severity > 20
-    ){
-
-      priority =
-        "HIGH";
-
-    }else if(
-      severity > 10
-    ){
-
-      priority =
-        "MEDIUM";
-    }
+      sorQty;
 
     rows.push({
-
-      priority,
 
       style_id:
         style,
@@ -381,12 +191,19 @@ export async function buildOOSEyeData(){
       erp_sku:
         master.erp,
 
+      launchDate:
+        master.launchDate
+          .toLocaleDateString(
+            "en-GB"
+          ),
+
       brand:
         master.brand,
 
       launchAge,
 
-      sales30d,
+      sales:
+        salesQty,
 
       drr:
         Number(
@@ -400,62 +217,37 @@ export async function buildOOSEyeData(){
         seller.currentStock,
 
       sjitStock:
-        sjitMap[style] || 0,
+        sjitQty,
 
       sorStock:
-        sorMap[style] || 0,
+        sorQty,
 
-      severity:
-        Number(
-          severity.toFixed(2)
-        )
+      totalStock,
+
+      salesLoss,
+
+      severityFlag
 
     });
   });
 
   rows.sort(
     (a,b)=>
-      b.severity -
-      a.severity
+
+      b.salesLoss -
+
+      a.salesLoss
   );
 
-  const kpis = {
-
-    flaggedStyles:
-      rows.length,
-
-    criticalStyles:
-      rows.filter(
-        r =>
-          r.priority ===
-          "CRITICAL"
-      ).length,
-
-    lostUnitsRisk:
-      Math.round(
-
-        rows.reduce(
-          (sum,r)=>
-
-            sum +
-            r.severity,
-
-          0
-        )
-
-      ),
-
-    newLaunchRisk:
-
-      rows.filter(
-        r =>
-          r.launchAge <= 60
-      ).length
-  };
+  const kpis =
+    buildOOSKPIs(
+      rows
+    );
 
   return {
 
     rows,
+
     kpis
   };
 }
