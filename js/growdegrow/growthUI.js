@@ -1,3 +1,8 @@
+import {
+  buildGrowthKPIs,
+  renderGrowthKPIs
+} from "./growthKPI.js";
+
 import { buildGrowthData } from "./growthEngine.js";
 
 let DATA = null;
@@ -17,10 +22,7 @@ let LIMIT = 100;
 /* ✅ SEARCH DEBOUNCE */
 let SEARCH_TIMER = null;
 
-import {
-  buildGrowthKPIs,
-  renderGrowthKPIs
-} from "./growthKPI.js";
+
 
 function fmtPct(v){
 
