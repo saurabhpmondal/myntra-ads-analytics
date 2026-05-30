@@ -4,10 +4,30 @@ export function buildOOSKPIs(
 
   return {
 
-    flaggedStyles:
+    totalOOS:
+
       rows.length,
 
+    oos3Plus:
+
+      rows.filter(
+        r =>
+          Number(
+            r.oosSnapshots || 0
+          ) >= 3
+      ).length,
+
+    oos7Plus:
+
+      rows.filter(
+        r =>
+          Number(
+            r.oosSnapshots || 0
+          ) >= 7
+      ).length,
+
     criticalStyles:
+
       rows.filter(
         r =>
           r.severityFlag ===
@@ -15,12 +35,14 @@ export function buildOOSKPIs(
       ).length,
 
     estimatedLostUnits:
+
       Math.round(
 
         rows.reduce(
           (sum,r)=>
 
             sum +
+
             Number(
               r.salesLoss || 0
             ),
@@ -28,31 +50,6 @@ export function buildOOSKPIs(
           0
         )
 
-      ),
-
-    avgOOSDays:
-
-      rows.length
-
-        ? Number(
-
-            rows.reduce(
-              (sum,r)=>
-
-                sum +
-                Number(
-                  r.oosDays || 0
-                ),
-
-              0
-            )
-
-            /
-
-            rows.length
-
-          ).toFixed(1)
-
-        : 0
+      )
   };
 }
