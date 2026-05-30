@@ -17,6 +17,11 @@ let LIMIT = 100;
 /* ✅ SEARCH DEBOUNCE */
 let SEARCH_TIMER = null;
 
+import {
+  buildGrowthKPIs,
+  renderGrowthKPIs
+} from "./growthKPI.js";
+
 function fmtPct(v){
 
   if(v === null){
