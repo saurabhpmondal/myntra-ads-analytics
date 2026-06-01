@@ -265,9 +265,26 @@ export function initLaunchTrackerTab(){
           "
         >
 
-          <h3>
-            Launch Tracker
-          </h3>
+        <div
+  style="
+    display:flex;
+    align-items:center;
+    gap:10px;
+  "
+>
+
+  <h3>
+    Launch Tracker
+  </h3>
+
+  <button
+    id="ltExport"
+    class="tab-btn"
+  >
+    Export CSV
+  </button>
+
+</div>
 
           <div
             style="
@@ -456,16 +473,7 @@ export function initLaunchTrackerTab(){
 
                 <th>
                   Revenue
-                </th>
-
-                <th>
-                  1st Sale
-                </th>
-
-                <th>
-                  No Sales Days
-                </th>
-
+         </th>
                 <th>
                   Ad Spend
                 </th>
@@ -590,14 +598,6 @@ export function initLaunchTrackerTab(){
               </td>
 
               <td>
-                ${r.firstSaleDate}
-              </td>
-
-              <td>
-                ${r.noSalesDays}
-              </td>
-
-              <td>
                 ${fmt(
                   r.adsSpend
                 )}
@@ -657,7 +657,120 @@ export function initLaunchTrackerTab(){
       ){
 
         html += `
+const exportBtn =
+  document.getElementById(
+    "ltExport"
+  );
 
+if(exportBtn){
+
+  exportBtn.onclick =
+    ()=>{
+
+      const headers = [
+
+        "Style ID",
+        "ERP SKU",
+        "ERP Status",
+        "Brand",
+        "Launch Date",
+        "Launch Age",
+        "Sales Units",
+        "Sales Revenue",
+        "Ad Spend",
+        "ROAS",
+        "Impressions",
+        "Clicks",
+        "Rating",
+        "Current Stock",
+        "Launch Status"
+
+      ];
+
+      const csvRows = [
+
+        headers.join(",")
+
+      ];
+
+      filteredRows.forEach(r=>{
+
+        csvRows.push([
+
+          r.style_id,
+
+          r.erp_sku,
+
+          r.erp_status,
+
+          r.brand,
+
+          r.launchDate,
+
+          r.launchAge,
+
+          r.salesUnits,
+
+          r.salesRevenue,
+
+          r.adsSpend,
+
+          r.roas,
+
+          r.impressions,
+
+          r.clicks,
+
+          r.rating,
+
+          r.currentStock,
+
+          r.launchStatus
+
+        ].join(","));
+      });
+
+      const blob =
+        new Blob(
+
+          [
+            csvRows.join("\n")
+          ],
+
+          {
+            type:
+              "text/csv;charset=utf-8;"
+          }
+        );
+
+      const url =
+        URL.createObjectURL(
+          blob
+        );
+
+      const a =
+        document.createElement(
+          "a"
+        );
+
+      a.href = url;
+
+      a.download =
+        "launch-tracker-export.csv";
+
+      document.body
+        .appendChild(a);
+
+      a.click();
+
+      document.body
+        .removeChild(a);
+
+      URL.revokeObjectURL(
+        url
+      );
+    };
+}
           <button
             id="ltMore"
             class="load-more"
