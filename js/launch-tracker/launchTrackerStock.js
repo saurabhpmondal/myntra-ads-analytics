@@ -10,8 +10,7 @@ function num(v){
 }
 
 export function buildLaunchStockMap(
-  sellerStock,
-  erpToStyle
+  sellerStock
 ){
 
   const stockMap = {};
@@ -30,22 +29,10 @@ export function buildLaunchStockMap(
       return;
     }
 
-    const style =
-      erpToStyle[
-        erpSku
-      ];
-
-    if(
-      !style
-    ){
-
-      return;
-    }
-
-    stockMap[style] =
+    stockMap[erpSku] =
 
       (
-        stockMap[style] || 0
+        stockMap[erpSku] || 0
       )
 
       +
