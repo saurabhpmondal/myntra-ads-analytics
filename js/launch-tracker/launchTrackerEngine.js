@@ -50,8 +50,7 @@ export async function buildLaunchTrackerData(
 
   const {
 
-    styleMaster,
-    erpToStyle
+    styleMaster
 
   } =
     buildLaunchProductMaster(
@@ -76,8 +75,7 @@ export async function buildLaunchTrackerData(
 
   const stockMap =
     buildLaunchStockMap(
-      sellerStock,
-      erpToStyle
+      sellerStock
     );
 
   const rows = [];
@@ -152,7 +150,7 @@ export async function buildLaunchTrackerData(
     const stock =
 
       stockMap[
-        master.style_id
+        master.erp_sku
       ]
 
       || 0;
