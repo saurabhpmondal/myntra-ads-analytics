@@ -19,6 +19,8 @@ import { initFreshness } from "./freshness/index.js";
 
 import { initOOSEyeTab } from "./oos-eye/oosEyeUI.js";
 
+import { initLaunchTrackerTab } from "./launch-tracker/launchTrackerUI.js";
+
 window.addEventListener("DOMContentLoaded", async () => {
 
   await initDashboard();
@@ -42,6 +44,8 @@ window.addEventListener("DOMContentLoaded", async () => {
   initFreshness();
 
 initOOSEyeTab();
+
+initLaunchTrackerTab();
 
   document.querySelectorAll(".tab-btn")
     .forEach(btn => {
@@ -82,9 +86,10 @@ initOOSEyeTab();
           "business",
 
           /* NEW */
-          "freshness", 
-
-"ooseye"
+        
+"freshness",
+"ooseye",
+"launchtracker"
 
         ].forEach(id => {
 
@@ -200,6 +205,14 @@ if (
 ) {
   window
     .renderOOSEyeTab?.();
+}
+
+
+if (
+  tab === "launchtracker"
+) {
+  window
+    .renderLaunchTrackerTab?.();
 }
       };
     });
