@@ -657,120 +657,6 @@ export function initLaunchTrackerTab(){
       ){
 
         html += `
-const exportBtn =
-  document.getElementById(
-    "ltExport"
-  );
-
-if(exportBtn){
-
-  exportBtn.onclick =
-    ()=>{
-
-      const headers = [
-
-        "Style ID",
-        "ERP SKU",
-        "ERP Status",
-        "Brand",
-        "Launch Date",
-        "Launch Age",
-        "Sales Units",
-        "Sales Revenue",
-        "Ad Spend",
-        "ROAS",
-        "Impressions",
-        "Clicks",
-        "Rating",
-        "Current Stock",
-        "Launch Status"
-
-      ];
-
-      const csvRows = [
-
-        headers.join(",")
-
-      ];
-
-      filteredRows.forEach(r=>{
-
-        csvRows.push([
-
-          r.style_id,
-
-          r.erp_sku,
-
-          r.erp_status,
-
-          r.brand,
-
-          r.launchDate,
-
-          r.launchAge,
-
-          r.salesUnits,
-
-          r.salesRevenue,
-
-          r.adsSpend,
-
-          r.roas,
-
-          r.impressions,
-
-          r.clicks,
-
-          r.rating,
-
-          r.currentStock,
-
-          r.launchStatus
-
-        ].join(","));
-      });
-
-      const blob =
-        new Blob(
-
-          [
-            csvRows.join("\n")
-          ],
-
-          {
-            type:
-              "text/csv;charset=utf-8;"
-          }
-        );
-
-      const url =
-        URL.createObjectURL(
-          blob
-        );
-
-      const a =
-        document.createElement(
-          "a"
-        );
-
-      a.href = url;
-
-      a.download =
-        "launch-tracker-export.csv";
-
-      document.body
-        .appendChild(a);
-
-      a.click();
-
-      document.body
-        .removeChild(a);
-
-      URL.revokeObjectURL(
-        url
-      );
-    };
-}
           <button
             id="ltMore"
             class="load-more"
@@ -901,6 +787,121 @@ if(exportBtn){
           window
             .renderLaunchTrackerTab();
         };
+
+const exportBtn =
+  document.getElementById(
+    "ltExport"
+  );
+
+if(exportBtn){
+
+  exportBtn.onclick =
+    ()=>{
+
+      const headers = [
+
+        "Style ID",
+        "ERP SKU",
+        "ERP Status",
+        "Brand",
+        "Launch Date",
+        "Launch Age",
+        "Sales Units",
+        "Sales Revenue",
+        "Ad Spend",
+        "ROAS",
+        "Impressions",
+        "Clicks",
+        "Rating",
+        "Current Stock",
+        "Launch Status"
+
+      ];
+
+      const csvRows = [
+
+        headers.join(",")
+
+      ];
+
+      filteredRows.forEach(r=>{
+
+        csvRows.push([
+
+          r.style_id,
+
+          r.erp_sku,
+
+          r.erp_status,
+
+          r.brand,
+
+          r.launchDate,
+
+          r.launchAge,
+
+          r.salesUnits,
+
+          r.salesRevenue,
+
+          r.adsSpend,
+
+          r.roas,
+
+          r.impressions,
+
+          r.clicks,
+
+          r.rating,
+
+          r.currentStock,
+
+          r.launchStatus
+
+        ].join(","));
+      });
+
+      const blob =
+        new Blob(
+
+          [
+            csvRows.join("\n")
+          ],
+
+          {
+            type:
+              "text/csv;charset=utf-8;"
+          }
+        );
+
+      const url =
+        URL.createObjectURL(
+          blob
+        );
+
+      const a =
+        document.createElement(
+          "a"
+        );
+
+      a.href = url;
+
+      a.download =
+        "launch-tracker-export.csv";
+
+      document.body
+        .appendChild(a);
+
+      a.click();
+
+      document.body
+        .removeChild(a);
+
+      URL.revokeObjectURL(
+        url
+      );
+    };
+}
 
       const more =
         document.getElementById(
