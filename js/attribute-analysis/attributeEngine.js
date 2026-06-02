@@ -40,6 +40,9 @@ function addToBucket(
   parentValue,
   detailValue,
   styleId,
+  erpSku,
+  brand,
+  erpStatus,
   units,
   value
 ){
@@ -68,6 +71,15 @@ function addToBucket(
       styles:
         new Set(),
 
+      erpSkus:
+        new Set(),
+
+      brands:
+        new Set(),
+
+      erpStatuses:
+        new Set(),
+
       soldUnits:0,
 
       totalValue:0,
@@ -80,6 +92,24 @@ function addToBucket(
     .styles
     .add(
       styleId
+    );
+
+  map[key]
+    .erpSkus
+    .add(
+      erpSku
+    );
+
+  map[key]
+    .brands
+    .add(
+      brand
+    );
+
+  map[key]
+    .erpStatuses
+    .add(
+      erpStatus
     );
 
   map[key]
@@ -115,34 +145,48 @@ function addToBucket(
       styles:
         new Set(),
 
+      erpSkus:
+        new Set(),
+
+      brands:
+        new Set(),
+
+      erpStatuses:
+        new Set(),
+
       soldUnits:0,
 
       totalValue:0
     };
   }
 
-  map[key]
-    .children[
-      detailValue
-    ]
-    .styles
-    .add(
-      styleId
-    );
+  const child =
+    map[key]
+      .children[
+        detailValue
+      ];
 
-  map[key]
-    .children[
-      detailValue
-    ]
-    .soldUnits +=
-      units;
+  child.styles.add(
+    styleId
+  );
 
-  map[key]
-    .children[
-      detailValue
-    ]
-    .totalValue +=
-      value;
+  child.erpSkus.add(
+    erpSku
+  );
+
+  child.brands.add(
+    brand
+  );
+
+  child.erpStatuses.add(
+    erpStatus
+  );
+
+  child.soldUnits +=
+    units;
+
+  child.totalValue +=
+    value;
 }
 
 export async function buildAttributeData(
@@ -261,6 +305,12 @@ export async function buildAttributeData(
 
       styleId,
 
+      master.erp_sku,
+
+      master.brand,
+
+      master.erp_status,
+
       units,
 
       value
@@ -282,6 +332,12 @@ export async function buildAttributeData(
 
       styleId,
 
+      master.erp_sku,
+
+      master.brand,
+
+      master.erp_status,
+
       units,
 
       value
@@ -302,6 +358,12 @@ export async function buildAttributeData(
       ),
 
       styleId,
+
+      master.erp_sku,
+
+      master.brand,
+
+      master.erp_status,
 
       units,
 
@@ -345,6 +407,26 @@ export async function buildAttributeData(
         totalValue:
           Math.round(
             child.totalValue
+          ),
+
+        brands:
+          Array.from(
+            child.brands
+          ),
+
+        erpStatuses:
+          Array.from(
+            child.erpStatuses
+          ),
+
+        erpSkus:
+          Array.from(
+            child.erpSkus
+          ),
+
+        styleIds:
+          Array.from(
+            child.styles
           ),
 
         contribution:
@@ -393,6 +475,26 @@ export async function buildAttributeData(
       totalValue:
         Math.round(
           r.totalValue
+        ),
+
+      brands:
+        Array.from(
+          r.brands
+        ),
+
+      erpStatuses:
+        Array.from(
+          r.erpStatuses
+        ),
+
+      erpSkus:
+        Array.from(
+          r.erpSkus
+        ),
+
+      styleIds:
+        Array.from(
+          r.styles
         ),
 
       contribution:
