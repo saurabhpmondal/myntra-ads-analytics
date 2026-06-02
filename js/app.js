@@ -96,7 +96,7 @@ initAttributeTab();
         
 "freshness",
 "ooseye",
-"launchtracker"
+"launchtracker", 
 
 "attributeanalysis"
 
