@@ -21,6 +21,12 @@ import { initOOSEyeTab } from "./oos-eye/oosEyeUI.js";
 
 import { initLaunchTrackerTab } from "./launch-tracker/launchTrackerUI.js";
 
+import {
+  initAttributeTab
+}
+from "./attribute-analysis/attributeUI.js";
+
+
 window.addEventListener("DOMContentLoaded", async () => {
 
   await initDashboard();
@@ -47,6 +53,7 @@ initOOSEyeTab();
 
 initLaunchTrackerTab();
 
+initAttributeTab();
   document.querySelectorAll(".tab-btn")
     .forEach(btn => {
 
@@ -90,6 +97,8 @@ initLaunchTrackerTab();
 "freshness",
 "ooseye",
 "launchtracker"
+
+"attributeanalysis"
 
         ].forEach(id => {
 
@@ -213,6 +222,14 @@ if (
 ) {
   window
     .renderLaunchTrackerTab?.();
+}
+
+if(
+  tab ===
+  "attributeanalysis"
+){
+  window
+    .renderAttributeTab?.();
 }
       };
     });
