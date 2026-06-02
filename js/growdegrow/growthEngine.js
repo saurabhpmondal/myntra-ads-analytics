@@ -15,7 +15,7 @@ function monthNum(v){
     APR:4,
     MAY:5,
     JUNE:6,
-    JUL:7,
+    JULY:7,
     AUG:8,
     SEP:9,
     OCT:10,
