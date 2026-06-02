@@ -22,7 +22,9 @@ const EXPANDED = {};
 function fmt(v){
 
   return Number(v || 0)
-    .toLocaleString("en-IN");
+    .toLocaleString(
+      "en-IN"
+    );
 }
 
 function exportCSV(
@@ -49,10 +51,15 @@ function exportCSV(
       [
 
         r.attribute,
+
         `"${r.value}"`,
+
         r.stylesSold,
+
         r.soldUnits,
+
         r.totalValue,
+
         r.contribution
 
       ].join(",")
@@ -123,24 +130,30 @@ export function initAttributeTab(){
       const brands =
         Array.from(
           new Set(
-            rows
-              .map(
-                r=>r.brand
-              )
-              .filter(Boolean)
+
+            rows.flatMap(
+              r=>
+                r.brands || []
+            )
+
           )
-        ).sort();
+        )
+        .filter(Boolean)
+        .sort();
 
       const statuses =
         Array.from(
           new Set(
-            rows
-              .map(
-                r=>r.erp_status
-              )
-              .filter(Boolean)
+
+            rows.flatMap(
+              r=>
+                r.erpStatuses || []
+            )
+
           )
-        ).sort();
+        )
+        .filter(Boolean)
+        .sort();
 
       let filteredRows =
         [...rows];
@@ -160,19 +173,104 @@ export function initAttributeTab(){
       }
 
       if(
-        SEARCH
+        BRAND !==
+        "ALL"
       ){
-
-        const s =
-          SEARCH.toLowerCase();
 
         filteredRows =
           filteredRows.filter(
             r=>
 
-              r.value
+              (
+                r.brands || []
+              ).includes(
+                BRAND
+              )
+          );
+      }
+
+      if(
+        ERP_STATUS !==
+        "ALL"
+      ){
+
+        filteredRows =
+          filteredRows.filter(
+            r=>
+
+              (
+                r.erpStatuses
+                || []
+              ).includes(
+                ERP_STATUS
+              )
+          );
+      }
+
+      if(
+        SEARCH
+      ){
+
+        const s =
+          SEARCH
+            .toLowerCase();
+
+        filteredRows =
+          filteredRows.filter(
+            r=>{
+
+              const valueMatch =
+
+                String(
+                  r.value || ""
+                )
                 .toLowerCase()
-                .includes(s)
+                .includes(s);
+
+              const erpMatch =
+
+                (
+                  r.erpSkus
+                  || []
+                )
+
+                .some(
+                  x=>
+
+                    String(x)
+                    .toLowerCase()
+                    .includes(s)
+                );
+
+              const styleMatch =
+
+                (
+                  r.styleIds
+                  || []
+                )
+
+                .some(
+                  x=>
+
+                    String(x)
+                    .toLowerCase()
+                    .includes(s)
+                );
+
+              return (
+
+                valueMatch
+
+                ||
+
+                erpMatch
+
+                ||
+
+                styleMatch
+
+              );
+            }
           );
       }
 
@@ -273,19 +371,60 @@ export function initAttributeTab(){
               grid-template-columns:
                 220px
                 180px
+                180px
+                150px
                 150px
                 150px;
               gap:8px;
             "
           >
-
-            <input
+<input
               id="attSearch"
               placeholder="
-                Search Attribute
+                Search ERP / Style
               "
               value="${SEARCH}"
             />
+
+            <select
+              id="attBrand"
+            >
+
+              <option value="ALL">
+                All Brands
+              </option>
+
+              ${
+                brands.map(
+                  b=>`
+                    <option value="${b}">
+                      ${b}
+                    </option>
+                  `
+                ).join("")
+              }
+
+            </select>
+
+            <select
+              id="attStatus"
+            >
+
+              <option value="ALL">
+                All ERP Status
+              </option>
+
+              ${
+                statuses.map(
+                  s=>`
+                    <option value="${s}">
+                      ${s}
+                    </option>
+                  `
+                ).join("")
+              }
+
+            </select>
 
             <select
               id="attAttribute"
@@ -538,7 +677,7 @@ export function initAttributeTab(){
         </div>
       `;
 
-      if(
+if(
         filteredRows.length >
         LIMIT
       ){
@@ -566,6 +705,20 @@ export function initAttributeTab(){
 
       document
         .getElementById(
+          "attBrand"
+        )
+        .value =
+        BRAND;
+
+      document
+        .getElementById(
+          "attStatus"
+        )
+        .value =
+        ERP_STATUS;
+
+      document
+        .getElementById(
           "attAttribute"
         )
         .value =
@@ -577,6 +730,32 @@ export function initAttributeTab(){
         )
         .value =
         DAYS;
+
+      document
+        .getElementById(
+          "attBrand"
+        )
+        .onchange = e=>{
+
+          BRAND =
+            e.target.value;
+
+          window
+            .renderAttributeTab();
+        };
+
+      document
+        .getElementById(
+          "attStatus"
+        )
+        .onchange = e=>{
+
+          ERP_STATUS =
+            e.target.value;
+
+          window
+            .renderAttributeTab();
+        };
 
       document
         .getElementById(
