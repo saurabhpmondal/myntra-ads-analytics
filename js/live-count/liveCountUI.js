@@ -7,8 +7,6 @@ let DATA = null;
 
 let BRAND = "ALL";
 
-let STATUS = "ALL";
-
 let DAYS = "30";
 
 let LIMIT = 100;
@@ -135,29 +133,6 @@ export function initLiveCountTab(){
       let filteredRows =
         [...summaryRows];
 
-      if(
-        BRAND !==
-        "ALL"
-      ){
-
-        filteredRows =
-          filteredRows.map(
-            row=>({
-
-              date:
-                row.date,
-
-              [BRAND]:
-                row[
-                  BRAND
-                ],
-
-              totalLive:
-                row.totalLive
-            })
-          );
-      }
-
       let html = `
 
       <section class="panel">
@@ -165,51 +140,65 @@ export function initLiveCountTab(){
         <div class="kpi-grid">
 
           <div class="kpi-card">
+
             <span>
               Total Live
             </span>
+
             <strong>
               ${fmt(
                 kpis.totalLive
               )}
             </strong>
+
           </div>
 
           <div class="kpi-card">
+
             <span>
               Total Non Live
             </span>
+
             <strong>
               ${fmt(
                 kpis.totalNonLive
               )}
             </strong>
+
           </div>
 
           <div class="kpi-card">
+
             <span>
               Live %
             </span>
+
             <strong>
               ${kpis.livePercent}%
             </strong>
+
           </div>
 
           <div class="kpi-card">
+
             <span>
               Brands
             </span>
+
             <strong>
               ${fmt(
                 kpis.brandsTracked
               )}
             </strong>
+
           </div>
 
           <div class="kpi-card">
+
             <span>
               Biggest Gainer
             </span>
+
             <strong
               style="
                 font-size:14px;
@@ -217,12 +206,15 @@ export function initLiveCountTab(){
             >
               ${kpis.biggestGainer}
             </strong>
+
           </div>
 
           <div class="kpi-card">
+
             <span>
               Biggest Decliner
             </span>
+
             <strong
               style="
                 font-size:14px;
@@ -230,6 +222,7 @@ export function initLiveCountTab(){
             >
               ${kpis.biggestDecliner}
             </strong>
+
           </div>
 
         </div>
@@ -256,7 +249,6 @@ export function initLiveCountTab(){
                 180px
                 180px
                 180px
-                180px
                 180px;
               gap:8px;
             "
@@ -273,10 +265,10 @@ export function initLiveCountTab(){
               ${
                 brands.map(
                   b=>`
-                  <option value="${b}">
-                    ${b}
-                  </option>
-                `
+                    <option value="${b}">
+                      ${b}
+                    </option>
+                  `
                 ).join("")
               }
 
@@ -304,25 +296,7 @@ export function initLiveCountTab(){
 
             </select>
 
-            <select
-              id="lcStatus"
-            >
-
-              <option value="ALL">
-                All Status
-              </option>
-
-              <option value="LIVE">
-                Live
-              </option>
-
-              <option value="NON LIVE">
-                Non Live
-              </option>
-
-            </select>
-
-            <button
+<button
               id="exportLive"
               class="tab-btn"
             >
@@ -337,6 +311,29 @@ export function initLiveCountTab(){
             </button>
 
           </div>
+
+        </div>
+
+        <div
+          style="
+            padding:8px 12px;
+            color:#666;
+            font-size:12px;
+          "
+        >
+
+          Showing
+
+          ${Math.min(
+            LIMIT,
+            filteredRows.length
+          )}
+
+          of
+
+          ${filteredRows.length}
+
+          snapshot dates
 
         </div>
 
@@ -362,9 +359,11 @@ export function initLiveCountTab(){
           brand=>{
 
             html += `
+
               <th>
                 ${brand}
               </th>
+
             `;
           }
         );
@@ -372,9 +371,11 @@ export function initLiveCountTab(){
       }else{
 
         html += `
+
           <th>
             ${BRAND}
           </th>
+
         `;
       }
 
@@ -408,11 +409,13 @@ export function initLiveCountTab(){
               ];
 
             html += `
+
               <tr>
 
                 <td>
                   ${row.date}
                 </td>
+
             `;
 
             if(
@@ -431,14 +434,20 @@ export function initLiveCountTab(){
                   ){
 
                     const current =
-                      row[
-                        brand
-                      ] || 0;
+
+                      Number(
+                        row[
+                          brand
+                        ] || 0
+                      );
 
                     const previous =
-                      prev[
-                        brand
-                      ] || 0;
+
+                      Number(
+                        prev[
+                          brand
+                        ] || 0
+                      );
 
                     if(
                       current >
@@ -459,70 +468,131 @@ export function initLiveCountTab(){
                   }
 
                   html += `
+
                     <td
                       style="
                         color:${color};
                         font-weight:700;
                       "
                     >
-                      ${
-                        fmt(
-                          row[
-                            brand
-                          ]
-                        )
-                      }
+
+                      ${fmt(
+                        row[
+                          brand
+                        ]
+                      )}
+
                     </td>
+
                   `;
                 }
               );
 
             }else{
 
+              let color =
+                "";
+
+              if(
+                prev
+              ){
+
+                const current =
+
+                  Number(
+                    row[
+                      BRAND
+                    ] || 0
+                  );
+
+                const previous =
+
+                  Number(
+                    prev[
+                      BRAND
+                    ] || 0
+                  );
+
+                if(
+                  current >
+                  previous
+                ){
+
+                  color =
+                    "#16a34a";
+
+                }else if(
+                  current <
+                  previous
+                ){
+
+                  color =
+                    "#dc2626";
+                }
+              }
+
               html += `
-                <td>
-                  ${
-                    fmt(
-                      row[
-                        BRAND
-                      ]
-                    )
-                  }
+
+                <td
+                  style="
+                    color:${color};
+                    font-weight:700;
+                  "
+                >
+
+                  ${fmt(
+                    row[
+                      BRAND
+                    ]
+                  )}
+
                 </td>
+
               `;
             }
 
             html += `
 
               <td>
+
                 ${fmt(
                   row.totalLive
                 )}
+
               </td>
 
               </tr>
+
             `;
           }
         );
 
       html += `
+
             </tbody>
+
           </table>
+
         </div>
+
       `;
 
-      if(
+if(
         filteredRows.length >
         LIMIT
       ){
 
         html += `
+
           <button
             id="lcMore"
             class="load-more"
           >
+
             Load More
+
           </button>
+
         `;
       }
 
@@ -546,13 +616,6 @@ export function initLiveCountTab(){
         )
         .value =
         DAYS;
-
-      document
-        .getElementById(
-          "lcStatus"
-        )
-        .value =
-        STATUS;
 
       document
         .getElementById(
@@ -589,8 +652,13 @@ export function initLiveCountTab(){
         .onclick = ()=>{
 
           exportCSV(
+
             liveRows,
-            "live-styles.csv"
+
+            `live-styles-${
+              DATA.latestSnapshotDate
+            }.csv`
+
           );
         };
 
@@ -601,8 +669,13 @@ export function initLiveCountTab(){
         .onclick = ()=>{
 
           exportCSV(
+
             nonLiveRows,
-            "non-live-styles.csv"
+
+            `non-live-styles-${
+              DATA.latestSnapshotDate
+            }.csv`
+
           );
         };
 
