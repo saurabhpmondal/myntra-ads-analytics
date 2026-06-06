@@ -14,6 +14,25 @@ function num(v){
     : n;
 }
 
+function parseSnapshotDate(
+  dateStr
+){
+
+  const [
+    day,
+    month,
+    year
+  ] = String(
+    dateStr || ""
+  ).split("-");
+
+  return new Date(
+    Number(year),
+    Number(month) - 1,
+    Number(day)
+  );
+}
+
 export function buildLiveCountInventoryMap(
   inventory
 ){
@@ -85,14 +104,11 @@ export function buildLiveCountInventoryMap(
       snapshotMap
     )
     .sort(
-      (
-        a,
-        b
-      )=>
+      (a,b)=>
 
-        new Date(a)
+        parseSnapshotDate(a)
         -
-        new Date(b)
+        parseSnapshotDate(b)
     );
 
   return {
