@@ -21,6 +21,8 @@ import { initOOSEyeTab } from "./oos-eye/oosEyeUI.js";
 
 import { initLaunchTrackerTab } from "./launch-tracker/launchTrackerUI.js";
 
+import { initLiveCountTab } from "./live-count/liveCountUI.js";
+
 import {
   initAttributeTab
 }
@@ -52,6 +54,8 @@ window.addEventListener("DOMContentLoaded", async () => {
 initOOSEyeTab();
 
 initLaunchTrackerTab();
+
+initLiveCountTab();
 
 initAttributeTab();
   document.querySelectorAll(".tab-btn")
@@ -98,7 +102,9 @@ initAttributeTab();
 "ooseye",
 "launchtracker", 
 
-"attributeanalysis"
+"attributeanalysis", 
+
+"livecount"
 
         ].forEach(id => {
 
@@ -230,6 +236,13 @@ if(
 ){
   window
     .renderAttributeTab?.();
+}
+
+if (
+  tab === "livecount"
+) {
+  window
+    .renderLiveCountTab?.();
 }
       };
     });
